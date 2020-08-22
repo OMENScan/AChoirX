@@ -15,6 +15,8 @@ import (
     "os"
     "strings"
     "runtime"
+    "net/http"
+    "io"
 )
 
 
@@ -29,6 +31,12 @@ var iCase = 0                                   // Case Information Processing M
 var consOrFile = 0                              // Console Input instead of File
 var opSystem = "Windows"                        // Which Operating System are we running on
 var iopSystem = 0                               // Operating System Flag (0=win, 1=lin, 2=osx, 3=?)
+var slashDelim byte = '\\'                      // Directory Delimiter Win vs. Lin vs. OSX
+var WGetURL = "http://Company.com/file"         // URL For HTTP Get
+var RootSlash = 0                               // Last Occurance of Slash to find Root URL
+var CurrFil = "Current.fil"                     // Current File Name
+
+
 
 // Main Line
 func main() {
@@ -41,8 +49,8 @@ func main() {
     iMin := lclTime.Minute()
 
     // Get Host Name
-    cName,err := os.Hostname()
-    if err != nil {
+    cName, host_err := os.Hostname()
+    if host_err != nil {
         cName = "LocalHost"
     }
 
@@ -52,12 +60,16 @@ func main() {
     switch opSystem {
     case "windows":
         iopSystem = 0
+        slashDelim = '\\'
     case "linux":
         iopSystem = 1
+        slashDelim = '/'
     case "darwin":
         iopSystem = 2
+        slashDelim = '/'
     default:
         iopSystem = 3
+        slashDelim = '/'
     }
 
 
@@ -73,20 +85,19 @@ func main() {
     caseExmnr := "Unknown"
 
     // What Directory are we in?
-    BaseDir, err := os.Getwd()
-    if err != nil {
+    BaseDir, cwd_err := os.Getwd()
+    if cwd_err != nil {
         BaseDir = fmt.Sprintf("\\AChoir\\ACQ-IR-%s-%04d%02d%02d-%02d%02d", cName, iYYYY, iMonth, iDay, iHour, iMin) 
 
     }
 
     CurrWorkDir := BaseDir
 
-    // Remove any Trailing Slashes.  This happens if CWD is a
-    // mapped network drive (since it is at the root directory)
-    if last := len(BaseDir) - 1; last >= 0 && BaseDir[last] == '\\' {
+    // Remove any Trailing Slashes.  This happens if CWD is a mapped network drive (since it is at the root directory)
+    // Note: slashDelim was set above based on OS
+    if last := len(BaseDir) - 1; last >= 0 && BaseDir[last] == slashDelim {
         BaseDir = BaseDir[:last]
     }
-
 
 
     // Start by Parsing any Command Line Parameters
@@ -151,7 +162,32 @@ func main() {
             } else {
                 fmt.Println("[!] /INI: Too Long - Greater than 254 chars")
             }
-        }
+        } else if len(os.Args[i]) > 5 && strings.EqualFold(os.Args[i][0:5], "/GET:") {
+            WGetURL = os.Args[i][5:]
+            RootSlash = strings.LastIndexByte(WGetURL, '/')
+            if (RootSlash == -1) {
+                CurrFil = fmt.Sprintf("%s%cAChoir.Acq", slashDelim, CurrWorkDir)
+            } else if len(WGetURL[RootSlash+1:]) < 2 {
+                CurrFil = fmt.Sprintf("%s%cAChoir.Acq", slashDelim, CurrWorkDir)
+            } else {
+                CurrFil = fmt.Sprintf("%s%c%s", CurrWorkDir, slashDelim, WGetURL[RootSlash+1:]);
+            }
+
+            fmt.Println("[+] HTTP GetFile: ", WGetURL, CurrFil)
+
+            http_err := DownloadFile(CurrFil, WGetURL)
+            if http_err != nil {
+                fmt.Println("[!] Downloaded Failed: " + WGetURL)        
+            } else {
+                fmt.Println("[+] Downloaded Success: " + WGetURL)        
+            }
+	}
+
+
+
+
+
+
     }
 
 
@@ -172,3 +208,29 @@ func main() {
     fmt.Println("[+] Curr Work Dir: ", CurrWorkDir)
 
 }
+
+
+// DownloadFile will download a url to a local file. It's efficient because it will
+// write as it downloads and not load the whole file into memory.
+func DownloadFile(filepath string, url string) error {
+    // Get the data via HTTP or HTTPS Get
+    http_resp, http_err := http.Get(url)
+    if http_err != nil {
+        return http_err
+    }
+
+    defer http_resp.Body.Close()
+
+    // Create the file
+    http_out, http_err := os.Create(filepath)
+    if http_err != nil {
+        return http_err
+    }
+
+    defer http_out.Close()
+
+    // Write the body to file
+    _, http_err = io.Copy(http_out, http_resp.Body)
+    return http_err
+}
+
