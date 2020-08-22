@@ -14,17 +14,21 @@ import (
     "time"
     "os"
     "strings"
+    "runtime"
 )
 
 
 // Global Variable Settings
-var Version = "v4.4"
-var RunMode = "Run"
-var inFnam = "AChoir.ACQ"
-var ACQName = "ACQ-IR-LocalHost-00000000-0000"
-var iRunMode = 0
-var DiskDrive = "C:"
-var iCase = 0
+var Version = "v4.4"                            // AChoir Version
+var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
+var iRunMode = 0                                // Int Runmode Flag (0, 1, 2)
+var inFnam = "AChoir.ACQ"                       // Script Name
+var ACQName = "ACQ-IR-LocalHost-00000000-0000"  // AChoir Unique Collection Name
+var DiskDrive = "C:"                            // Disk Drive (/DRV)
+var iCase = 0                                   // Case Information Processing Mode
+var consOrFile = 0                              // Console Input instead of File
+var opSystem = "Windows"                        // Which Operating System are we running on
+var iopSystem = 0                               // Operating System Flag (0=win, 1=lin, 2=osx, 3=?)
 
 // Main Line
 func main() {
@@ -43,9 +47,24 @@ func main() {
     }
 
 
+    // Get Operating System
+    opSystem = runtime.GOOS
+    switch opSystem {
+    case "windows":
+        iopSystem = 0
+    case "linux":
+        iopSystem = 1
+    case "darwin":
+        iopSystem = 2
+    default:
+        iopSystem = 3
+    }
+
+
     // Initial Settings and Confiiguration
     ACQName = fmt.Sprintf("ACQ-IR-%s-%04d%02d%02d-%02d%02d", cName, iYYYY, iMonth, iDay, iHour, iMin) 
     inFnam = "AChoir.ACQ"
+
 
     // Default Case Settings 
     caseNumbr := ACQName
@@ -108,7 +127,29 @@ func main() {
                 DiskDrive = os.Args[i][5:7]
                 fmt.Println("[+] Disk Drive Set: ", DiskDrive)
             } else {
-                fmt.Println("[+] Invalid Disk Drive Setting: ", os.Args[i][5:])
+                fmt.Println("[!] Invalid Disk Drive Setting: ", os.Args[i][5:])
+            }
+        } else if strings.EqualFold(os.Args[i], "/CON") {
+            consOrFile = 1
+            RunMode = "Con"
+            inFnam = "Console"
+            iRunMode = 1;
+        } else if len(os.Args[i]) > 5 && strings.EqualFold(os.Args[i][0:5], "/INI:") {
+            // Check if Input is Console
+            if strings.EqualFold(os.Args[i], "/INI:Console") {
+                consOrFile = 1;
+                RunMode = "Con"
+                inFnam = os.Args[i][5:]
+                iRunMode = 1;
+            } else if len(os.Args[i]) < 254 {
+                RunMode = "Ini"
+                inFnam = os.Args[i][5:]
+
+                // Initially Set iRunmode to 2 (in case we are running remote)
+                // Avoids Creating a Local BACQDIR
+                iRunMode = 2;
+            } else {
+                fmt.Println("[!] /INI: Too Long - Greater than 254 chars")
             }
         }
     }
@@ -117,15 +158,17 @@ func main() {
 
 
     // Print Stuff Cause GoLang makes us use variables 
-    fmt.Println("AChoirX Version: ", Version)
-    fmt.Println("AChoirX RunMode: ", RunMode)
+    fmt.Println("[+] AChoirX Version: ", Version)
+    fmt.Println("[+] AChoirX RunMode: ", RunMode)
+    fmt.Println("[+] Operating System: ", opSystem)
 
-    fmt.Println("Case Number: ", caseNumbr)
-    fmt.Println("Evidence Number: ", evidNumbr)
-    fmt.Println("Case Description: ", caseDescr)
-    fmt.Println("Case Examiner: ", caseExmnr)
-    fmt.Println("Script: ", inFnam)
-    fmt.Println("Base Dir: ", BaseDir)
-    fmt.Println("Curr Work Dir: ", CurrWorkDir)
+
+    fmt.Println("[+] Case Number: ", caseNumbr)
+    fmt.Println("[+] Evidence Number: ", evidNumbr)
+    fmt.Println("[+] Case Description: ", caseDescr)
+    fmt.Println("[+] Case Examiner: ", caseExmnr)
+    fmt.Println("[+] Script: ", inFnam)
+    fmt.Println("[+] Base Dir: ", BaseDir)
+    fmt.Println("[+] Curr Work Dir: ", CurrWorkDir)
 
 }
