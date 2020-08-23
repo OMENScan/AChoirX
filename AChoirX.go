@@ -17,6 +17,7 @@ import (
     "runtime"
     "net/http"
     "io"
+    "bufio"
 )
 
 
@@ -35,7 +36,8 @@ var slashDelim byte = '\\'                      // Directory Delimiter Win vs. L
 var WGetURL = "http://Company.com/file"         // URL For HTTP Get
 var RootSlash = 0                               // Last Occurance of Slash to find Root URL
 var CurrFil = "Current.fil"                     // Current File Name
-
+var inUser = "Joe"                              // UserId
+var inPass = "Pa$$w0rd"                         // Password
 
 
 // Main Line
@@ -181,7 +183,34 @@ func main() {
             } else {
                 fmt.Println("[+] Downloaded Success: " + WGetURL)        
             }
-	}
+	} else if len(os.Args[i]) > 5 && strings.EqualFold(os.Args[i][0:5], "/USR:") {
+            if (os.Args[i][5] =='?') {
+                cons_readr := bufio.NewReader(os.Stdin)
+                fmt.Print("[?] Enter Share Mapping UserID > ")
+                cons_text, _ := cons_readr.ReadString('\n')
+
+                // Trim whitespace and print
+                inUser = strings.TrimSpace(cons_text)
+            } else {
+                inUser = os.Args[i][5:]
+            }
+        } else if len(os.Args[i]) > 5 && strings.EqualFold(os.Args[i][0:5], "/PWD:") {
+            if (os.Args[i][5] =='?') {
+                cons_readr := bufio.NewReader(os.Stdin)
+                fmt.Print("[?] Enter Share Mapping Password > ")
+                cons_text, _ := cons_readr.ReadString('\n')
+
+                // Trim whitespace and print
+                inPass = strings.TrimSpace(cons_text)
+            } else {
+                inPass = os.Args[i][5:]
+            }
+        }
+
+
+
+
+
 
 
 
@@ -206,6 +235,8 @@ func main() {
     fmt.Println("[+] Script: ", inFnam)
     fmt.Println("[+] Base Dir: ", BaseDir)
     fmt.Println("[+] Curr Work Dir: ", CurrWorkDir)
+    fmt.Println("[+] In User: ", inUser)
+    fmt.Println("[+] In Pass: ", inPass)
 
 }
 
