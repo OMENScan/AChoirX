@@ -38,7 +38,25 @@ var RootSlash = 0                               // Last Occurance of Slash to fi
 var CurrFil = "Current.fil"                     // Current File Name
 var inUser = "Joe"                              // UserId
 var inPass = "Pa$$w0rd"                         // Password
+var Numberz = "0123456789"                      // String to convert from Char to Int
+var VarArray[10][256] string                    // Variables Array VR0-VR9
+var iVar = -1                                   // Index of the Variable Array
+var iLogOpen = 0                                // Is the LogFile Open Yet
 
+// Global File Names
+var IniFile = "C:\\AChoir\\AChoir.Acq"          // AChoir Script File
+var LogFile = "C:\\AChoir\\LogFile.dat"         // AChoir Log File
+var WGetFile = "C:\\AChoir\\Download.dat"       // Downloaded WGet File
+var LstFile = "C:\\AChoir\\Data.Lst"            // List of Data
+var ChkFile = "C:\\AChoir\\Data.Chk"            // Check For File Existence
+var BACQDir = "C:\\AChoir"                      // Base Acquisition Directory
+var CachDir = "C:\\AChoir\\Cache"               // AChoir Caching Directory 
+var ForFile = "C:\\AChoir\\Cache\\ForFiles"     // Do action for these Files
+var MCpFile = "C:\\AChoir\\Cache\\MCpFiles"     // Do action for Multiple File Copies
+var ForDisk = "C:\\AChoir\\Cache\\ForDisk"      // Do Action for Multiple Disk Drives 
+
+// Global File Handles
+var LogHndl *os.File                            // File Handle for the LogFile
 
 // Main Line
 func main() {
@@ -205,20 +223,62 @@ func main() {
             } else {
                 inPass = os.Args[i][5:]
             }
+        } else if len(os.Args[i]) > 5 && strings.EqualFold(os.Args[i][0:3], "/VR") && (os.Args[i][4] ==':') {
+            iVar = strings.IndexByte(Numberz, os.Args[i][3])
+            if (iVar == -1) {
+                fmt.Println("[!] Invalid Variable: ", os.Args[i][1:4])
+            } else if len(os.Args[i]) > 250 {
+                fmt.Println("[!] Variable Exceeds 250 Bytes: ", os.Args[i][1:4])
+            } else {
+                VarArray[iVar][0] = os.Args[i][5:]
+            }
+        } else {
+            fmt.Println("[!] Bad Argument: ", os.Args[i]);
         }
-
-
-
-
-
-
-
-
-
-
-
     }
 
+
+    //****************************************************************
+    // Set Initial File Names (BaseDir needs to be set 1st)          *
+    //****************************************************************
+    IniFile = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, inFnam)
+    WGetFile = fmt.Sprintf("%s%cAChoir.Dat", BaseDir, slashDelim)
+    LstFile = fmt.Sprintf("%s%cLstFiles", BaseDir, slashDelim)
+    ChkFile = fmt.Sprintf("%s%cAChoir.exe", BaseDir, slashDelim)
+
+    BACQDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, ACQName)
+    CachDir = fmt.Sprintf("%s%c%s%cCache", BaseDir, slashDelim, ACQName, slashDelim)
+
+    ForFile = fmt.Sprintf("%s%cForFiles", CachDir, slashDelim)
+    MCpFile = fmt.Sprintf("%s%cMCpFiles", CachDir, slashDelim)
+    ForDisk = fmt.Sprintf("%s%cForDisks", CachDir, slashDelim)
+
+
+    //****************************************************************
+    // Create Log Dir if it aint there                               *
+    //****************************************************************
+    LogFile = fmt.Sprintf("%s%cLogs", BaseDir, slashDelim)
+    DirAllocErr(LogFile)
+
+
+
+    //****************************************************************
+    //* Logging!                                                     *
+    //****************************************************************
+    LogFile = fmt.Sprintf("%s%cLogs%c%s.Log", BaseDir, slashDelim, ACQName, slashDelim)
+    LogHndl, log_err := os.Create(LogFile)
+
+    if log_err != nil {
+        fmt.Println("[!] Could not Open Log File.")
+        os.Exit(3);
+    }
+
+    iLogOpen = 1;
+  
+    fmt.Printf("AChoir ver: %s, Mode: %s\n", Version, RunMode);
+    fmt.Fprintf(LogHndl, "[+] AChoir ver: %s, Mode: %s\n", Version, RunMode);
+
+    //showTime("Start Acquisition");
 
 
 
@@ -263,5 +323,30 @@ func DownloadFile(filepath string, url string) error {
     // Write the body to file
     _, http_err = io.Copy(http_out, http_resp.Body)
     return http_err
+}
+
+
+/***********************************************************/
+/* Create a Directory - Err (Exit) if it fails             */
+/***********************************************************/
+func DirAllocErr(DirToCreat string) {
+    // Check to see if Directory Already Exists
+    _, exist_err := os.Stat(DirToCreat)
+
+    if os.IsNotExist(exist_err) {
+        // Try to Create the Directory
+        creat_err := os.MkdirAll(DirToCreat, 0755)
+        if iLogOpen == 1 && creat_err != nil {
+            // Log Any errors if the Log File is Open
+            _, write_err := LogHndl.WriteString("[!] Error Creating Directory: " + DirToCreat)
+            if write_err != nil {
+                fmt.Println("[!] Error Writing to Log File")
+            }
+
+            fmt.Println("[!] Error Creating Directory: ", DirToCreat)
+            os.Exit(3)
+
+        }
+    }
 }
 
