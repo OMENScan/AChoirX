@@ -42,6 +42,7 @@ var Numberz = "0123456789"                      // String to convert from Char t
 var VarArray[10][256] string                    // Variables Array VR0-VR9
 var iVar = -1                                   // Index of the Variable Array
 var iLogOpen = 0                                // Is the LogFile Open Yet
+var FullDateTime = "01/01/0001 - 01:01:01"      // Date and Time
 
 // Global File Names
 var IniFile = "C:\\AChoir\\AChoir.Acq"          // AChoir Script File
@@ -57,6 +58,7 @@ var ForDisk = "C:\\AChoir\\Cache\\ForDisk"      // Do Action for Multiple Disk D
 
 // Global File Handles
 var LogHndl *os.File                            // File Handle for the LogFile
+var log_err error                               // Logging Errors
 
 // Main Line
 func main() {
@@ -164,21 +166,21 @@ func main() {
             consOrFile = 1
             RunMode = "Con"
             inFnam = "Console"
-            iRunMode = 1;
+            iRunMode = 1
         } else if len(os.Args[i]) > 5 && strings.EqualFold(os.Args[i][0:5], "/INI:") {
             // Check if Input is Console
             if strings.EqualFold(os.Args[i], "/INI:Console") {
-                consOrFile = 1;
+                consOrFile = 1
                 RunMode = "Con"
                 inFnam = os.Args[i][5:]
-                iRunMode = 1;
+                iRunMode = 1
             } else if len(os.Args[i]) < 254 {
                 RunMode = "Ini"
                 inFnam = os.Args[i][5:]
 
                 // Initially Set iRunmode to 2 (in case we are running remote)
                 // Avoids Creating a Local BACQDIR
-                iRunMode = 2;
+                iRunMode = 2
             } else {
                 fmt.Println("[!] /INI: Too Long - Greater than 254 chars")
             }
@@ -190,7 +192,7 @@ func main() {
             } else if len(WGetURL[RootSlash+1:]) < 2 {
                 CurrFil = fmt.Sprintf("%s%cAChoir.Acq", slashDelim, CurrWorkDir)
             } else {
-                CurrFil = fmt.Sprintf("%s%c%s", CurrWorkDir, slashDelim, WGetURL[RootSlash+1:]);
+                CurrFil = fmt.Sprintf("%s%c%s", CurrWorkDir, slashDelim, WGetURL[RootSlash+1:])
             }
 
             fmt.Println("[+] HTTP GetFile: ", WGetURL, CurrFil)
@@ -233,7 +235,7 @@ func main() {
                 VarArray[iVar][0] = os.Args[i][5:]
             }
         } else {
-            fmt.Println("[!] Bad Argument: ", os.Args[i]);
+            fmt.Println("[!] Bad Argument: ", os.Args[i])
         }
     }
 
@@ -261,42 +263,45 @@ func main() {
     DirAllocErr(LogFile)
 
 
-
     //****************************************************************
     //* Logging!                                                     *
     //****************************************************************
-    LogFile = fmt.Sprintf("%s%cLogs%c%s.Log", BaseDir, slashDelim, ACQName, slashDelim)
-    LogHndl, log_err := os.Create(LogFile)
+    LogFile = fmt.Sprintf("%s%cLogs%c%s.Log", BaseDir, slashDelim, slashDelim, ACQName)
+    LogHndl, log_err = os.Create(LogFile)
 
     if log_err != nil {
         fmt.Println("[!] Could not Open Log File.")
-        os.Exit(3);
+        os.Exit(3)
     }
 
-    iLogOpen = 1;
+    iLogOpen = 1
   
-    fmt.Printf("AChoir ver: %s, Mode: %s\n", Version, RunMode);
-    fmt.Fprintf(LogHndl, "[+] AChoir ver: %s, Mode: %s\n", Version, RunMode);
+    fmt.Printf("[+] AChoir ver: %s, Mode: %s, OS: %s\n", Version, RunMode, opSystem)
+    fmt.Fprintf(LogHndl, "[+] AChoir ver: %s, Mode: %s, OS: %s\n", Version, RunMode, opSystem)
 
-    //showTime("Start Acquisition");
+    showTime("Start Acquisition")
+
+
 
 
 
     // Print Stuff Cause GoLang makes us use variables 
-    fmt.Println("[+] AChoirX Version: ", Version)
-    fmt.Println("[+] AChoirX RunMode: ", RunMode)
-    fmt.Println("[+] Operating System: ", opSystem)
-
-
     fmt.Println("[+] Case Number: ", caseNumbr)
     fmt.Println("[+] Evidence Number: ", evidNumbr)
     fmt.Println("[+] Case Description: ", caseDescr)
     fmt.Println("[+] Case Examiner: ", caseExmnr)
-    fmt.Println("[+] Script: ", inFnam)
-    fmt.Println("[+] Base Dir: ", BaseDir)
-    fmt.Println("[+] Curr Work Dir: ", CurrWorkDir)
-    fmt.Println("[+] In User: ", inUser)
-    fmt.Println("[+] In Pass: ", inPass)
+
+
+
+
+
+    // Clean-Up Routines for Testing...
+    fmt.Fprintf(LogHndl, "[+] Closing LogFile\n")
+    LogHndl.Close()
+    // End of Cleanup Testing Routines
+
+
+
 
 }
 
@@ -335,18 +340,44 @@ func DirAllocErr(DirToCreat string) {
 
     if os.IsNotExist(exist_err) {
         // Try to Create the Directory
-        creat_err := os.MkdirAll(DirToCreat, 0755)
-        if iLogOpen == 1 && creat_err != nil {
-            // Log Any errors if the Log File is Open
-            _, write_err := LogHndl.WriteString("[!] Error Creating Directory: " + DirToCreat)
-            if write_err != nil {
-                fmt.Println("[!] Error Writing to Log File")
+        creat_err := os.MkdirAll(DirToCreat, 0644)
+        if creat_err != nil {
+            if iLogOpen == 1 {
+                // Log Any errors if the Log File is Open
+                fmt.Fprintf(LogHndl, "[+] Error Creating Directory\n")
             }
 
             fmt.Println("[!] Error Creating Directory: ", DirToCreat)
             os.Exit(3)
-
         }
+    }
+}
+
+
+func showTime(showText string) {
+    //***************************************************************
+    // Show the TIME on console and in log                          *
+    //***************************************************************
+    // Get Local Time and Date
+    showlocal := time.Now()
+
+
+    if showText == "&Tim" {
+        FullDateTime = fmt.Sprintf("%02d/%02d/%04d - %02d:%02d:%02d",
+        showlocal.Month(), showlocal.Day(), showlocal.Year(),
+        showlocal.Hour(), showlocal.Minute(), showlocal.Second())
+    } else {
+        fmt.Printf("[+] %s: %02d/%02d/%04d - %02d:%02d:%02d\n", showText,
+        showlocal.Month(), showlocal.Day(), showlocal.Year(),
+        showlocal.Hour(), showlocal.Minute(), showlocal.Second())
+    }
+
+    // Only Log if we have opened the Log File.
+    if iLogOpen == 1 {
+        fmt.Fprintf(LogHndl, "[+] %s: %02d/%02d/%04d - %02d:%02d:%02d\n", showText,
+        showlocal.Month(), showlocal.Day(), showlocal.Year(),
+        showlocal.Hour(), showlocal.Minute(), showlocal.Second())
+
     }
 }
 
