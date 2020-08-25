@@ -30,6 +30,7 @@ var ACQName = "ACQ-IR-LocalHost-00000000-0000"  // AChoir Unique Collection Name
 var DiskDrive = "C:"                            // Disk Drive (/DRV)
 var iCase = 0                                   // Case Information Processing Mode
 var consOrFile = 0                              // Console Input instead of File
+var opArchit = "AMD64"                          // Architecture
 var opSystem = "Windows"                        // Which Operating System are we running on
 var iopSystem = 0                               // Operating System Flag (0=win, 1=lin, 2=osx, 3=?)
 var slashDelim byte = '\\'                      // Directory Delimiter Win vs. Lin vs. OSX
@@ -55,6 +56,13 @@ var CachDir = "C:\\AChoir\\Cache"               // AChoir Caching Directory
 var ForFile = "C:\\AChoir\\Cache\\ForFiles"     // Do action for these Files
 var MCpFile = "C:\\AChoir\\Cache\\MCpFiles"     // Do action for Multiple File Copies
 var ForDisk = "C:\\AChoir\\Cache\\ForDisk"      // Do Action for Multiple Disk Drives 
+var CurrDir = ""                                // Current Directory
+
+// Windows OS Variables
+var WinRoot = "NA"                              // Windows Root Directory
+var Procesr = "NA"                              // Processor
+var TempVar = "NA"                              // Windows Temp Directory
+var ProgVar = "NA"                              // Windows Program Files
 
 // Global File Handles
 var LogHndl *os.File                            // File Handle for the LogFile
@@ -77,12 +85,18 @@ func main() {
     }
 
 
-    // Get Operating System
+    // Get Operating System and Architecture
+    opArchit = runtime.GOARCH
+
     opSystem = runtime.GOOS
     switch opSystem {
     case "windows":
         iopSystem = 0
         slashDelim = '\\'
+        WinRoot = os.Getenv("SYSTEMROOT")
+        Procesr = os.Getenv("PROCESSOR_ARCHITECTURE")
+        TempVar = os.Getenv("TEMP")
+        ProgVar = os.Getenv("PROGRAMFILES")
     case "linux":
         iopSystem = 1
         slashDelim = '/'
@@ -276,10 +290,13 @@ func main() {
 
     iLogOpen = 1
   
-    fmt.Printf("[+] AChoir ver: %s, Mode: %s, OS: %s\n", Version, RunMode, opSystem)
-    fmt.Fprintf(LogHndl, "[+] AChoir ver: %s, Mode: %s, OS: %s\n", Version, RunMode, opSystem)
+    fmt.Printf("[+] AChoir ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, opSystem, opArchit)
+    fmt.Fprintf(LogHndl, "[+] AChoir ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, opSystem, opArchit)
 
     showTime("Start Acquisition")
+
+    fmt.Fprintf(LogHndl, "[+] Directory Has Been Set To: %s%c%s\n", BaseDir, slashDelim, CurrDir)
+    fmt.Fprintf(LogHndl, "[+] Input Script Set:\n     %s\n\n", IniFile)
 
 
 
@@ -290,6 +307,7 @@ func main() {
     fmt.Println("[+] Evidence Number: ", evidNumbr)
     fmt.Println("[+] Case Description: ", caseDescr)
     fmt.Println("[+] Case Examiner: ", caseExmnr)
+    fmt.Println("[+] Windows EnVars: ", WinRoot, Procesr, TempVar, ProgVar)
 
 
 
