@@ -5,6 +5,12 @@
 //
 // AChoirX v0.01 - Convert from C to Go for Xplatform capability
 //
+//
+//
+//
+// Other Libraries and code I use:
+//  Syslog: go get github.com/NextronSystems/simplesyslog
+//
 // ****************************************************************
 
 package main
@@ -18,6 +24,8 @@ import (
     "net/http"
     "io"
     "bufio"
+    "crypto/tls"
+    syslog "github.com/NextronSystems/simplesyslog"
 )
 
 
@@ -42,8 +50,19 @@ var inPass = "Pa$$w0rd"                         // Password
 var Numberz = "0123456789"                      // String to convert from Char to Int
 var VarArray[10][256] string                    // Variables Array VR0-VR9
 var iVar = -1                                   // Index of the Variable Array
-var iLogOpen = 0                                // Is the LogFile Open Yet
 var FullDateTime = "01/01/0001 - 01:01:01"      // Date and Time
+
+// Syslog Variables
+var Syslogd = "127.0.0.1"                       // Syslog Server 
+var Syslogp = "514"                             // Syslog Port
+var SyslogTMSG = "AChoir Syslog Started."       // Initialize Syslog Messages 
+var SyslogServer = "127.0.0.1:514"              // Syslog Server:Port
+var tlsConfig *tls.Config                       // TLS Config
+
+// Message and Log Levels
+var iLogOpen = 0                                // Is the LogFile Open Yet
+var setMSGLvl = 2;                              // Display Message Level - Default=2 (med)
+var iSyslogLvl = 0;                             // Syslog Level
 
 // Global File Names
 var IniFile = "C:\\AChoir\\AChoir.Acq"          // AChoir Script File
@@ -299,6 +318,34 @@ func main() {
     fmt.Fprintf(LogHndl, "[+] Input Script Set:\n     %s\n\n", IniFile)
 
 
+    //****************************************************************
+    // If iRunMode=1 Create the BACQDir - Base Acquisition Dir       *
+    //****************************************************************
+    if iRunMode == 1  {
+        // Have we created the Base Acquisition Directory Yet?
+        fmt.Fprintf(LogHndl, "[+] Creating Base Acquisition Directory: %s\n", BACQDir)
+
+    if setMSGLvl > 1 {
+        fmt.Printf("[+] Creating Base Acquisition Directory: %s\n", BACQDir)
+    }
+
+    if (iSyslogLvl > 0) {
+      SyslogTMSG = fmt.Sprintf("[+] INF: Creating Base Acquisition Directory: %s", BACQDir)
+      AChSyslog(SyslogTMSG);
+    }
+
+
+    // Check to see if BACQDir Directory Already Exists
+    _, exist_err := os.Stat(BACQDir)
+    if os.IsNotExist(exist_err) {
+        DirAllocErr(BACQDir);
+        DirAllocErr(CachDir);
+        //PreIndex();
+    }
+
+  }
+
+
 
 
 
@@ -309,6 +356,12 @@ func main() {
     fmt.Println("[+] Case Examiner: ", caseExmnr)
     fmt.Println("[+] Windows EnVars: ", WinRoot, Procesr, TempVar, ProgVar)
 
+
+
+
+    // Test Syslog Writer
+    SyslogTMSG = fmt.Sprintf("[+] Syslog: Starting Syslog Writer: %s", opSystem)
+    AChSyslog(SyslogTMSG);
 
 
 
@@ -398,4 +451,23 @@ func showTime(showText string) {
 
     }
 }
+
+
+func AChSyslog(SendLogMSG string) {
+    // Not sure why UDP Syslog requires tlsConfig - but it wont compile without it
+    SyslogServer = fmt.Sprintf("%s:%s", Syslogd, Syslogp)
+
+    syslog_client, err := syslog.NewClient(syslog.ConnectionUDP, SyslogServer, tlsConfig)
+    if err != nil {
+        // fmt.Println("[!] Problem Defining Syslog Client: ", opSystem)
+        return 
+    }
+    defer syslog_client.Close()
+
+    if err := syslog_client.Send(SendLogMSG, syslog.LOG_LOCAL0|syslog.LOG_NOTICE); err != nil {
+        // fmt.Println("[!] Problem Sending From Syslog Client: ", opSystem)
+        return
+    }
+}
+
 
