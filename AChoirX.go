@@ -73,7 +73,7 @@ var tlsConfig *tls.Config                       // TLS Config
 // Message and Log Levels
 var iLogOpen = 0                                // Is the LogFile Open Yet
 var setMSGLvl = 2                               // Display Message Level - Default=2 (med)
-var iSyslogLvl = 0                              // Syslog Level
+var iSyslogLvl = 0                              // Syslog Level - Default=0 (Off)
 
 // Global File Names
 var IniFile = "C:\\AChoir\\AChoir.Acq"          // AChoir Script File
@@ -325,7 +325,7 @@ func main() {
     iLogOpen = 1
   
     ConsOut = fmt.Sprintf("[+] AChoir ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, opSystem, opArchit)
-    ConsLogSys(ConsOut, 1, 0)
+    ConsLogSys(ConsOut, 1, 1)
 
     showTime("Start Acquisition")
 
@@ -365,9 +365,6 @@ func main() {
 
 
 
-    // Test Syslog Writer
-    SyslogTMSG = fmt.Sprintf("[+] Syslog: Starting Syslog Writer: %s", opSystem)
-    AChSyslog(SyslogTMSG);
 
 
 
@@ -463,6 +460,14 @@ func AChSyslog(SendLogMSG string) {
     //***************************************************************
     // Send to Syslog                                               *
     //***************************************************************
+    // Remove CRLF to prevent Blank Lines in Syslog
+    if opSystem == "windows" {
+        SendLogMSG = strings.Replace(SendLogMSG, "\r", "", -1)
+        SendLogMSG = strings.Replace(SendLogMSG, "\n", "", -1)
+    } else {
+        SendLogMSG = strings.Replace(SendLogMSG, "\n", "", -1)
+    }
+
 
     // Not sure why UDP Syslog requires tlsConfig - but it wont compile without it
     SyslogServer = fmt.Sprintf("%s:%s", Syslogd, Syslogp)
@@ -520,10 +525,11 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
     //***************************************************************
     // Send to Console, Log, and Syslog                             *
     // thisMSGLvl == The message Level of this message              *
-    //  0==All, 1==Min, 2==Standard, 3==Max, 4==Debug               *
-    // thisSyslog == Should we send to Syslog (0==no, 1==yes)       *
+    //  0==None, 1==Min, 2==Standard, 3==Max, 4==Debug              *
+    // thisSyslog == Should we send to Syslog                       *
+    //  0==None, 1==Min, 2==Standard, 3==Max, 4==Debug              *
     //***************************************************************
-    if setMSGLvl > thisMSGLvl {
+    if setMSGLvl >= thisMSGLvl && setMSGLvl > 0 {
         fmt.Printf (ConLogMSG)
     }
 
@@ -531,7 +537,7 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
         fmt.Fprintf(LogHndl, ConLogMSG);
     }
     
-    if thisSyslog > iSyslogLvl {
+    if iSyslogLvl >= thisSyslog && iSyslogLvl > 0 {
         AChSyslog(ConLogMSG) 
     }
 }
@@ -586,34 +592,36 @@ func getCaseInfo(SayOrGet int) {
     //* Display Case Information                                     *
     //****************************************************************
     ConsOut = fmt.Sprintf("[*] Case Number: %s\n", caseNumbr)
-    ConsLogSys(ConsOut, 1, 3)
+    ConsLogSys(ConsOut, 1, 1)
 
     ConsOut = fmt.Sprintf("[*] Case Description: %s\n", caseDescr)
-    ConsLogSys(ConsOut, 1, 3)
+    ConsLogSys(ConsOut, 1, 1)
 
     ConsOut = fmt.Sprintf("[*] Evidence Number: %s\n", evidNumbr)
-    ConsLogSys(ConsOut, 1, 3)
+    ConsLogSys(ConsOut, 1, 1)
 
     ConsOut = fmt.Sprintf("[*] Examiner: %s\n", caseExmnr)
-    ConsLogSys(ConsOut, 1, 3)
+    ConsLogSys(ConsOut, 1, 1)
 
     // Run This Routine ONLY ONCE to avoid ambiguity
     iCase = 1;
 }
 
 
-/****************************************************************/
-/* Console Input                                                */
-/****************************************************************/
+//***************************************************************
+// Console Input:                                               *
+// conLog  - Should we Log This?                                *
+// conHide - Should we redact the Input                         *
+//***************************************************************
 func consInput(consString string, conLog int, conHide int) {
     ConsOut = fmt.Sprintf("[?] [%s] ", consString)
 
     if conLog == 1 {
         // Log it Normal
-        ConsLogSys(ConsOut, 1, 0)
+        ConsLogSys(ConsOut, 1, 1)
     } else {
         // Only Log in Debug Mode
-        ConsLogSys(ConsOut, 3, 3)
+        ConsLogSys(ConsOut, 4, 4)
     }
 
     con_reader := bufio.NewReader(os.Stdin)
@@ -621,7 +629,8 @@ func consInput(consString string, conLog int, conHide int) {
 
     // convert CRLF to LF
     if opSystem == "windows" {
-        Conrec = strings.Replace(Conrec, "\r\n", "", -1)
+        Conrec = strings.Replace(Conrec, "\r", "", -1)
+        Conrec = strings.Replace(Conrec, "\n", "", -1)
     } else {
         Conrec = strings.Replace(Conrec, "\n", "", -1)
     }
@@ -629,12 +638,12 @@ func consInput(consString string, conLog int, conHide int) {
 
     if conLog == 1 {
         if conHide == 1 {
-            ConsOut = fmt.Sprintf("*Redacted*\n")
+            ConsOut = fmt.Sprintf("[?] *Redacted*\n")
         } else {
-            ConsOut = fmt.Sprintf("%s\n", Conrec);
+            ConsOut = fmt.Sprintf("[?] %s\n", Conrec);
         }
 
-        ConsLogSys(ConsOut, 0, 1)
+        ConsLogSys(ConsOut, 1, 1)
 
     }
 }
