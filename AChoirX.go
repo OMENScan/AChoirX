@@ -32,6 +32,7 @@ import (
 // Global Variable Settings
 var Version = "v4.4"                            // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
+var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var iRunMode = 0                                // Int Runmode Flag (0, 1, 2)
 var inFnam = "AChoir.ACQ"                       // Script Name
 var ACQName = "ACQ-IR-LocalHost-00000000-0000"  // AChoir Unique Collection Name
@@ -51,6 +52,7 @@ var Numberz = "0123456789"                      // String to convert from Char t
 var VarArray[10][256] string                    // Variables Array VR0-VR9
 var iVar = -1                                   // Index of the Variable Array
 var FullDateTime = "01/01/0001 - 01:01:01"      // Date and Time
+var iHtmMode = 0                                // Have we begun writing the HTML Index File
 
 // Syslog Variables
 var Syslogd = "127.0.0.1"                       // Syslog Server 
@@ -67,6 +69,7 @@ var iSyslogLvl = 0;                             // Syslog Level
 // Global File Names
 var IniFile = "C:\\AChoir\\AChoir.Acq"          // AChoir Script File
 var LogFile = "C:\\AChoir\\LogFile.dat"         // AChoir Log File
+var HtmFile = "C:\\AChoir\\Index.htm"           // AChoir HTML Output File
 var WGetFile = "C:\\AChoir\\Download.dat"       // Downloaded WGet File
 var LstFile = "C:\\AChoir\\Data.Lst"            // List of Data
 var ChkFile = "C:\\AChoir\\Data.Chk"            // Check For File Existence
@@ -85,7 +88,9 @@ var ProgVar = "NA"                              // Windows Program Files
 
 // Global File Handles
 var LogHndl *os.File                            // File Handle for the LogFile
+var HtmHndl *os.File                            // File Handle for the HtmFile
 var log_err error                               // Logging Errors
+var htm_err error                               // HTML Writer Errors
 
 // Main Line
 func main() {
@@ -309,8 +314,8 @@ func main() {
 
     iLogOpen = 1
   
-    fmt.Printf("[+] AChoir ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, opSystem, opArchit)
-    fmt.Fprintf(LogHndl, "[+] AChoir ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, opSystem, opArchit)
+    ConsOut = fmt.Sprintf("[+] AChoir ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, opSystem, opArchit)
+    ConsLogSys(ConsOut, 1, 0)
 
     showTime("Start Acquisition")
 
@@ -454,19 +459,79 @@ func showTime(showText string) {
 
 
 func AChSyslog(SendLogMSG string) {
+    //***************************************************************
+    // Send to Syslog                                               *
+    //***************************************************************
+
     // Not sure why UDP Syslog requires tlsConfig - but it wont compile without it
     SyslogServer = fmt.Sprintf("%s:%s", Syslogd, Syslogp)
 
-    syslog_client, err := syslog.NewClient(syslog.ConnectionUDP, SyslogServer, tlsConfig)
-    if err != nil {
+    syslog_client, syslog_err := syslog.NewClient(syslog.ConnectionUDP, SyslogServer, tlsConfig)
+    if syslog_err != nil {
         // fmt.Println("[!] Problem Defining Syslog Client: ", opSystem)
-        return 
+        return
     }
     defer syslog_client.Close()
 
-    if err := syslog_client.Send(SendLogMSG, syslog.LOG_LOCAL0|syslog.LOG_NOTICE); err != nil {
+    if syslog_err := syslog_client.Send(SendLogMSG, syslog.LOG_LOCAL0|syslog.LOG_NOTICE); syslog_err != nil {
         // fmt.Println("[!] Problem Sending From Syslog Client: ", opSystem)
         return
+    }
+}
+
+
+func PreIndex() {
+    //***************************************************************
+    // Build The Initial Artfact Index.htm                          *
+    //***************************************************************
+    iHtmMode = 0
+    HtmFile = fmt.Sprintf("%s\\Index.htm", BACQDir)
+
+    HtmHndl, htm_err = os.Create(LogFile)
+    if htm_err != nil {
+        if iLogOpen == 1 {
+            fmt.Fprintf(LogHndl, "[!] Could not Create Artifact Index: %s\n", HtmFile);
+        }
+        if (setMSGLvl > 1) {
+            fmt.Printf("[!] Could not Create Artifact Index: %s\n", HtmFile);
+        }
+
+        return
+    } else {
+        iHtmMode = 1
+
+        fmt.Fprintf(HtmHndl, "<html><head><title>AChoir Artifacts</title></head>\n")
+        fmt.Fprintf(HtmHndl, "<body>\n")
+        fmt.Fprintf(HtmHndl, "<h2>Welcome to AChoir %s</h2>\n\n", Version)
+        fmt.Fprintf(HtmHndl, "<p>\n")
+        fmt.Fprintf(HtmHndl, "Below is an Index of the Artifacts gathered for Acquisition: <b>%s</b>\n\n", ACQName)
+        fmt.Fprintf(HtmHndl, "</p>\n\n")
+        fmt.Fprintf(HtmHndl, "<Center><table width=98%%>\n")
+        fmt.Fprintf(HtmHndl, "<tr><td align=left>\n")
+        fmt.Fprintf(HtmHndl, "<button onclick=\"window.history.back()\">&lt;&lt;</button>\n")
+        fmt.Fprintf(HtmHndl, "</td><td align=center>\n")
+        fmt.Fprintf(HtmHndl, "<a href=file:./ target=AFrame> Root </a>\n")
+    }
+}
+
+
+func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
+    //***************************************************************
+    // Send to Console, Log, and Syslog                             *
+    // thisMSGLvl == The message Level of this message              *
+    //  0==All, 1==Min, 2==Standard, 3==Max, 4==Debug               *
+    // thisSyslog == Should we send to Syslog (0==no, 1==yes)       *
+    //***************************************************************
+    if setMSGLvl > thisMSGLvl {
+        fmt.Printf (ConLogMSG)
+    }
+
+    if iLogOpen == 1 {
+        fmt.Fprintf(LogHndl, ConLogMSG);
+    }
+    
+    if thisSyslog == 1 {
+        AChSyslog(ConLogMSG) 
     }
 }
 
