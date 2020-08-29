@@ -54,6 +54,15 @@ var iVar = -1                                   // Index of the Variable Array
 var FullDateTime = "01/01/0001 - 01:01:01"      // Date and Time
 var iHtmMode = 0                                // Have we begun writing the HTML Index File
 
+// Input and Output Records
+var Conrec = "Console Record"                   // Console Output Record
+
+// Default Case Settings 
+var caseNumbr = "ACQ-IR-host-YYYMMDD-HHMM"      // Case Number
+var evidNumbr = "001"                           // Evidence Number
+var caseDescr = "AChoir Collection"             // Case Description
+var caseExmnr = "Unknown"                       // Case Examiner
+
 // Syslog Variables
 var Syslogd = "127.0.0.1"                       // Syslog Server 
 var Syslogp = "514"                             // Syslog Port
@@ -63,8 +72,8 @@ var tlsConfig *tls.Config                       // TLS Config
 
 // Message and Log Levels
 var iLogOpen = 0                                // Is the LogFile Open Yet
-var setMSGLvl = 2;                              // Display Message Level - Default=2 (med)
-var iSyslogLvl = 0;                             // Syslog Level
+var setMSGLvl = 2                               // Display Message Level - Default=2 (med)
+var iSyslogLvl = 0                              // Syslog Level
 
 // Global File Names
 var IniFile = "C:\\AChoir\\AChoir.Acq"          // AChoir Script File
@@ -139,10 +148,11 @@ func main() {
 
 
     // Default Case Settings 
-    caseNumbr := ACQName
-    evidNumbr := "001"
-    caseDescr := fmt.Sprintf("AChoir Live Acquisition: %s", ACQName)
-    caseExmnr := "Unknown"
+    caseNumbr = ACQName
+    evidNumbr = "001"
+    caseDescr = fmt.Sprintf("AChoir Live Acquisition: %s", ACQName)
+    caseExmnr = "Unknown"
+
 
     // What Directory are we in?
     BaseDir, cwd_err := os.Getwd()
@@ -328,37 +338,28 @@ func main() {
     //****************************************************************
     if iRunMode == 1  {
         // Have we created the Base Acquisition Directory Yet?
-        fmt.Fprintf(LogHndl, "[+] Creating Base Acquisition Directory: %s\n", BACQDir)
+        ConsOut = fmt.Sprintf("[+] Creating Base Acquisition Directory: %s\n", BACQDir)
+        ConsLogSys(ConsOut, 1, 0)
 
-    if setMSGLvl > 1 {
-        fmt.Printf("[+] Creating Base Acquisition Directory: %s\n", BACQDir)
+        // Check to see if BACQDir Directory Already Exists
+        _, exist_err := os.Stat(BACQDir)
+        if os.IsNotExist(exist_err) {
+            DirAllocErr(BACQDir)
+            DirAllocErr(CachDir)
+            PreIndex()
+        }
     }
 
-    if (iSyslogLvl > 0) {
-      SyslogTMSG = fmt.Sprintf("[+] INF: Creating Base Acquisition Directory: %s", BACQDir)
-      AChSyslog(SyslogTMSG);
+    // Should We Gather Case Information (/CSE)
+    if iCase == 2 {
+        getCaseInfo(1)
     }
-
-
-    // Check to see if BACQDir Directory Already Exists
-    _, exist_err := os.Stat(BACQDir)
-    if os.IsNotExist(exist_err) {
-        DirAllocErr(BACQDir);
-        DirAllocErr(CachDir);
-        //PreIndex();
-    }
-
-  }
 
 
 
 
 
     // Print Stuff Cause GoLang makes us use variables 
-    fmt.Println("[+] Case Number: ", caseNumbr)
-    fmt.Println("[+] Evidence Number: ", evidNumbr)
-    fmt.Println("[+] Case Description: ", caseDescr)
-    fmt.Println("[+] Case Examiner: ", caseExmnr)
     fmt.Println("[+] Windows EnVars: ", WinRoot, Procesr, TempVar, ProgVar)
 
 
@@ -530,8 +531,111 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
         fmt.Fprintf(LogHndl, ConLogMSG);
     }
     
-    if thisSyslog == 1 {
+    if thisSyslog > iSyslogLvl {
         AChSyslog(ConLogMSG) 
+    }
+}
+
+
+func getCaseInfo(SayOrGet int) {
+    // Display or Get Case information
+    // Say = 0, Get = 1
+    if SayOrGet == 1 {
+        // Enter New Case Information
+        if iCase == 1 {
+            // We ran this routine already once.
+            // Avoid confusing multiple Case Names by running only once!
+            ConsOut = fmt.Sprintf("[!] Case Information Can Only Be Entered Once.\n")
+            ConsLogSys(ConsOut, 1, 3)
+        } else {
+            ConsOut = fmt.Sprintf("[*] Default Case Number: %s\n", caseNumbr)
+            ConsLogSys(ConsOut, 1, 3)
+
+            consInput("Enter New Case Number (Or Enter To Accept Default): ", 1, 0)
+            if len(Conrec) > 0 {
+                caseNumbr = Conrec
+            }
+
+            ConsOut = fmt.Sprintf("[*] Default Case Description: %s\n", caseDescr)
+            ConsLogSys(ConsOut, 1, 3)
+
+            consInput("Enter New Case Description (Or Enter to Accept Default: ", 1, 0)
+            if len(Conrec) > 0 {
+                caseDescr = Conrec
+            }
+
+            ConsOut = fmt.Sprintf("[*] Default Evidence Number: %s\n", evidNumbr)
+            ConsLogSys(ConsOut, 1, 3)
+
+            consInput("Enter New Evidence Number (Or Enter to Accept Default): ", 1, 0)
+            if len(Conrec) > 0 {
+                evidNumbr = Conrec
+            }
+
+            ConsOut = fmt.Sprintf("[*] Default Examiner: %s\n", caseExmnr)
+            ConsLogSys(ConsOut, 1, 3)
+
+            consInput("Enter New Examiner (Or Enter to Accept Default): ", 1, 0)
+            if len(Conrec) > 0 {
+                caseExmnr = Conrec
+            }
+        }
+    }
+
+    //****************************************************************
+    //* Display Case Information                                     *
+    //****************************************************************
+    ConsOut = fmt.Sprintf("[*] Case Number: %s\n", caseNumbr)
+    ConsLogSys(ConsOut, 1, 3)
+
+    ConsOut = fmt.Sprintf("[*] Case Description: %s\n", caseDescr)
+    ConsLogSys(ConsOut, 1, 3)
+
+    ConsOut = fmt.Sprintf("[*] Evidence Number: %s\n", evidNumbr)
+    ConsLogSys(ConsOut, 1, 3)
+
+    ConsOut = fmt.Sprintf("[*] Examiner: %s\n", caseExmnr)
+    ConsLogSys(ConsOut, 1, 3)
+
+    // Run This Routine ONLY ONCE to avoid ambiguity
+    iCase = 1;
+}
+
+
+/****************************************************************/
+/* Console Input                                                */
+/****************************************************************/
+func consInput(consString string, conLog int, conHide int) {
+    ConsOut = fmt.Sprintf("[?] [%s] ", consString)
+
+    if conLog == 1 {
+        // Log it Normal
+        ConsLogSys(ConsOut, 1, 0)
+    } else {
+        // Only Log in Debug Mode
+        ConsLogSys(ConsOut, 3, 3)
+    }
+
+    con_reader := bufio.NewReader(os.Stdin)
+    Conrec, _ = con_reader.ReadString('\n')
+
+    // convert CRLF to LF
+    if opSystem == "windows" {
+        Conrec = strings.Replace(Conrec, "\r\n", "", -1)
+    } else {
+        Conrec = strings.Replace(Conrec, "\n", "", -1)
+    }
+
+
+    if conLog == 1 {
+        if conHide == 1 {
+            ConsOut = fmt.Sprintf("*Redacted*\n")
+        } else {
+            ConsOut = fmt.Sprintf("%s\n", Conrec);
+        }
+
+        ConsLogSys(ConsOut, 0, 1)
+
     }
 }
 
