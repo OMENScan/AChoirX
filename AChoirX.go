@@ -96,10 +96,13 @@ var TempVar = "NA"                              // Windows Temp Directory
 var ProgVar = "NA"                              // Windows Program Files
 
 // Global File Handles
+var IniScan *bufio.Scanner                      // IO Reader for File or Console
 var LogHndl *os.File                            // File Handle for the LogFile
 var HtmHndl *os.File                            // File Handle for the HtmFile
+var IniHndl *os.File                            // File Handle for the IniFile
 var log_err error                               // Logging Errors
 var htm_err error                               // HTML Writer Errors
+var ini_err error                               // Ini File Errors
 
 // Main Line
 func main() {
@@ -356,7 +359,33 @@ func main() {
     }
 
 
+    if consOrFile == 1 {
+        ConsOut = fmt.Sprintf("[+] Switching to Console Input.\n")
+        ConsLogSys(ConsOut, 1, 1)
+        fmt.Printf(">>>");
 
+        IniScan = bufio.NewScanner(os.Stdin)
+
+    } else {
+        IniHndl, ini_err = os.Open(IniFile)
+        if ini_err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Opening Ini File: %s\n", IniFile)
+            ConsLogSys(ConsOut, 1, 3)
+        }
+
+        IniScan = bufio.NewScanner(IniHndl)
+        
+    }
+
+    for IniScan.Scan() {
+        fmt.Printf(IniScan.Text())
+
+        if consOrFile == 1 {
+            fmt.Printf("\n>>>")
+        } else {
+            fmt.Printf("\n")
+        }
+    }
 
 
     // Print Stuff Cause GoLang makes us use variables 
