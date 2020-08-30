@@ -53,9 +53,11 @@ var VarArray[10][256] string                    // Variables Array VR0-VR9
 var iVar = -1                                   // Index of the Variable Array
 var FullDateTime = "01/01/0001 - 01:01:01"      // Date and Time
 var iHtmMode = 0                                // Have we begun writing the HTML Index File
+var RunMe = 0                                   // Used to Track Conditional Run Routines
 
 // Input and Output Records
 var Conrec = "Console Record"                   // Console Output Record
+var Tmprec = "Formatted Console Record"         // Console Formatting Record
 
 // Default Case Settings 
 var caseNumbr = "ACQ-IR-host-YYYMMDD-HHMM"      // Case Number
@@ -378,7 +380,63 @@ func main() {
     }
 
     for IniScan.Scan() {
-        fmt.Printf(IniScan.Text())
+        RunMe = 0;  // Conditional run Script default is yes
+
+        //Remove any preceding blanks
+        Tmprec = strings.TrimSpace(IniScan.Text())
+
+        // Dont Process any Comments
+        if Tmprec[0] == '*' {
+            continue
+        }
+
+
+        //****************************************************************
+        //* Conditional Execution                                        *
+        //****************************************************************
+        if RunMe > 0 {
+            if strings.HasPrefix(Tmprec, "32B:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "64B:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "VER:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "CKY:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "CKN:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "EQU:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "NEQ:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "RC=:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "RC!:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "RC>:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "RC<:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "N>>:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "N<<:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "N==:") {
+                RunMe++
+            } else if strings.HasPrefix(Tmprec, "END:") {
+                RunMe--
+            }
+        }
+
+
+
+
+
+
+
+
+        fmt.Printf(Tmprec)
+
 
         if consOrFile == 1 {
             fmt.Printf("\n>>>")
@@ -490,12 +548,7 @@ func AChSyslog(SendLogMSG string) {
     // Send to Syslog                                               *
     //***************************************************************
     // Remove CRLF to prevent Blank Lines in Syslog
-    if opSystem == "windows" {
-        SendLogMSG = strings.Replace(SendLogMSG, "\r", "", -1)
-        SendLogMSG = strings.Replace(SendLogMSG, "\n", "", -1)
-    } else {
-        SendLogMSG = strings.Replace(SendLogMSG, "\n", "", -1)
-    }
+    SendLogMSG = strings.TrimSpace(SendLogMSG)
 
 
     // Not sure why UDP Syslog requires tlsConfig - but it wont compile without it
@@ -522,7 +575,7 @@ func PreIndex() {
     iHtmMode = 0
     HtmFile = fmt.Sprintf("%s\\Index.htm", BACQDir)
 
-    HtmHndl, htm_err = os.Create(LogFile)
+    HtmHndl, htm_err = os.Create(HtmFile)
     if htm_err != nil {
         if iLogOpen == 1 {
             fmt.Fprintf(LogHndl, "[!] Could not Create Artifact Index: %s\n", HtmFile);
@@ -656,14 +709,8 @@ func consInput(consString string, conLog int, conHide int) {
     con_reader := bufio.NewReader(os.Stdin)
     Conrec, _ = con_reader.ReadString('\n')
 
-    // convert CRLF to LF
-    if opSystem == "windows" {
-        Conrec = strings.Replace(Conrec, "\r", "", -1)
-        Conrec = strings.Replace(Conrec, "\n", "", -1)
-    } else {
-        Conrec = strings.Replace(Conrec, "\n", "", -1)
-    }
-
+    // Remove CRLF to LF
+    Conrec = strings.TrimSpace(Conrec)
 
     if conLog == 1 {
         if conHide == 1 {
