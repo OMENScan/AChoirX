@@ -54,6 +54,8 @@ var iVar = -1                                   // Index of the Variable Array
 var FullDateTime = "01/01/0001 - 01:01:01"      // Date and Time
 var iHtmMode = 0                                // Have we begun writing the HTML Index File
 var RunMe = 0                                   // Used to Track Conditional Run Routines
+var Looper = 0                                  // Flag to Keep Looping 
+var ForMe = 0                                   // Flag to identify &For is being used
 
 // Input and Output Records
 var Conrec = "Console Record"                   // Console Output Record
@@ -99,12 +101,15 @@ var ProgVar = "NA"                              // Windows Program Files
 
 // Global File Handles
 var IniScan *bufio.Scanner                      // IO Reader for File or Console
+var ForScan *bufio.Scanner                      // IO Reader for ForFile
 var LogHndl *os.File                            // File Handle for the LogFile
 var HtmHndl *os.File                            // File Handle for the HtmFile
 var IniHndl *os.File                            // File Handle for the IniFile
+var ForHndl *os.File                            // File Handle for the ForFile
 var log_err error                               // Logging Errors
 var htm_err error                               // HTML Writer Errors
 var ini_err error                               // Ini File Errors
+var for_err error                               // For File Errors
 
 // Main Line
 func main() {
@@ -344,7 +349,7 @@ func main() {
     if iRunMode == 1  {
         // Have we created the Base Acquisition Directory Yet?
         ConsOut = fmt.Sprintf("[+] Creating Base Acquisition Directory: %s\n", BACQDir)
-        ConsLogSys(ConsOut, 1, 0)
+        ConsLogSys(ConsOut, 1, 3)
 
         // Check to see if BACQDir Directory Already Exists
         _, exist_err := os.Stat(BACQDir)
@@ -372,7 +377,7 @@ func main() {
         IniHndl, ini_err = os.Open(IniFile)
         if ini_err != nil {
             ConsOut = fmt.Sprintf("[!] Error Opening Ini File: %s\n", IniFile)
-            ConsLogSys(ConsOut, 1, 3)
+            ConsLogSys(ConsOut, 1, 2)
         }
 
         IniScan = bufio.NewScanner(IniHndl)
@@ -426,15 +431,58 @@ func main() {
             } else if strings.HasPrefix(Tmprec, "END:") {
                 RunMe--
             }
+        } else {
+            Looper = 1;
+
+            //****************************************************************
+            //* ForFiles Looper Setup                                        *
+            //****************************************************************
+            if strings.HasPrefix(Tmprec, "&FOR") || 
+            strings.HasPrefix(Tmprec, "&FO0") || strings.HasPrefix(Tmprec, "&FO1") ||
+            strings.HasPrefix(Tmprec, "&FO2") || strings.HasPrefix(Tmprec, "&FO3") || 
+            strings.HasPrefix(Tmprec, "&FO4") || strings.HasPrefix(Tmprec, "&FO5") || 
+            strings.HasPrefix(Tmprec, "&FO6") || strings.HasPrefix(Tmprec, "&FO7") || 
+            strings.HasPrefix(Tmprec, "&FO8") || strings.HasPrefix(Tmprec, "&FO9") || 
+            strings.HasPrefix(Tmprec, "&FOA") || strings.HasPrefix(Tmprec, "&FOB") || 
+            strings.HasPrefix(Tmprec, "&FOC") || strings.HasPrefix(Tmprec, "&FOD") || 
+            strings.HasPrefix(Tmprec, "&FOE") || strings.HasPrefix(Tmprec, "&FOF") || 
+            strings.HasPrefix(Tmprec, "&FOG") || strings.HasPrefix(Tmprec, "&FOH") || 
+            strings.HasPrefix(Tmprec, "&FOI") || strings.HasPrefix(Tmprec, "&FOJ") || 
+            strings.HasPrefix(Tmprec, "&FOK") || strings.HasPrefix(Tmprec, "&FOL") || 
+            strings.HasPrefix(Tmprec, "&FOM") || strings.HasPrefix(Tmprec, "&FON") || 
+            strings.HasPrefix(Tmprec, "&FOO") || strings.HasPrefix(Tmprec, "&FOP") {
+                ForMe = 1
+
+                ForHndl, for_err = os.Open(ForFile)
+
+                if for_err != nil {
+                    ConsOut = fmt.Sprintf("[!] &FOR Directory has not been set with the FOR: command.  Ignoring &FOR Loop...\n")
+                    ConsLogSys(ConsOut, 1, 2)
+
+                    Looper = 0
+                }
+
+                ForScan = bufio.NewScanner(ForHndl)
+            } else {
+                ForMe = 0
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         }
-
-
-
-
-
-
-
-
         fmt.Printf(Tmprec)
 
 
