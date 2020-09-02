@@ -56,10 +56,14 @@ var iHtmMode = 0                                // Have we begun writing the HTM
 var RunMe = 0                                   // Used to Track Conditional Run Routines
 var Looper = 0                                  // Flag to Keep Looping 
 var ForMe = 0                                   // Flag to identify &For is being used
+var LstMe = 0                                   // Flag to identify &LST is being used
+var DskMe = 0                                   // Flag to identify &DSK is being used
+var LoopNum = 0                                 // Loop Counter
 
 // Input and Output Records
 var Conrec = "Console Record"                   // Console Output Record
 var Tmprec = "Formatted Console Record"         // Console Formatting Record
+var Filrec = "File Record"                      // File Record 
 
 // Default Case Settings 
 var caseNumbr = "ACQ-IR-host-YYYMMDD-HHMM"      // Case Number
@@ -102,14 +106,20 @@ var ProgVar = "NA"                              // Windows Program Files
 // Global File Handles
 var IniScan *bufio.Scanner                      // IO Reader for File or Console
 var ForScan *bufio.Scanner                      // IO Reader for ForFile
+var LstScan *bufio.Scanner                      // IO Reader for LstFile
+var DskScan *bufio.Scanner                      // IO Reader for DskFile
 var LogHndl *os.File                            // File Handle for the LogFile
 var HtmHndl *os.File                            // File Handle for the HtmFile
 var IniHndl *os.File                            // File Handle for the IniFile
 var ForHndl *os.File                            // File Handle for the ForFile
+var LstHndl *os.File                            // File Handle for the LstFile
+var DskHndl *os.File                            // File Handle for the DskFile
 var log_err error                               // Logging Errors
 var htm_err error                               // HTML Writer Errors
 var ini_err error                               // Ini File Errors
 var for_err error                               // For File Errors
+var lst_err error                               // Lst File Errors
+var dsk_err error                               // Dsk File Errors
 
 // Main Line
 func main() {
@@ -466,6 +476,95 @@ func main() {
             } else {
                 ForMe = 0
             }
+
+
+            //****************************************************************
+            //* LstFiles Looper Setup                                        *
+            //****************************************************************
+            if strings.HasPrefix(Tmprec, "&LST") || 
+            strings.HasPrefix(Tmprec, "&LS0") || strings.HasPrefix(Tmprec, "&LS1") ||
+            strings.HasPrefix(Tmprec, "&LS2") || strings.HasPrefix(Tmprec, "&LS3") || 
+            strings.HasPrefix(Tmprec, "&LS4") || strings.HasPrefix(Tmprec, "&LS5") || 
+            strings.HasPrefix(Tmprec, "&LS6") || strings.HasPrefix(Tmprec, "&LS7") || 
+            strings.HasPrefix(Tmprec, "&LS8") || strings.HasPrefix(Tmprec, "&LS9") || 
+            strings.HasPrefix(Tmprec, "&LSA") || strings.HasPrefix(Tmprec, "&LSB") || 
+            strings.HasPrefix(Tmprec, "&LSC") || strings.HasPrefix(Tmprec, "&LSD") || 
+            strings.HasPrefix(Tmprec, "&LSE") || strings.HasPrefix(Tmprec, "&LSF") || 
+            strings.HasPrefix(Tmprec, "&LSG") || strings.HasPrefix(Tmprec, "&LSH") || 
+            strings.HasPrefix(Tmprec, "&LSI") || strings.HasPrefix(Tmprec, "&LSJ") || 
+            strings.HasPrefix(Tmprec, "&LSK") || strings.HasPrefix(Tmprec, "&LSL") || 
+            strings.HasPrefix(Tmprec, "&LSM") || strings.HasPrefix(Tmprec, "&LSN") || 
+            strings.HasPrefix(Tmprec, "&LSO") || strings.HasPrefix(Tmprec, "&LSP") {
+                LstMe = 1;
+
+                LstHndl, lst_err = os.Open(LstFile)
+
+                if lst_err != nil {
+                    ConsOut = fmt.Sprintf("[!] &LST File was not found (LST: not set): %s\n", LstFile)
+                    ConsLogSys(ConsOut, 1, 2)
+
+                    Looper = 0
+                }
+
+                LstScan = bufio.NewScanner(LstHndl)
+            } else {
+                LstMe = 0
+            }
+
+
+            //****************************************************************
+            //* DskFiles Looper Setup                                        *
+            //****************************************************************
+            if strings.HasPrefix(Tmprec, "&DSK") {
+                DskMe = 1
+
+                DskHndl, dsk_err = os.Open(ForDisk)
+
+                if dsk_err != nil {
+                    ConsOut = fmt.Sprintf("[!] &DSK Listing was not found (DSK: not set): %s\n", ForDisk)
+                    ConsLogSys(ConsOut, 1, 2)
+
+                    Looper = 0
+                }
+
+                DskScan = bufio.NewScanner(DskHndl)
+            } else {
+                DskMe = 0
+            }
+
+
+            //****************************************************************
+            //* Loop (FOR: and LST:) until Looper = 1                        *
+            //****************************************************************
+            LoopNum = 0;
+            for Looper > 0 {
+                if ForMe == 0 && LstMe == 0 && DskMe == 0 {
+                    Looper = 0
+                    continue
+                } else if ForMe == 1 && LstMe == 0 && DskMe == 0 {
+                    ForScan.Scan()
+                    for_err = ForScan.Err()
+
+                    // No Error and no EOF - So Process the Record
+                    if for_err == nil && for_err != io.EOF {
+                        Filrec = strings.TrimSpace(ForScan.Text())
+
+                        Looper = 1;
+                        LoopNum++;
+
+
+
+                        //Test 
+                        fmt.Printf("Record: %s (%d)\n", Filrec, LoopNum)
+
+                    }
+                }
+            }
+
+
+
+
+
 
 
 
