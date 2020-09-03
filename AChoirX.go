@@ -120,6 +120,7 @@ var ini_err error                               // Ini File Errors
 var for_err error                               // For File Errors
 var lst_err error                               // Lst File Errors
 var dsk_err error                               // Dsk File Errors
+var for_rcd bool                                // Return Code for ForFile Read
 
 // Main Line
 func main() {
@@ -542,11 +543,11 @@ func main() {
                     Looper = 0
                     continue
                 } else if ForMe == 1 && LstMe == 0 && DskMe == 0 {
-                    ForScan.Scan()
+                    for_rcd = ForScan.Scan()
                     for_err = ForScan.Err()
 
                     // No Error and no EOF - So Process the Record
-                    if for_err == nil && for_err != io.EOF {
+                    if for_err == nil && for_rcd == true {
                         Filrec = strings.TrimSpace(ForScan.Text())
 
                         Looper = 1;
@@ -557,6 +558,8 @@ func main() {
                         //Test 
                         fmt.Printf("Record: %s (%d)\n", Filrec, LoopNum)
 
+                    } else {
+                        Looper = 0
                     }
                 }
             }
