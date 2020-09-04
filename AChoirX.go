@@ -45,6 +45,7 @@ var iopSystem = 0                               // Operating System Flag (0=win,
 var slashDelim byte = '\\'                      // Directory Delimiter Win vs. Lin vs. OSX
 var WGetURL = "http://Company.com/file"         // URL For HTTP Get
 var RootSlash = 0                               // Last Occurance of Slash to find Root URL
+var ForSlash = 0                                // Last Occurance of Slash to find File in Path
 var CurrFil = "Current.fil"                     // Current File Name
 var inUser = "Joe"                              // UserId
 var inPass = "Pa$$w0rd"                         // Password
@@ -59,6 +60,7 @@ var ForMe = 0                                   // Flag to identify &For is bein
 var LstMe = 0                                   // Flag to identify &LST is being used
 var DskMe = 0                                   // Flag to identify &DSK is being used
 var LoopNum = 0                                 // Loop Counter
+var ForFName = "File.txt"                       // Parsed File name from Path
 
 // Input and Output Records
 var Conrec = "Console Record"                   // Console Output Record
@@ -193,7 +195,7 @@ func main() {
 
     // Start by Parsing any Command Line Parameters
     for i := 1; i < len(os.Args); i++ {
-        if strings.EqualFold(os.Args[i], "/Help") {
+        if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/HELP") {
             fmt.Printf("\nAChoirX ver: %s, Argument/Options:\n", Version)
 
             fmt.Printf(" /Help - This Description\n")
@@ -210,35 +212,35 @@ func main() {
             fmt.Printf(" /CON- Run with Interactive Console Input (Same as /Ini:Console)\n")
 
             os.Exit(0)
-        } else if strings.EqualFold(os.Args[i], "/CSE") {
+        } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/CSE") {
             iCase = 2
-        } else if strings.EqualFold(os.Args[i], "/BLD") {
+        } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/BLD") {
             RunMode = "Bld"
             inFnam = "Build.ACQ"
             iRunMode = 0
-        } else if strings.EqualFold(os.Args[i], "/RUN") {
+        } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/RUN") {
             RunMode = "Run"
             inFnam = "AChoir.ACQ"
             iRunMode = 1
-        } else if strings.EqualFold(os.Args[i], "/MNU") {
+        } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/MNU") {
             RunMode = "Mnu"
             inFnam = "Menu.ACQ"
             iRunMode = 3
-        } else if len(os.Args[i]) > 6 && strings.EqualFold(os.Args[i][0:5], "/DRV:") {
+        } else if len(os.Args[i]) > 6 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/DRV:") {
             if os.Args[i][6] == ':' {
                 DiskDrive = os.Args[i][5:7]
                 fmt.Println("[+] Disk Drive Set: ", DiskDrive)
             } else {
                 fmt.Println("[!] Invalid Disk Drive Setting: ", os.Args[i][5:])
             }
-        } else if strings.EqualFold(os.Args[i], "/CON") {
+        } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/CON") {
             consOrFile = 1
             RunMode = "Con"
             inFnam = "Console"
             iRunMode = 1
-        } else if len(os.Args[i]) > 5 && strings.EqualFold(os.Args[i][0:5], "/INI:") {
+        } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INI:") {
             // Check if Input is Console
-            if strings.EqualFold(os.Args[i], "/INI:Console") {
+            if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INI:Console") {
                 consOrFile = 1
                 RunMode = "Con"
                 inFnam = os.Args[i][5:]
@@ -253,7 +255,7 @@ func main() {
             } else {
                 fmt.Println("[!] /INI: Too Long - Greater than 254 chars")
             }
-        } else if len(os.Args[i]) > 5 && strings.EqualFold(os.Args[i][0:5], "/GET:") {
+        } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/GET:") {
             WGetURL = os.Args[i][5:]
             RootSlash = strings.LastIndexByte(WGetURL, '/')
             if (RootSlash == -1) {
@@ -272,7 +274,7 @@ func main() {
             } else {
                 fmt.Println("[+] Downloaded Success: " + WGetURL)        
             }
-	} else if len(os.Args[i]) > 5 && strings.EqualFold(os.Args[i][0:5], "/USR:") {
+	} else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/USR:") {
             if (os.Args[i][5] =='?') {
                 cons_readr := bufio.NewReader(os.Stdin)
                 fmt.Print("[?] Enter Share Mapping UserID > ")
@@ -283,7 +285,7 @@ func main() {
             } else {
                 inUser = os.Args[i][5:]
             }
-        } else if len(os.Args[i]) > 5 && strings.EqualFold(os.Args[i][0:5], "/PWD:") {
+        } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/PWD:") {
             if (os.Args[i][5] =='?') {
                 cons_readr := bufio.NewReader(os.Stdin)
                 fmt.Print("[?] Enter Share Mapping Password > ")
@@ -294,7 +296,7 @@ func main() {
             } else {
                 inPass = os.Args[i][5:]
             }
-        } else if len(os.Args[i]) > 5 && strings.EqualFold(os.Args[i][0:3], "/VR") && (os.Args[i][4] ==':') {
+        } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/VR") && (os.Args[i][4] ==':') {
             iVar = strings.IndexByte(Numberz, os.Args[i][3])
             if (iVar == -1) {
                 fmt.Println("[!] Invalid Variable: ", os.Args[i][1:4])
@@ -402,7 +404,7 @@ func main() {
         Tmprec = strings.TrimSpace(IniScan.Text())
 
         // Dont Process any Comments
-        if Tmprec[0] == '*' {
+        if strings.HasPrefix(Tmprec, "*") {
             continue
         }
 
@@ -554,12 +556,20 @@ func main() {
                         LoopNum++;
 
 
-
-                        //Test 
-                        fmt.Printf("Record: %s (%d)\n", Filrec, LoopNum)
+                        //****************************************************************
+                        //* Get Just the File Name                                       *
+                        //****************************************************************
+                        ForSlash = strings.LastIndexByte(Filrec, slashDelim)
+                        if (ForSlash == -1) {
+                            ForFName = Filrec
+                        } else if len(Filrec[RootSlash+1:]) < 2 {
+                            ForFName = "Unknown"
+                        } else {
+                            ForFName = Filrec[RootSlash+1:]
+                        }
 
                     } else {
-                        Looper = 0
+                        break;
                     }
                 }
             }
@@ -585,7 +595,9 @@ func main() {
 
 
         }
-        fmt.Printf(Tmprec)
+
+        // Testing - Echo Input
+        // fmt.Printf(Tmprec)
 
 
         if consOrFile == 1 {
