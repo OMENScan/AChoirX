@@ -625,7 +625,7 @@ func main() {
                 varConvert(Tmprec)
 
                 // Testing...
-                fmt.Printf("Out: %s", o32VarRec)
+                fmt.Printf("Out: %s\nOUT: %s", o32VarRec, o64VarRec)
 
 
 
@@ -962,11 +962,11 @@ func varConvert(inVarRec string) {
     o32VarRec = os.ExpandEnv(inVarRec)
 
     //  This doesn't apply to Linux or OSX
-    if opSystem == "windows" {
-        o64VarRec = strings.ReplaceAll(o32VarRec, "C:\\Program Files\\", "C:\\Program Files (x86)\\")
-        o64VarRec = strings.ReplaceAll(o32VarRec, "System32", "sysnative")
+    if iopSystem == 0 {
+        o64Replac := strings.NewReplacer("\\Program Files\\", "\\Program Files (x86)\\", "System32", "sysnative")
+        o64VarRec = o64Replac.Replace(o32VarRec)
     } else {
-        o64VarRec = inVarRec
+        o64VarRec = o32VarRec
     }
 }
 
