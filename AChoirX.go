@@ -11,6 +11,10 @@
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //
+// Changes from AChoir:
+//  Environment Variable Expansion now uses GoLang $Var or ${Var} 
+//
+//
 // ****************************************************************
 
 package main
@@ -66,6 +70,10 @@ var ForFName = "File.txt"                       // Parsed File name from Path
 var Conrec = "Console Record"                   // Console Output Record
 var Tmprec = "Formatted Console Record"         // Console Formatting Record
 var Filrec = "File Record"                      // File Record 
+var Lstrec = "File Record"                      // List Record 
+var Dskrec = "File Record"                      // Disk Record 
+var o32VarRec = "32 bit Variables"              // 32 Bit Variable Expansion Record
+var o64VarRec = "64 bit Variables"              // 64 Bit Variable Expansion Record
 
 // Default Case Settings 
 var caseNumbr = "ACQ-IR-host-YYYMMDD-HHMM"      // Case Number
@@ -123,6 +131,8 @@ var for_err error                               // For File Errors
 var lst_err error                               // Lst File Errors
 var dsk_err error                               // Dsk File Errors
 var for_rcd bool                                // Return Code for ForFile Read
+var lst_rcd bool                                // Return Code for LstFile Read
+var dsk_rcd bool                                // Return Code for DskFile Read
 
 // Main Line
 func main() {
@@ -173,7 +183,7 @@ func main() {
     // Default Case Settings 
     caseNumbr = ACQName
     evidNumbr = "001"
-    caseDescr = fmt.Sprintf("AChoir Live Acquisition: %s", ACQName)
+    caseDescr = fmt.Sprintf("AChoirX Live Acquisition: %s", ACQName)
     caseExmnr = "Unknown"
 
 
@@ -199,8 +209,8 @@ func main() {
             fmt.Printf("\nAChoirX ver: %s, Argument/Options:\n", Version)
 
             fmt.Printf(" /Help - This Description\n")
-            fmt.Printf(" /BLD - Run the Build.ACQ Script (Build the AChoir Toolkit)\n")
-            fmt.Printf(" /MNU - Run the Menu.ACQ Script (A Simple AChoir Menu)\n")
+            fmt.Printf(" /BLD - Run the Build.ACQ Script (Build the AChoirX Toolkit)\n")
+            fmt.Printf(" /MNU - Run the Menu.ACQ Script (A Simple AChoirX Menu)\n")
             fmt.Printf(" /RUN - Run the AChoir.ACQ Script to do a Live Acquisition\n")
             fmt.Printf(" /DRV:<x:> - Set the &DRV parameter\n")
             fmt.Printf(" /USR:<UserID> - User to Map to Remote Server\n")
@@ -347,7 +357,7 @@ func main() {
 
     iLogOpen = 1
   
-    ConsOut = fmt.Sprintf("[+] AChoir ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, opSystem, opArchit)
+    ConsOut = fmt.Sprintf("[+] AChoirX ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, opSystem, opArchit)
     ConsLogSys(ConsOut, 1, 1)
 
     showTime("Start Acquisition")
@@ -543,7 +553,6 @@ func main() {
             for Looper > 0 {
                 if ForMe == 0 && LstMe == 0 && DskMe == 0 {
                     Looper = 0
-                    continue
                 } else if ForMe == 1 && LstMe == 0 && DskMe == 0 {
                     for_rcd = ForScan.Scan()
                     for_err = ForScan.Err()
@@ -552,9 +561,8 @@ func main() {
                     if for_err == nil && for_rcd == true {
                         Filrec = strings.TrimSpace(ForScan.Text())
 
-                        Looper = 1;
-                        LoopNum++;
-
+                        Looper = 1
+                        LoopNum++
 
                         //****************************************************************
                         //* Get Just the File Name                                       *
@@ -571,7 +579,62 @@ func main() {
                     } else {
                         break;
                     }
+                } else if ForMe == 0 && LstMe == 1 && DskMe == 0 {
+                    lst_rcd = LstScan.Scan()
+                    lst_err = LstScan.Err()
+
+                    // No Error and no EOF - So Process the Record
+                    if lst_err == nil && lst_rcd == true {
+                        Lstrec = strings.TrimSpace(LstScan.Text())
+
+                        Looper = 1
+                        LoopNum++
+                    } else {
+                        break
+                    }
+                } else if ForMe == 0 && LstMe == 0 && DskMe == 1 {
+                    dsk_rcd = DskScan.Scan()
+                    dsk_err = DskScan.Err()
+
+                    // No Error and no EOF - So Process the Record
+                    if dsk_err == nil && dsk_rcd == true {
+                        Dskrec = strings.TrimSpace(DskScan.Text())
+
+                        Looper = 1
+                        LoopNum++
+                    } else {
+                        break
+                    }
+                } else {
+                    Looper = 0
+
+                    ConsOut = fmt.Sprintf("[!] AChoirX does not yet support Nested Looping (&LST + &FOR)\n     > %s\n", Tmprec)
+                    ConsLogSys(ConsOut, 1, 2)
+
+                    Tmprec = fmt.Sprintf("***: Command Bypassed")
                 }
+
+
+                //****************************************************************
+                //* Check for System Variables and Expand them                   *
+                //****************************************************************
+                //* This function changes in AChoirX - AChoir uses %EnVar%       *
+                //* but native GOLang support $Var or ${Var}.  AChoirS now uses  *
+                //* the Native GoLang functions to prevent reinventing the wheel *
+                //****************************************************************
+                varConvert(Tmprec)
+
+                // Testing...
+                fmt.Printf("Out: %s", o32VarRec)
+
+
+
+
+
+
+
+
+
             }
 
 
@@ -597,7 +660,7 @@ func main() {
         }
 
         // Testing - Echo Input
-        // fmt.Printf(Tmprec)
+        //fmt.Printf(Tmprec)
 
 
         if consOrFile == 1 {
@@ -750,9 +813,9 @@ func PreIndex() {
     } else {
         iHtmMode = 1
 
-        fmt.Fprintf(HtmHndl, "<html><head><title>AChoir Artifacts</title></head>\n")
+        fmt.Fprintf(HtmHndl, "<html><head><title>AChoirX Artifacts</title></head>\n")
         fmt.Fprintf(HtmHndl, "<body>\n")
-        fmt.Fprintf(HtmHndl, "<h2>Welcome to AChoir %s</h2>\n\n", Version)
+        fmt.Fprintf(HtmHndl, "<h2>Welcome to AChoirX %s</h2>\n\n", Version)
         fmt.Fprintf(HtmHndl, "<p>\n")
         fmt.Fprintf(HtmHndl, "Below is an Index of the Artifacts gathered for Acquisition: <b>%s</b>\n\n", ACQName)
         fmt.Fprintf(HtmHndl, "</p>\n\n")
@@ -883,6 +946,27 @@ func consInput(consString string, conLog int, conHide int) {
 
         ConsLogSys(ConsOut, 1, 1)
 
+    }
+}
+
+
+//****************************************************************
+// convert a record with Environment Variables in it             *
+//  - Do manual checks for 64 bit exceptions - Check both 32&64  *
+//****************************************************************
+// This function changes in AChoirX - AChoir uses %EnVar%        *
+// but native GOLang supports $Var or ${Var}.  AChoirX now uses  *
+// the Native GoLang functions to prevent reinventing the wheel  *
+//****************************************************************
+func varConvert(inVarRec string) {
+    o32VarRec = os.ExpandEnv(inVarRec)
+
+    //  This doesn't apply to Linux or OSX
+    if opSystem == "windows" {
+        o64VarRec = strings.ReplaceAll(o32VarRec, "C:\\Program Files\\", "C:\\Program Files (x86)\\")
+        o64VarRec = strings.ReplaceAll(o32VarRec, "System32", "sysnative")
+    } else {
+        o64VarRec = inVarRec
     }
 }
 
