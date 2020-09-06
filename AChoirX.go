@@ -66,6 +66,9 @@ var LstMe = 0                                   // Flag to identify &LST is bein
 var DskMe = 0                                   // Flag to identify &DSK is being used
 var LoopNum = 0                                 // Loop Counter
 var ForFName = "File.txt"                       // Parsed File name from Path
+var iNative = 0                                 // Are we Native 64Bit on 64Bit (Native = 1, NonNative = 0)
+var sNative = ""                                // Native String (blank or Non-) 
+
 
 // Input and Output Records
 var Conrec = "Console Record"                   // Console Output Record
@@ -73,6 +76,7 @@ var Tmprec = "Formatted Console Record"         // Console Formatting Record
 var Filrec = "File Record"                      // File Record 
 var Lstrec = "File Record"                      // List Record 
 var Dskrec = "File Record"                      // Disk Record 
+var Inprec = "Console Input"                    // Console Input Record 
 var o32VarRec = "32 bit Variables"              // 32 Bit Variable Expansion Record
 var o64VarRec = "64 bit Variables"              // 64 Bit Variable Expansion Record
 
@@ -369,6 +373,25 @@ func main() {
 
 
     //****************************************************************
+    //* Are we running Non-Native (Sysnative vs. System32)           *
+    //****************************************************************
+    if iopSystem == 0 {
+        TempDir = fmt.Sprintf("%s\\Sysnative", WinRoot)
+
+        if _, fol_err := os.Stat(TempDir); os.IsNotExist(fol_err) {
+            sNative = "64Bit "
+            iNative = 1
+        } else {
+            sNative = "32Bit NON-"
+            iNative = 0
+        }
+
+        ConsOut = fmt.Sprintf("[+] Running as Windows %sNative\n", sNative)
+        ConsLogSys(ConsOut, 1, 1)
+    }
+
+
+    //****************************************************************
     // If iRunMode=1 Create the BACQDir - Base Acquisition Dir       *
     //****************************************************************
     if iRunMode == 1  {
@@ -654,6 +677,20 @@ func main() {
                     repl_Tim := NewCaseInsensitiveReplacer("&Tim", FullDateTime)
                     o32VarRec = repl_Tim.Replace(o32VarRec)
                 }
+
+                if CaseInsensitiveContains(o32VarRec, "&Inp") {
+
+                    repl_Inp := NewCaseInsensitiveReplacer("&Inp", Inprec)
+                    o32VarRec = repl_Inp.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Hst") {
+
+                    repl_Hst := NewCaseInsensitiveReplacer("&Hst", cName)
+                    o32VarRec = repl_Hst.Replace(o32VarRec)
+                }
+
+
 
 
 

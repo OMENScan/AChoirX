@@ -1,0 +1,27 @@
+Since AChoirX is a complete re-write of AChoir in Go, there are some things 
+that will not make it into the initial release (and some may not make it at
+all).  This is due to the (un)availability of certain native functions in 
+GoLang, and because the goal of AChoirX is to have parity on Widows, Linux, 
+and OSX as much as possible.
+
+For this reason, AChoirX will rely much more on external funtionality than
+AChoir did.
+
+
+Some of the Functions that will not be in the initial release:
+==============================================================
+* Raw NTFS
+* NTP
+* Console Colors
+* Windows Version Detection
+* Check for Windows Admin/Escalated Privs
+* Check for Available Disk Space
+* Check for Memory Size
+* Native SMB/CIFS
+
+
+
+Some New Additions/Changes:
+===========================
+* Native HTTP/HTTPS (GoLang has a GREAT HTTP/S library)
+* Use TSK for Raw File Collection
