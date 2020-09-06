@@ -24,6 +24,7 @@ import (
     "time"
     "os"
     "strings"
+    "regexp"
     "runtime"
     "net/http"
     "io"
@@ -106,6 +107,7 @@ var ForFile = "C:\\AChoir\\Cache\\ForFiles"     // Do action for these Files
 var MCpFile = "C:\\AChoir\\Cache\\MCpFiles"     // Do action for Multiple File Copies
 var ForDisk = "C:\\AChoir\\Cache\\ForDisk"      // Do Action for Multiple Disk Drives 
 var CurrDir = ""                                // Current Directory
+var TempDir = ""                                // Temp Build Directory String
 
 // Windows OS Variables
 var WinRoot = "NA"                              // Windows Root Directory
@@ -624,15 +626,47 @@ func main() {
                 //****************************************************************
                 varConvert(Tmprec)
 
+
+                //****************************************************************
+                //* Now Further expand o32VarRec for Achoir unique variables     *
+                //****************************************************************
+                if CaseInsensitiveContains(o32VarRec, "&Dir") {
+
+                    if len(CurrDir) > 0 {
+                        TempDir = fmt.Sprintf("%s\\%s", BaseDir, CurrDir)
+                    } else {
+                        TempDir = BaseDir
+                    }
+
+                    repl_Dir := NewCaseInsensitiveReplacer("&Dir", TempDir)
+                    o32VarRec = repl_Dir.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Fil") {
+
+                    repl_Fil := NewCaseInsensitiveReplacer("&Fil", CurrFil)
+                    o32VarRec = repl_Fil.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Tim") {
+
+                    showTime("&Tim")
+                    repl_Tim := NewCaseInsensitiveReplacer("&Tim", FullDateTime)
+                    o32VarRec = repl_Tim.Replace(o32VarRec)
+                }
+
+
+
+
+
+
+
+
+
+
+
                 // Testing...
-                fmt.Printf("Out: %s\nOUT: %s", o32VarRec, o64VarRec)
-
-
-
-
-
-
-
+                fmt.Printf("Out: %s\nOut: %s\n", o32VarRec, o64VarRec)
 
 
             }
@@ -971,3 +1005,30 @@ func varConvert(inVarRec string) {
 }
 
 
+//****************************************************************
+// Case Insensitive Search for a SubString in a String           *
+//****************************************************************
+func CaseInsensitiveContains(CI_String, CI_Substr string) bool {
+    CI_String, CI_Substr = strings.ToUpper(CI_String), strings.ToUpper(CI_Substr)
+    return strings.Contains(CI_String, CI_Substr)
+}
+
+
+//****************************************************************
+// Case Insensitive Replacer Routines                            *
+//****************************************************************
+type CaseInsensitiveReplacer struct {
+    toReplace   *regexp.Regexp
+    replaceWith string
+}
+
+func NewCaseInsensitiveReplacer(toReplace, with string) *CaseInsensitiveReplacer {
+    return &CaseInsensitiveReplacer{
+        toReplace:   regexp.MustCompile("(?i)" + toReplace),
+        replaceWith: with,
+    }
+}
+
+func (cir *CaseInsensitiveReplacer) Replace(str string) string {
+    return cir.toReplace.ReplaceAllString(str, cir.replaceWith)
+}
