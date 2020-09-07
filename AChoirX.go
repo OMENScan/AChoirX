@@ -68,6 +68,8 @@ var LoopNum = 0                                 // Loop Counter
 var ForFName = "File.txt"                       // Parsed File name from Path
 var iNative = 0                                 // Are we Native 64Bit on 64Bit (Native = 1, NonNative = 0)
 var sNative = ""                                // Native String (blank or Non-) 
+var iIsAdmin = 0                                // Are we an Admin 
+var sIsAdmin = ""                               // Are we an Admin String (blank or Non-) 
 
 
 // Input and Output Records
@@ -106,12 +108,14 @@ var WGetFile = "C:\\AChoir\\Download.dat"       // Downloaded WGet File
 var LstFile = "C:\\AChoir\\Data.Lst"            // List of Data
 var ChkFile = "C:\\AChoir\\Data.Chk"            // Check For File Existence
 var BACQDir = "C:\\AChoir"                      // Base Acquisition Directory
+var ACQDir = ""                                 // Relative Acquisition Directory
 var CachDir = "C:\\AChoir\\Cache"               // AChoir Caching Directory 
 var ForFile = "C:\\AChoir\\Cache\\ForFiles"     // Do action for these Files
 var MCpFile = "C:\\AChoir\\Cache\\MCpFiles"     // Do action for Multiple File Copies
 var ForDisk = "C:\\AChoir\\Cache\\ForDisk"      // Do Action for Multiple Disk Drives 
 var CurrDir = ""                                // Current Directory
 var TempDir = ""                                // Temp Build Directory String
+var TempAcq = ""                                // Temp ACQ Directory String
 
 // Windows OS Variables
 var WinRoot = "NA"                              // Windows Root Directory
@@ -386,7 +390,19 @@ func main() {
             iNative = 0
         }
 
-        ConsOut = fmt.Sprintf("[+] Running as Windows %sNative\n", sNative)
+
+        //****************************************************************
+        //* Check If We are an Admin                                     *
+        //****************************************************************
+        if (IsUserAdmin()) {
+            iIsAdmin = 1
+            sIsAdmin = ""
+        } else {
+            iIsAdmin = 0;
+            sIsAdmin = "NON-"
+        }
+
+        ConsOut = fmt.Sprintf("[+] Running as Windows %sNative (%sAdmin)\n", sNative, sIsAdmin)
         ConsLogSys(ConsOut, 1, 1)
     }
 
@@ -690,6 +706,29 @@ func main() {
                     o32VarRec = repl_Hst.Replace(o32VarRec)
                 }
 
+                if CaseInsensitiveContains(o32VarRec, "&Acq") {
+
+                    if len(ACQDir) > 0 {
+                        TempAcq = fmt.Sprintf("%s\\%s", BACQDir, ACQDir)
+                    } else {
+                        TempAcq = BACQDir
+                    }
+
+                    repl_Acq := NewCaseInsensitiveReplacer("&Acq", TempAcq)
+                    o32VarRec = repl_Acq.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Acn") {
+
+                    repl_Acn := NewCaseInsensitiveReplacer("&Acn", ACQName)
+                    o32VarRec = repl_Acn.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Win") {
+
+                    repl_Win := NewCaseInsensitiveReplacer("&Win", WinRoot)
+                    o32VarRec = repl_Win.Replace(o32VarRec)
+                }
 
 
 
@@ -735,9 +774,7 @@ func main() {
 
 
         if consOrFile == 1 {
-            fmt.Printf("\n>>>")
-        } else {
-            fmt.Printf("\n")
+            fmt.Printf(">>>")
         }
     }
 
@@ -1068,4 +1105,16 @@ func NewCaseInsensitiveReplacer(toReplace, with string) *CaseInsensitiveReplacer
 
 func (cir *CaseInsensitiveReplacer) Replace(str string) string {
     return cir.toReplace.ReplaceAllString(str, cir.replaceWith)
+}
+
+
+//****************************************************************
+// Check for Windows Admin Privs by opening Physical Drive0      *
+//****************************************************************
+func IsUserAdmin() bool {
+    _, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+    if err != nil {
+        return false
+    }
+    return true
 }
