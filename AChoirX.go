@@ -24,6 +24,8 @@ import (
     "time"
     "os"
     "strings"
+    "text/scanner"
+    "encoding/csv"
     "regexp"
     "runtime"
     "net/http"
@@ -71,6 +73,10 @@ var sNative = ""                                // Native String (blank or Non-)
 var iIsAdmin = 0                                // Are we an Admin 
 var sIsAdmin = ""                               // Are we an Admin String (blank or Non-) 
 
+//Tokenize Records
+var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
+var tokCount = 0                                // Token Counter
+var Delims = ","                                // Tokenizing Delimiters
 
 // Input and Output Records
 var Conrec = "Console Record"                   // Console Output Record
@@ -464,35 +470,35 @@ func main() {
         //* Conditional Execution                                        *
         //****************************************************************
         if RunMe > 0 {
-            if strings.HasPrefix(Tmprec, "32B:") {
+            if strings.HasPrefix(strings.ToUpper(Tmprec), "32B:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "64B:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "64B:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "VER:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "VER:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "CKY:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "CKY:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "CKN:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "CKN:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "EQU:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "EQU:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "NEQ:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "NEQ:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "RC=:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "RC=:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "RC!:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "RC!:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "RC>:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "RC>:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "RC<:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "RC<:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "N>>:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "N>>:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "N<<:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "N<<:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "N==:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "N==:") {
                 RunMe++
-            } else if strings.HasPrefix(Tmprec, "END:") {
+            } else if strings.HasPrefix(strings.ToUpper(Tmprec), "END:") {
                 RunMe--
             }
         } else {
@@ -501,20 +507,20 @@ func main() {
             //****************************************************************
             //* ForFiles Looper Setup                                        *
             //****************************************************************
-            if strings.HasPrefix(Tmprec, "&FOR") || 
-            strings.HasPrefix(Tmprec, "&FO0") || strings.HasPrefix(Tmprec, "&FO1") ||
-            strings.HasPrefix(Tmprec, "&FO2") || strings.HasPrefix(Tmprec, "&FO3") || 
-            strings.HasPrefix(Tmprec, "&FO4") || strings.HasPrefix(Tmprec, "&FO5") || 
-            strings.HasPrefix(Tmprec, "&FO6") || strings.HasPrefix(Tmprec, "&FO7") || 
-            strings.HasPrefix(Tmprec, "&FO8") || strings.HasPrefix(Tmprec, "&FO9") || 
-            strings.HasPrefix(Tmprec, "&FOA") || strings.HasPrefix(Tmprec, "&FOB") || 
-            strings.HasPrefix(Tmprec, "&FOC") || strings.HasPrefix(Tmprec, "&FOD") || 
-            strings.HasPrefix(Tmprec, "&FOE") || strings.HasPrefix(Tmprec, "&FOF") || 
-            strings.HasPrefix(Tmprec, "&FOG") || strings.HasPrefix(Tmprec, "&FOH") || 
-            strings.HasPrefix(Tmprec, "&FOI") || strings.HasPrefix(Tmprec, "&FOJ") || 
-            strings.HasPrefix(Tmprec, "&FOK") || strings.HasPrefix(Tmprec, "&FOL") || 
-            strings.HasPrefix(Tmprec, "&FOM") || strings.HasPrefix(Tmprec, "&FON") || 
-            strings.HasPrefix(Tmprec, "&FOO") || strings.HasPrefix(Tmprec, "&FOP") {
+            if strings.HasPrefix(strings.ToUpper(Tmprec), "&FOR") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FO0") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FO1") ||
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FO2") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FO3") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FO4") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FO5") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FO6") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FO7") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FO8") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FO9") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FOA") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FOB") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FOC") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FOD") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FOE") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FOF") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FOG") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FOH") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FOI") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FOJ") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FOK") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FOL") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FOM") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FON") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&FOO") || strings.HasPrefix(strings.ToUpper(Tmprec), "&FOP") {
                 ForMe = 1
 
                 ForHndl, for_err = os.Open(ForFile)
@@ -535,20 +541,20 @@ func main() {
             //****************************************************************
             //* LstFiles Looper Setup                                        *
             //****************************************************************
-            if strings.HasPrefix(Tmprec, "&LST") || 
-            strings.HasPrefix(Tmprec, "&LS0") || strings.HasPrefix(Tmprec, "&LS1") ||
-            strings.HasPrefix(Tmprec, "&LS2") || strings.HasPrefix(Tmprec, "&LS3") || 
-            strings.HasPrefix(Tmprec, "&LS4") || strings.HasPrefix(Tmprec, "&LS5") || 
-            strings.HasPrefix(Tmprec, "&LS6") || strings.HasPrefix(Tmprec, "&LS7") || 
-            strings.HasPrefix(Tmprec, "&LS8") || strings.HasPrefix(Tmprec, "&LS9") || 
-            strings.HasPrefix(Tmprec, "&LSA") || strings.HasPrefix(Tmprec, "&LSB") || 
-            strings.HasPrefix(Tmprec, "&LSC") || strings.HasPrefix(Tmprec, "&LSD") || 
-            strings.HasPrefix(Tmprec, "&LSE") || strings.HasPrefix(Tmprec, "&LSF") || 
-            strings.HasPrefix(Tmprec, "&LSG") || strings.HasPrefix(Tmprec, "&LSH") || 
-            strings.HasPrefix(Tmprec, "&LSI") || strings.HasPrefix(Tmprec, "&LSJ") || 
-            strings.HasPrefix(Tmprec, "&LSK") || strings.HasPrefix(Tmprec, "&LSL") || 
-            strings.HasPrefix(Tmprec, "&LSM") || strings.HasPrefix(Tmprec, "&LSN") || 
-            strings.HasPrefix(Tmprec, "&LSO") || strings.HasPrefix(Tmprec, "&LSP") {
+            if strings.HasPrefix(strings.ToUpper(Tmprec), "&LST") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LS0") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LS1") ||
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LS2") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LS3") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LS4") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LS5") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LS6") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LS7") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LS8") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LS9") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LSA") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LSB") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LSC") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LSD") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LSE") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LSF") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LSG") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LSH") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LSI") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LSJ") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LSK") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LSL") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LSM") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LSN") || 
+            strings.HasPrefix(strings.ToUpper(Tmprec), "&LSO") || strings.HasPrefix(strings.ToUpper(Tmprec), "&LSP") {
                 LstMe = 1;
 
                 LstHndl, lst_err = os.Open(LstFile)
@@ -569,7 +575,7 @@ func main() {
             //****************************************************************
             //* DskFiles Looper Setup                                        *
             //****************************************************************
-            if strings.HasPrefix(Tmprec, "&DSK") {
+            if strings.HasPrefix(strings.ToUpper(Tmprec), "&DSK") {
                 DskMe = 1
 
                 DskHndl, dsk_err = os.Open(ForDisk)
@@ -729,6 +735,214 @@ func main() {
                     repl_Win := NewCaseInsensitiveReplacer("&Win", WinRoot)
                     o32VarRec = repl_Win.Replace(o32VarRec)
                 }
+
+                if CaseInsensitiveContains(o32VarRec, "&Fo") {
+
+                    // Split string, we will likely need it split 
+                    runeDelims := []rune(Delims)
+                    tokRdr := csv.NewReader(strings.NewReader(Filrec))
+                    tokRdr.Comma = runeDelims[0]
+                    tokRdr.FieldsPerRecord = -1
+                    tokFields, tok_err := tokRdr.Read()
+
+                    if tok_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Parsing Error for Record(%d): %s\n", LoopNum, tok_err)
+                        ConsLogSys(ConsOut, 1, 2)
+                        continue
+                    }                    
+	
+                    tokCount = len(tokFields)
+                    if tokCount < 25 {
+                        for i := tokCount; i < 26; i++ {
+                            tokFields = append(tokFields, "")
+                        }
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&For") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&For", Filrec)
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fo0") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fo0", tokFields[0])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fo1") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fo1", tokFields[1])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fo2") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fo2", tokFields[2])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fo3") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fo3", tokFields[3])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fo4") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fo4", tokFields[4])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fo5") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fo5", tokFields[5])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fo6") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fo6", tokFields[6])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fo7") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fo7", tokFields[7])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fo8") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fo8", tokFields[8])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fo9") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fo9", tokFields[9])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Foa") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Foa", tokFields[10])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fob") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fob", tokFields[11])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Foc") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Foc", tokFields[12])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fod") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fod", tokFields[13])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Foe") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Foe", tokFields[14])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fof") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fof", tokFields[15])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fog") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fog", tokFields[16])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Foh") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Foh", tokFields[17])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Foi") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Foi", tokFields[18])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Foj") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Foj", tokFields[19])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fok") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fok", tokFields[20])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fol") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fol", tokFields[21])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fom") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fom", tokFields[22])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fon") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fon", tokFields[23])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Foo") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Foo", tokFields[24])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                    if CaseInsensitiveContains(o32VarRec, "&Fop") {
+
+                        repl_For := NewCaseInsensitiveReplacer("&Fop", tokFields[25])
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
+
+                }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
