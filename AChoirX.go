@@ -3,7 +3,12 @@
 //  glad to share our own...freely and gladly."
 //  - Benjamin Franklin
 //
-// AChoirX v0.01 - Convert from C to Go for Xplatform capability
+// AChoirX = AChoir Version 10
+//  This is Achoir converted to GoLang. VersionX was chosen to
+//  to prevent clash with the C version numbers.  But essentially
+//  AChoirX is Achoir converted to GoLang.
+//
+// AChoirX v10.00.01 - Convert from C to Go for Xplatform capability
 //
 //
 //
@@ -37,7 +42,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v4.4"                            // AChoir Version
+var Version = "v10.00.01"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var iRunMode = 0                                // Int Runmode Flag (0, 1, 2)
@@ -782,6 +787,46 @@ func main() {
                         if CaseInsensitiveContains(o32VarRec, ForsArray[iFor]) {
                             repl_For := NewCaseInsensitiveReplacer(ForsArray[iFor], tokFields[iFor])
                             o32VarRec = repl_For.Replace(o32VarRec)
+                        }
+                    }
+                }
+
+
+                if CaseInsensitiveContains(o32VarRec, "&Ls") {
+
+                    // Split string, we will likely need it split 
+                    runeDelims := []rune(Delims)
+                    tokRdr := csv.NewReader(strings.NewReader(Lstrec))
+                    tokRdr.Comma = runeDelims[0]
+                    tokRdr.FieldsPerRecord = -1
+                    tokRdr.TrimLeadingSpace = true
+                    tokFields, tok_err := tokRdr.Read()
+
+                    if tok_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Parsing Error for Record(%d): %s\n", LoopNum, tok_err)
+                        ConsLogSys(ConsOut, 1, 2)
+                        continue
+                    }                    
+	
+                    tokCount = len(tokFields)
+                    if tokCount < 25 {
+                        for i := tokCount; i < 26; i++ {
+                            tokFields = append(tokFields, "")
+                        }
+                    }
+
+
+                    if CaseInsensitiveContains(o32VarRec, "&Lst") {
+
+                        repl_Lst := NewCaseInsensitiveReplacer("&Lst", Lstrec)
+                        o32VarRec = repl_Lst.Replace(o32VarRec)
+                    }
+
+                    // Look for Replacements &Ls0 - LsP
+                    for iLst = 0; iLst < 26; iLst++ {
+                        if CaseInsensitiveContains(o32VarRec, LstsArray[iLst]) {
+                            repl_Lst := NewCaseInsensitiveReplacer(LstsArray[iLst], tokFields[iLst])
+                            o32VarRec = repl_Lst.Replace(o32VarRec)
                         }
                     }
                 }
