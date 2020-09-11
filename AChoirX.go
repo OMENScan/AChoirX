@@ -37,7 +37,6 @@ import (
     "io"
     "bufio"
     "crypto/tls"
-    "golang.org/x/sys/windows"
     syslog "github.com/NextronSystems/simplesyslog"
 )
 
@@ -834,46 +833,6 @@ func main() {
 
 
 
-                // Some Test Code for checking Drive Types for Windows
-                // DRIVE_CDROM = 5, DRIVE_FIXED = 3, DRIVE_RAMDISK = 6, DRIVE_REMOTE = 4, DRIVE_REMOVABLE = 2
-                if iopSystem == 0 {
-                    var drvRoot []uint16 
-                    drvRoot, _ = windows.UTF16FromString("C:\\")
-                    fmt.Printf("C Drive Type = %d\n", windows.GetDriveType(&drvRoot[0]))
-
-                    drvRoot, _ = windows.UTF16FromString("H:\\")
-                    fmt.Printf("H Drive Type = %d\n", windows.GetDriveType(&drvRoot[0]))
-
-                    drvRoot, _ = windows.UTF16FromString("I:\\")
-                    fmt.Printf("I Drive Type = %d\n", windows.GetDriveType(&drvRoot[0]))
-
-                    drvRoot, _ = windows.UTF16FromString("Z:\\")
-                    fmt.Printf("Z Drive Type = %d\n", windows.GetDriveType(&drvRoot[0]))
-
-                    drvRoot, _ = windows.UTF16FromString("M:\\")
-                    fmt.Printf("M Drive Type = %d\n", windows.GetDriveType(&drvRoot[0]))
-                } else {
-                    fmt.Printf("Bypassing GetDriveType - Not Windows\n")
-                }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -897,26 +856,40 @@ func main() {
 
 
 
-
-
-
-
-
-
-
-
-
-
         }
+
+
+
+
+
 
         // Testing - Echo Input
         //fmt.Printf(Tmprec)
+
+
+
+
 
 
         if consOrFile == 1 {
             fmt.Printf(">>>")
         }
     }
+
+
+
+
+
+    // Some Test Code for checking Drive Types for Windows
+    // DRIVE_CDROM = 5, DRIVE_FIXED = 3, DRIVE_RAMDISK = 6, DRIVE_REMOTE = 4, DRIVE_REMOVABLE = 2
+    if iopSystem == 0 {
+        winListDrives()
+    } else {
+        fmt.Printf("[!] Bypassing GetDriveType - Not Windows\n")
+    }
+
+
+
 
 
     // Print Stuff Cause GoLang makes us use variables 
