@@ -238,7 +238,7 @@ func main() {
     // What Directory are we in?
     BaseDir, cwd_err := os.Getwd()
     if cwd_err != nil {
-        BaseDir = fmt.Sprintf("\\AChoir\\ACQ-IR-%s-%04d%02d%02d-%02d%02d", cName, iYYYY, iMonth, iDay, iHour, iMin) 
+        BaseDir = fmt.Sprintf("%cAChoir%cACQ-IR-%s-%04d%02d%02d-%02d%02d", slashDelim, slashDelim, cName, iYYYY, iMonth, iDay, iHour, iMin) 
 
     }
 
@@ -708,7 +708,7 @@ func main() {
                 if CaseInsensitiveContains(o32VarRec, "&Dir") {
 
                     if len(CurrDir) > 0 {
-                        TempDir = fmt.Sprintf("%s\\%s", BaseDir, CurrDir)
+                        TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
                     } else {
                         TempDir = BaseDir
                     }
@@ -745,7 +745,7 @@ func main() {
                 if CaseInsensitiveContains(o32VarRec, "&Acq") {
 
                     if len(ACQDir) > 0 {
-                        TempAcq = fmt.Sprintf("%s\\%s", BACQDir, ACQDir)
+                        TempAcq = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
                     } else {
                         TempAcq = BACQDir
                     }
@@ -983,12 +983,14 @@ func main() {
                         PreIndex();
                     }
 
-                    // Explicit Path
-                    if strings.HasPrefix(strings.ToUpper(Inrec), "ACQ:\\") {
+                    // Explicit Path (Dependent upon OS!
+                    osACQ := fmt.Sprintf("ACQ:%c", slashDelim)
+                    if strings.HasPrefix(strings.ToUpper(Inrec), osACQ) {
                         if len(Inrec) > 5 {
                             ACQDir = fmt.Sprintf("%s", Inrec[5:])
-                            TempDir = fmt.Sprintf("%s\\%s", BACQDir, ACQDir)
+                            TempDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
                         } else  {
+                            ACQDir = ""
                             TempDir = BACQDir
                         }
                     } else {
@@ -996,11 +998,11 @@ func main() {
                             //Check to see if it is an append or new &Acq
                             //Dont add // if it's new!
                             if len(ACQDir) > 0 {
-                                ACQDir += "\\"
+                                ACQDir += slashDelimS
                             }
 
                             ACQDir += Inrec[4:]
-                            TempDir = fmt.Sprintf("%s\\%s", BACQDir, ACQDir);
+                            TempDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir);
                         }
                     }
 
@@ -1217,7 +1219,7 @@ func PreIndex() {
     // Build The Initial Artfact Index.htm                          *
     //***************************************************************
     iHtmMode = 0
-    HtmFile = fmt.Sprintf("%s\\Index.htm", BACQDir)
+    HtmFile = fmt.Sprintf("%s%cIndex.htm", BACQDir, slashDelim)
 
     HtmHndl, htm_err = os.Create(HtmFile)
     if htm_err != nil {
