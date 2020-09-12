@@ -56,6 +56,7 @@ var opArchit = "AMD64"                          // Architecture
 var opSystem = "Windows"                        // Which Operating System are we running on
 var iopSystem = 0                               // Operating System Flag (0=win, 1=lin, 2=osx, 3=?)
 var slashDelim byte = '\\'                      // Directory Delimiter Win vs. Lin vs. OSX
+var slashDelimS string = "\\"                   // Same Thing but a String
 var WGetURL = "http://Company.com/file"         // URL For HTTP Get
 var RootSlash = 0                               // Last Occurance of Slash to find Root URL
 var ForSlash = 0                                // Last Occurance of Slash to find File in Path
@@ -84,13 +85,18 @@ var ifFor = 0                                   // Flag contains FOR, FO0 - FOP
 var ifLst = 0                                   // Flag contains LST, LS0 - LSP
 var iMaxCnt = 0                                 // Maximum Record Count (Set by FOR:, LST: &FOR, &LST)
 var LastRC = 0                                  // Last Return Code From External Executable
+var iVrx = 0                                    // Index of VR0 - VR9 Variable array
+var iCnx = 0                                    // Index of CN0 - CN9 Variable array
+var JmpLbl = "LBL:Top"                          // Working Jump Label Build String
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
 var tokCount = 0                                // Token Counter
 var Delims = ","                                // Tokenizing Delimiters
+var CntsTring = ""                              // Convert Cnt Integer Array Variable to String
 
 // Input and Output Records
+var Inrec = "File Input Record"                 // File Input Record
 var Conrec = "Console Record"                   // Console Output Record
 var Tmprec = "Formatted Console Record"         // Console Formatting Record
 var Filrec = "File Record"                      // File Record 
@@ -169,6 +175,10 @@ var ForsArray = []string{"&FO0", "&FO1", "&FO2", "&FO3", "&FO4", "&FO5", "&FO6",
 var LstsArray = []string{"&LS0", "&LS1", "&LS2", "&LS3", "&LS4", "&LS5", "&LS6", "&LS7", "&LS8", 
                          "&LS9", "&LSA", "&LSB", "&LSC", "&LSD", "&LSE", "&LSF", "&LSG", "&LSH", 
                          "&LSI", "&LSJ", "&LSK", "&LSL", "&LSM", "&LSN", "&LSO", "&LSP"}
+var VarsArray = []string{"&VR0", "&VR1", "&VR2", "&VR3", "&VR4", "&VR5", "&VR6", "&VR7", "&VR8", "&VR9"}
+var VardArray = []string{"", "", "", "", "", "", "", "", "", ""}
+var CntsArray = []string{"&CN0", "&CN1", "&CN2", "&CN3", "&CN4", "&CN5", "&CN6", "&CN7", "&CN8", "&CN9"}
+var CntiArray = []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
 
 // Main Line
@@ -213,6 +223,7 @@ func main() {
 
 
     // Initial Settings and Confiiguration
+    slashDelimS = fmt.Sprintf("%c", slashDelim)
     ACQName = fmt.Sprintf("ACQ-IR-%s-%04d%02d%02d-%02d%02d", cName, iYYYY, iMonth, iDay, iHour, iMin) 
     inFnam = "AChoir.ACQ"
 
@@ -892,13 +903,131 @@ func main() {
 
                     TotBytes, FreeBytes := winFreeDisk()
                     if TotBytes == 0 {
-                        ConsOut = fmt.Sprintf("[!] Available Disk Space not yet implemented in OS version (%s).\n", opSystem)
+                        ConsOut = fmt.Sprintf("[!] Error retrieving Disk Space stats, or not yet implemented (%s).\n", opSystem)
                         ConsLogSys(ConsOut, 1, 2)
-                    } else {
-                        repl_Dsa := NewCaseInsensitiveReplacer("&Dsa", strconv.FormatUint(FreeBytes, 10))
-                        o32VarRec = repl_Dsa.Replace(o32VarRec)
+                    }
+
+                    // Even if we got 0 FreeBytes, replace it.
+                    repl_Dsa := NewCaseInsensitiveReplacer("&Dsa", strconv.FormatUint(FreeBytes, 10))
+                    o32VarRec = repl_Dsa.Replace(o32VarRec)
+                }
+
+                // Look for Replacements &VR0 - VR9
+                for iVrx = 0; iVrx < 10; iVrx++ {
+                    if CaseInsensitiveContains(o32VarRec, VarsArray[iVrx]) {
+                        repl_Vrx := NewCaseInsensitiveReplacer(VarsArray[iVrx], VardArray[iVrx])
+                        o32VarRec = repl_Vrx.Replace(o32VarRec)
                     }
                 }
+
+                // Look for Replacements &CN0 - CN9
+                for iCnx = 0; iCnx < 10; iCnx++ {
+                    if CaseInsensitiveContains(o32VarRec, CntsArray[iCnx]) {
+                        CntsTring = strconv.Itoa(CntiArray[iCnx])
+                        repl_Cnx := NewCaseInsensitiveReplacer(CntsArray[iCnx], CntsTring)
+                        o32VarRec = repl_Cnx.Replace(o32VarRec)
+                    }
+                }
+
+
+                //****************************************************************
+                //* Now execute the Actions                                      *
+                //****************************************************************
+                Inrec = o32VarRec
+
+                if len(Inrec) < 1 {
+                    continue
+                } else if strings.HasPrefix(Inrec, "*") {
+                    continue
+                } else if len(Inrec) < 4 {
+                    continue
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "LBL:") {
+                    continue
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "JMP:") && len(Inrec) > 4 {
+                    if consOrFile == 1 {
+                        ConsOut = fmt.Sprintf("[*] Jumping Does not make sense in Interactive Mode.  Ignoring...\n")
+                        ConsLogSys(ConsOut, 1, 2)
+                    } else {
+                        // Rewind File and Jump to a Label (LBL:)
+                        // Note: For This to work we have to Reset both the Handle and the Scanner!
+                        RunMe = 0
+                        IniHndl.Seek(0, 0)
+                        IniScan = bufio.NewScanner(IniHndl)
+
+                        JmpLbl = fmt.Sprintf("LBL:%s", Inrec[4:])
+
+                        for IniScan.Scan() {
+                            Tmprec = strings.TrimSpace(IniScan.Text())
+                            if Tmprec == JmpLbl {
+                                break
+                            }
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CSE:") {
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "CSE:GET") {
+                        getCaseInfo(1)
+                    } else {
+                        getCaseInfo(0);
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "ACQ:") {
+                    // Have we created the Base Acquisition Directory Yet?
+                    _, BACQ_err := os.Stat(BACQDir)
+
+                    if os.IsNotExist(BACQ_err) {
+                        // Set iRunMode=1 to be sure we post-process the Acquired Artifacts
+                        // (In case we had not set it originally due to remote BACQDIR)
+                        iRunMode = 1;
+
+                        DirAllocErr(BACQDir);
+                        DirAllocErr(CachDir);
+                        PreIndex();
+                    }
+
+                    // Explicit Path
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "ACQ:\\") {
+                        if len(Inrec) > 5 {
+                            ACQDir = fmt.Sprintf("%s", Inrec[5:])
+                            TempDir = fmt.Sprintf("%s\\%s", BACQDir, ACQDir)
+                        } else  {
+                            TempDir = BACQDir
+                        }
+                    } else {
+                        if len(Inrec) > 4 {
+                            //Check to see if it is an append or new &Acq
+                            //Dont add // if it's new!
+                            if len(ACQDir) > 0 {
+                                ACQDir += "\\"
+                            }
+
+                            ACQDir += Inrec[4:]
+                            TempDir = fmt.Sprintf("%s\\%s", BACQDir, ACQDir);
+                        }
+                    }
+
+                    // Determine the Level 1 Directory to see if we have it yet
+                    // If not, we will want to add it to the HTML file
+                    LvlSplit := strings.Split(ACQDir, slashDelimS)
+                    LevelOne := fmt.Sprintf("%s%c%s", BACQDir, slashDelim, LvlSplit[0])
+
+                    _, level_err := os.Stat(LevelOne)
+                    if os.IsNotExist(level_err) && iHtmMode == 1 {
+                        fmt.Fprintf(HtmHndl, "</td><td align=center>\n");
+                        fmt.Fprintf(HtmHndl, "<a href=file:%s target=AFrame> %s </a>\n", LvlSplit[0], LvlSplit[0]);
+                    }
+
+
+                    // Have we created this Directory already?
+                    _, ACQDir_err := os.Stat(TempDir)
+
+                    if os.IsNotExist(ACQDir_err) {
+                        ConsOut = fmt.Sprintf("[+] Creating Acquisition Sub-Directory: %s\n", ACQDir)
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        ExpandDirs(TempDir);
+
+                    }
+                }
+
 
 
 
@@ -1300,3 +1429,27 @@ func IsUserAdmin() bool {
     }
     return true
 }
+
+
+//***********************************************************************
+//* Expand out Directories if they do not exist by slashDelim           *
+//***********************************************************************
+func ExpandDirs(FullDirName string) {
+    var iDir = 0
+    var TempDirName = ""
+
+    DirSplit := strings.Split(FullDirName, slashDelimS)
+
+    if len(DirSplit) > 1 {
+        // Go through Dirs - Start with 1 (Ignore Root)
+        TempDirName = DirSplit[0]
+        for iDir = 1; iDir < len(DirSplit); iDir++ {
+            TempDirName += slashDelimS
+            TempDirName += DirSplit[iDir]
+
+            DirAllocErr(TempDirName);
+        }
+    }
+}
+
+

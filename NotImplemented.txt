@@ -15,7 +15,6 @@ Some of the Functions that will not be in the initial release:
 * Console Colors
 * Windows Version Detection
 * Check for Windows Escalated Privs
-* Check for Available Disk Space
 * Check for Memory Size
 * Native SMB/CIFS
 
