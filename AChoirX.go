@@ -29,6 +29,7 @@ import (
     "time"
     "os"
     "strings"
+    "strconv"
     "text/scanner"
     "encoding/csv"
     "regexp"
@@ -81,6 +82,8 @@ var iFor = 0                                    // Loop Counter FOR, FO0 - FOP
 var iLst = 0                                    // Loop Counter LST, LS0 - LSP
 var ifFor = 0                                   // Flag contains FOR, FO0 - FOP
 var ifLst = 0                                   // Flag contains LST, LS0 - LSP
+var iMaxCnt = 0                                 // Maximum Record Count (Set by FOR:, LST: &FOR, &LST)
+var LastRC = 0                                  // Last Return Code From External Executable
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -831,6 +834,60 @@ func main() {
                     }
                 }
 
+                if CaseInsensitiveContains(o32VarRec, "&Dsk") {
+
+                    repl_Dsk := NewCaseInsensitiveReplacer("&Dsk", Dskrec)
+                    o32VarRec = repl_Dsk.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Num") {
+
+                    repl_Num := NewCaseInsensitiveReplacer("&Num", strconv.Itoa(LoopNum))
+                    o32VarRec = repl_Num.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Cnr") {
+
+                    repl_Cnr := NewCaseInsensitiveReplacer("&Cnr", strconv.Itoa(iMaxCnt))
+                    o32VarRec = repl_Cnr.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Fnm") {
+
+                    repl_Fnm := NewCaseInsensitiveReplacer("&Fnm", ForFName)
+                    o32VarRec = repl_Fnm.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Rcd") {
+
+                    repl_Rcd := NewCaseInsensitiveReplacer("&Rcd", strconv.Itoa(LastRC))
+                    o32VarRec = repl_Rcd.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Chk") {
+
+                    repl_Chk := NewCaseInsensitiveReplacer("&Chk", ChkFile)
+                    o32VarRec = repl_Chk.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Drv") {
+
+                    repl_Drv := NewCaseInsensitiveReplacer("&Drv", DiskDrive)
+                    o32VarRec = repl_Drv.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Prc") {
+
+                    repl_Prc := NewCaseInsensitiveReplacer("&Prc", Procesr)
+                    o32VarRec = repl_Prc.Replace(o32VarRec)
+                }
+
+                //if CaseInsensitiveContains(o32VarRec, "&Vck") {
+                    //
+                    //repl_Vck := NewCaseInsensitiveReplacer("&Vck", volType)
+                    //o32VarRec = repl_Prc.Replace(o32VarRec)
+                //}
+
 
 
 
@@ -884,8 +941,9 @@ func main() {
     // DRIVE_CDROM = 5, DRIVE_FIXED = 3, DRIVE_RAMDISK = 6, DRIVE_REMOTE = 4, DRIVE_REMOVABLE = 2
     if iopSystem == 0 {
         winListDrives()
+        winFreeDisk()
     } else {
-        fmt.Printf("[!] Bypassing GetDriveType - Not Windows\n")
+        fmt.Printf("[!] Bypassing Drive and Memory Routines - We are not running on Windows\n")
     }
 
 

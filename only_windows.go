@@ -10,9 +10,11 @@ import (
 )
 
 func winListDrives() {
-    var drvRoot []uint16 
-    drvRoot, _ = windows.UTF16FromString("C:\\")
-    fmt.Printf("C Drive Type = %d\n", windows.GetDriveType(&drvRoot[0]))
+    var drvRoot []uint16
+    var uinRoot *uint16
+
+    uinRoot, _ = windows.UTF16PtrFromString("C:\\")
+    fmt.Printf("C Drive Type = %d\n", windows.GetDriveType(uinRoot))
 
     drvRoot, _ = windows.UTF16FromString("H:\\")
     fmt.Printf("H Drive Type = %d\n", windows.GetDriveType(&drvRoot[0]))
@@ -25,5 +27,21 @@ func winListDrives() {
 
     drvRoot, _ = windows.UTF16FromString("M:\\")
     fmt.Printf("M Drive Type = %d\n", windows.GetDriveType(&drvRoot[0]))
+}
+
+
+func winFreeDisk() {
+
+    //var drvRoot []uint16
+    var uinRoot *uint16
+    var uinCallerFreeBytes, uinTotalBytes, uinTotalFree uint64
+
+
+    //drvRoot, _ = windows.UTF16FromString("C:\\")
+    uinRoot, _ = windows.UTF16PtrFromString("C:\\")
+
+    _ = windows.GetDiskFreeSpaceEx(uinRoot, &uinCallerFreeBytes, &uinTotalBytes, &uinTotalFree)
+    fmt.Printf("C Drive Space = %d, Free = %d\n", uinTotalBytes, uinTotalFree)
 
 }
+
