@@ -6,6 +6,7 @@ package main
 
 import (
     "fmt"
+    "syscall"
 )
 
 func winListDrives() {
@@ -13,8 +14,22 @@ func winListDrives() {
 
 }
 
-func winFreeDisk() {
-    fmt.Printf("[+] Free Disk Space Listing not relevant to Linux\n")
+func winFreeDisk() (uint64, uint64) {
+    var diskAll, diskFree uint64
 
+    fs := syscall.Statfs_t{}
+    err := syscall.Statfs("/", &fs)
+
+    if err != nil {
+        return 0, 0
+    }
+
+    diskAll = fs.Blocks * uint64(fs.Bsize)
+    diskFree = fs.Bfree * uint64(fs.Bsize)
+
+    //fmt.Printf("[!] Free Disk Space Listing not implemented for Linux\n")
+    //return 0, 0
+
+    return diskAll, diskFree
 }
 

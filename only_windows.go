@@ -30,18 +30,15 @@ func winListDrives() {
 }
 
 
-func winFreeDisk() {
+// Check the Disk Space and return Total and Free Space
+func winFreeDisk() (uint64, uint64) {
 
-    //var drvRoot []uint16
     var uinRoot *uint16
     var uinCallerFreeBytes, uinTotalBytes, uinTotalFree uint64
 
-
-    //drvRoot, _ = windows.UTF16FromString("C:\\")
     uinRoot, _ = windows.UTF16PtrFromString("C:\\")
-
     _ = windows.GetDiskFreeSpaceEx(uinRoot, &uinCallerFreeBytes, &uinTotalBytes, &uinTotalFree)
-    fmt.Printf("C Drive Space = %d, Free = %d\n", uinTotalBytes, uinTotalFree)
 
+   return uinTotalBytes, uinTotalFree
 }
 

@@ -888,6 +888,17 @@ func main() {
                     //o32VarRec = repl_Prc.Replace(o32VarRec)
                 //}
 
+                if CaseInsensitiveContains(o32VarRec, "&Dsa") {
+
+                    TotBytes, FreeBytes := winFreeDisk()
+                    if TotBytes == 0 {
+                        ConsOut = fmt.Sprintf("[!] Available Disk Space not yet implemented in OS version (%s).\n", opSystem)
+                        ConsLogSys(ConsOut, 1, 2)
+                    } else {
+                        repl_Dsa := NewCaseInsensitiveReplacer("&Dsa", strconv.FormatUint(FreeBytes, 10))
+                        o32VarRec = repl_Dsa.Replace(o32VarRec)
+                    }
+                }
 
 
 
