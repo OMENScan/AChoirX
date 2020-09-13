@@ -970,6 +970,14 @@ func main() {
                         getCaseInfo(0);
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "ACQ:") {
+                    // Sanity Check - Replace Delimiters base on OS
+                    if iopSystem == 0 {
+                        Inrec = strings.Replace(Inrec, "/", "\\", -1) 
+                    } else {
+                        Inrec = strings.Replace(Inrec, "\\", "/", -1) 
+                    }
+
+
                     // Have we created the Base Acquisition Directory Yet?
                     _, BACQ_err := os.Stat(BACQDir)
 
@@ -1028,7 +1036,58 @@ func main() {
                         ExpandDirs(TempDir);
 
                     }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "DIR:") {
+                    //****************************************************************
+                    //* Set Current Directory                                        *
+                    //****************************************************************
+                    // Sanity Check - Replace Delimiters base on OS
+                    if iopSystem == 0 {
+                        Inrec = strings.Replace(Inrec, "/", "\\", -1) 
+                    } else {
+                        Inrec = strings.Replace(Inrec, "\\", "/", -1) 
+                    }
+
+                    // Explicit Path (Dependent upon OS!
+                    osDir := fmt.Sprintf("DIR:%c", slashDelim)
+                    if strings.HasPrefix(strings.ToUpper(Inrec), osDir) {
+                        if len(Inrec) > 5 {
+                            CurrDir = fmt.Sprintf("%s", Inrec[5:])
+                            TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
+                        } else  {
+                            CurrDir = ""
+                            TempDir = BaseDir
+                        }
+                    } else {
+                        if len(Inrec) > 4 {
+                            //Check to see if it is an append or new &Dir
+                            //Dont add // if it's new!
+                            if len(CurrDir) > 0 {
+                                CurrDir += slashDelimS
+                            }
+
+                            CurrDir += Inrec[4:]
+                            TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir);
+                        }
+                    }
+
+                    // Have we created this Directory already?
+                    _, CurrDir_err := os.Stat(TempDir)
+
+                    if os.IsNotExist(CurrDir_err) {
+                        ConsOut = fmt.Sprintf("[+] Creating Sub-Directory: %s\n", CurrDir)
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        ExpandDirs(TempDir);
+
+                    }
+
+                    // Reset The WorkingDirectory to the new Directory
+                    CurrWorkDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir);
+                    os.Chdir(CurrWorkDir); 
                 }
+
+
+
 
 
 
