@@ -7,6 +7,7 @@ package main
 import (
     "fmt"
     "golang.org/x/sys/windows"
+    "github.com/gonutz/w32"
 )
 
 func winListDrives() {
@@ -41,4 +42,21 @@ func winFreeDisk() (uint64, uint64) {
 
    return uinTotalBytes, uinTotalFree
 }
+
+
+// Windows Console Hide and Show
+func winConHideShow(HideOrShow int) {
+    console := w32.GetConsoleWindow()
+    if console != 0 {
+        _, consoleProcID := w32.GetWindowThreadProcessId(console)
+        if w32.GetCurrentProcessId() == consoleProcID {
+            if HideOrShow == 0 {
+                w32.ShowWindowAsync(console, w32.SW_HIDE)
+            } else {
+                w32.ShowWindowAsync(console, w32.SW_SHOW)
+            }
+        }
+    }
+}
+
 

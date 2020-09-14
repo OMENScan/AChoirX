@@ -10,7 +10,7 @@ import (
 )
 
 func winListDrives() {
-    fmt.Printf("[+] Drive Listing not relevant to Linux\n")
+    fmt.Printf("[!] Drive Listing not relevant to Linux\n")
 
 }
 
@@ -33,3 +33,8 @@ func winFreeDisk() (uint64, uint64) {
     return diskAll, diskFree
 }
 
+
+// Windows Console Hide and Show
+func winConHideShow(HideOrShow int) {
+    fmt.Printf("[+] Console Hide/Show not Implemented for Linux\n")
+}

@@ -16,6 +16,7 @@
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
+//  w32:    go get -u github.com/gonutz/w32
 // Changes from AChoir:
 //  Environment Variable Expansion now uses GoLang $Var or ${Var} 
 //
@@ -88,6 +89,7 @@ var LastRC = 0                                  // Last Return Code From Externa
 var iVrx = 0                                    // Index of VR0 - VR9 Variable array
 var iCnx = 0                                    // Index of CN0 - CN9 Variable array
 var JmpLbl = "LBL:Top"                          // Working Jump Label Build String
+var iSleep = 0                                  // Seconds to Sleep
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -176,8 +178,10 @@ var LstsArray = []string{"&LS0", "&LS1", "&LS2", "&LS3", "&LS4", "&LS5", "&LS6",
                          "&LS9", "&LSA", "&LSB", "&LSC", "&LSD", "&LSE", "&LSF", "&LSG", "&LSH", 
                          "&LSI", "&LSJ", "&LSK", "&LSL", "&LSM", "&LSN", "&LSO", "&LSP"}
 var VarsArray = []string{"&VR0", "&VR1", "&VR2", "&VR3", "&VR4", "&VR5", "&VR6", "&VR7", "&VR8", "&VR9"}
+var VarxArray = []string{"VR0:", "VR1:", "VR2:", "VR3:", "VR4:", "VR5:", "VR6:", "VR7:", "VR8:", "VR9:"}
 var VardArray = []string{"", "", "", "", "", "", "", "", "", ""}
 var CntsArray = []string{"&CN0", "&CN1", "&CN2", "&CN3", "&CN4", "&CN5", "&CN6", "&CN7", "&CN8", "&CN9"}
+var CntxArray = []string{"CN0:", "CN1:", "CN2:", "CN3:", "CN4:", "CN5:", "CN6:", "CN7:", "CN8:", "CN9:"}
 var CntiArray = []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
 
@@ -1084,10 +1088,140 @@ func main() {
                     // Reset The WorkingDirectory to the new Directory
                     CurrWorkDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir);
                     os.Chdir(CurrWorkDir); 
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "FIL:") {
+                    CurrFil = Inrec[4:]
+                    TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir);
+
+                    _, CurrDir_err := os.Stat(TempDir)
+
+                    if os.IsNotExist(CurrDir_err) {
+                        ConsOut = fmt.Sprintf("[+] Creating Sub-Directory: %s\n", CurrDir)
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        ExpandDirs(TempDir);
+                    }
+
+                    ConsOut = fmt.Sprintf("[+] File has been Set to: %s\n", CurrFil)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "VR") {
+                    // Look for Replacements VR0: - VR9:
+                    for iVrx = 0; iVrx < 10; iVrx++ {
+                        if strings.HasPrefix(strings.ToUpper(Inrec), VarxArray[iVrx]) {
+                            VardArray[iVrx] = Inrec[4:]
+                        }
+                    }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CN") {
+                    // Look for Replacements CN0: - CN9:
+                    for iCnx = 0; iCnx < 10; iCnx++ {
+                        if strings.HasPrefix(strings.ToUpper(Inrec), CntxArray[iCnx]) {
+                            if Inrec[4:] == "++" {
+                                CntiArray[iCnx]++
+                            } else if Inrec[4:] == "--" {
+                                CntiArray[iCnx]--
+                            } else {
+                                CntiArray[iCnx], _ = strconv.Atoi(Inrec[4:])
+                            }
+                        }
+                    }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "DRV:") {
+                    DiskDrive = Inrec[4:]
+
+                    ConsOut = fmt.Sprintf("[+] Disk Drive Set to: %s\n", DiskDrive)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "INI:") {
+                    IniFile = Inrec[4:]
+
+                    if strings.ToUpper(IniFile) == "CONSOLE" {
+                        if consOrFile == 0 {
+                            RunMode = "Con"
+                            inFnam = "Console"
+                            iRunMode = 1
+                            consOrFile = 1
+
+                            ConsOut = fmt.Sprintf("[+] Switching to Console (Interactive Mode\n")
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            IniHndl.Close()
+                            fmt.Printf(">>>");
+                            IniScan = bufio.NewScanner(os.Stdin)
+                        }
+                    } else {
+                        _, exist_err := os.Stat(IniFile)
+                        if os.IsNotExist(exist_err) {
+                            ConsOut = fmt.Sprintf("[!] Requested INI File Not Found: %s - Ignored.\n", Inrec[4:])
+                            ConsLogSys(ConsOut, 1, 2)
+                        } else {
+                            ConsOut = fmt.Sprintf("[!] Switching to INI File: %s\n", Inrec[4:])
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            // Only close the handle if its not Console. If it is Console Set it back to File
+                            if consOrFile == 0 {
+                                IniHndl.Close()
+                            } else {
+                                consOrFile = 0
+                            }
+
+                            IniHndl, ini_err = os.Open(IniFile)
+                            if ini_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Opening Ini File: %s - Exiting.\n", IniFile)
+                                ConsLogSys(ConsOut, 1, 2)
+
+                                //cleanUp_Exit(3)
+                                os.Exit(3)
+                            }
+
+                            IniScan = bufio.NewScanner(IniHndl)
+                            RunMe = 0  // Conditional run Script default is yes
+
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "ADM:CHECK") {
+                    if iIsAdmin == 1 {
+                        ConsOut = fmt.Sprintf("[+] Running as Admin\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        ConsOut = fmt.Sprintf("[+] Running as NON-Admin\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "ADM:FORCE") {
+                    if iIsAdmin == 1 {
+                        ConsOut = fmt.Sprintf("[+] Running as Admin - Continuing...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        ConsOut = fmt.Sprintf("[+] NOT Running as Admin - Exiting...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        //cleanUp_Exit(3)
+                        os.Exit(3)
+                    }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:HIDE") {
+                    ConsOut = fmt.Sprintf("[+] Hiding Console...\n")
+                    ConsLogSys(ConsOut, 1, 1)
+                    winConHideShow(0)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:SHOW") {
+                    ConsOut = fmt.Sprintf("[+] Showing Console...\n")
+                    ConsLogSys(ConsOut, 1, 1)
+                    winConHideShow(1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=MIN") {
+                    setMSGLvl = 1
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=STD") {
+                    setMSGLvl = 2
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=MAX") {
+                    setMSGLvl = 3
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=DEBUG") {
+                    setMSGLvl = 4
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SLP:") {
+                    iSleep, _ = strconv.Atoi(Inrec[4:])
+                    time.Sleep (time.Duration(iSleep) * time.Second)
+
+
                 }
-
-
-
 
 
 
