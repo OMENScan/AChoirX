@@ -38,3 +38,11 @@ func winFreeDisk() (uint64, uint64) {
 func winConHideShow(HideOrShow int) {
     fmt.Printf("[+] Console Hide/Show not Implemented for Linux\n")
 }
+
+
+// Windows Get Volume Information
+func winGetVolInfo(rootDrive string) (string) {
+    fmt.Printf("[!] Drive Listing not Implemeted for Linux\n")
+    return "UNKNOWN"
+}
+

@@ -60,3 +60,19 @@ func winConHideShow(HideOrShow int) {
 }
 
 
+// Windows Get Volume Information
+func winGetVolInfo(rootDrive string) (string) {
+    var vol_err error
+
+    rootPathName := windows.StringToUTF16Ptr(rootDrive)
+    fileSystemName := make([]uint16, windows.MAX_PATH+1)
+
+    if vol_err = windows.GetVolumeInformation(rootPathName, nil, 0, nil, nil, nil, &fileSystemName[0], uint32(len(fileSystemName))); vol_err != nil {
+        volType = "UNKNOWN"
+    } else {
+        volType = windows.UTF16ToString(fileSystemName)
+    }
+
+    return volType
+}
+

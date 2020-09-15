@@ -16,7 +16,7 @@
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
-//  w32:    go get -u github.com/gonutz/w32
+//  w32:    go get github.com/gonutz/w32
 // Changes from AChoir:
 //  Environment Variable Expansion now uses GoLang $Var or ${Var} 
 //
@@ -90,6 +90,8 @@ var iVrx = 0                                    // Index of VR0 - VR9 Variable a
 var iCnx = 0                                    // Index of CN0 - CN9 Variable array
 var JmpLbl = "LBL:Top"                          // Working Jump Label Build String
 var iSleep = 0                                  // Seconds to Sleep
+var volType = ""                                // Volume File System
+var isNTFS = 0                                  // Is the Volume NTFS
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -897,11 +899,11 @@ func main() {
                     o32VarRec = repl_Prc.Replace(o32VarRec)
                 }
 
-                //if CaseInsensitiveContains(o32VarRec, "&Vck") {
-                    //
-                    //repl_Vck := NewCaseInsensitiveReplacer("&Vck", volType)
-                    //o32VarRec = repl_Prc.Replace(o32VarRec)
-                //}
+                if CaseInsensitiveContains(o32VarRec, "&Vck") {
+                    
+                    repl_Vck := NewCaseInsensitiveReplacer("&Vck", volType)
+                    o32VarRec = repl_Vck.Replace(o32VarRec)
+                }
 
                 if CaseInsensitiveContains(o32VarRec, "&Dsa") {
 
@@ -1219,6 +1221,23 @@ func main() {
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SLP:") {
                     iSleep, _ = strconv.Atoi(Inrec[4:])
                     time.Sleep (time.Duration(iSleep) * time.Second)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "INP:") {
+                    consInput(Inrec[4:], 1, 0);
+                    Inprec = Conrec
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "VCK:") {
+                    isNTFS = 0
+                    volType = winGetVolInfo(Inrec[4:])
+
+                    // This should only work in Windows - Linux and OSX will be UNKNOWN
+                    if volType == "NTFS" {
+                        isNTFS = 1
+                    }
+
+
+
+
+
+
 
 
                 }
