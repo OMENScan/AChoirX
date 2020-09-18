@@ -36,6 +36,7 @@ import (
     "regexp"
     "runtime"
     "net/http"
+    "path/filepath"
     "io"
     "bufio"
     "crypto/tls"
@@ -92,6 +93,7 @@ var JmpLbl = "LBL:Top"                          // Working Jump Label Build Stri
 var iSleep = 0                                  // Seconds to Sleep
 var volType = ""                                // Volume File System
 var isNTFS = 0                                  // Is the Volume NTFS
+var iCPS = 0                                    // Copy based on Magic Number (Signature)
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -103,6 +105,7 @@ var CntsTring = ""                              // Convert Cnt Integer Array Var
 var Inrec = "File Input Record"                 // File Input Record
 var Conrec = "Console Record"                   // Console Output Record
 var Tmprec = "Formatted Console Record"         // Console Formatting Record
+var Cpyrec = "Copy Record"                      // Used by Copy Routine
 var Filrec = "File Record"                      // File Record 
 var Lstrec = "File Record"                      // List Record 
 var Dskrec = "File Record"                      // Disk Record 
@@ -1232,10 +1235,48 @@ func main() {
                     if volType == "NTFS" {
                         isNTFS = 1
                     }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CPY:") || strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
+                    //****************************************************************
+                    //* Binary Copy From => To                                       *
+                    //****************************************************************
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
+                        iCPS = 1
+                    } else {
+                        iCPS = 0
+                    }
 
+                    ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
+                    ConsLogSys(ConsOut, 1, 1)
 
+                    Cpyrec = Inrec[4:]
 
+                    splitString1, splitString2, SplitRC := twoSplit(Cpyrec)
 
+                    if SplitRC == 1 {
+                        ConsOut = fmt.Sprintf("[!] Copying Requires both a FROM and a TO File\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        fmt.Sprintf("CPY: %s to %s\n", splitString1, splitString2)
+
+                        //****************************************************************
+                        //* If we see any wildcards, do search for multiple occurances   *
+                        //****************************************************************
+                        if strings.Contains(splitString1, "*") || strings.Contains(splitString1, "?") {
+                            files_glob, err_glob := filepath.Glob(splitString1)
+
+                            if err_glob != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", err_glob)
+                                ConsLogSys(ConsOut, 1, 1)
+                                continue
+                            }
+
+                            for _, file_found := range files_glob {
+                                fmt.Printf("Multi-Copy File: %s\n", file_found)
+                            }
+                        } else {
+                            fmt.Printf("Singl-Copy File: %s\n", splitString1)
+                        }
+                    }
 
 
 
@@ -1666,4 +1707,37 @@ func ExpandDirs(FullDirName string) {
     }
 }
 
+
+func twoSplit(SpString string) (string, string, int) {
+    // Split string in two by space - but honor quotes 
+    // Success Returns String1 String2 and ReturnCode=2
+    // var splitRC = 0 
+
+    tokRdr := csv.NewReader(strings.NewReader(SpString))
+    tokRdr.Comma = ' '
+    tokRdr.FieldsPerRecord = -1
+    tokRdr.TrimLeadingSpace = true
+    tokFields, tok_err := tokRdr.Read()
+
+
+    if tok_err != nil {
+        ConsOut = fmt.Sprintf("[!] Parsing Error for: %s\n", SpString)
+        ConsLogSys(ConsOut, 1, 2)
+        return SpString, "", 1
+    }
+
+    tokCount = len(tokFields)
+
+    if tokCount < 2 {
+        ConsOut = fmt.Sprintf("[!] No Delimiters Found for: %s\n", SpString)
+        ConsLogSys(ConsOut, 1, 2)
+        return SpString, "", 1
+    } else if tokCount > 2 {
+        ConsOut = fmt.Sprintf("[!] Extra Data Ignored. Tokens: %d\n", tokCount)
+        ConsLogSys(ConsOut, 1, 2)
+        return tokFields[0], tokFields[1], 3
+    } else {
+        return tokFields[0], tokFields[1], 2
+    } 
+}
 
