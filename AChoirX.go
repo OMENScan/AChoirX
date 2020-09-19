@@ -94,6 +94,7 @@ var iSleep = 0                                  // Seconds to Sleep
 var volType = ""                                // Volume File System
 var isNTFS = 0                                  // Is the Volume NTFS
 var iCPS = 0                                    // Copy based on Magic Number (Signature)
+var setCPath = 1                                // Output Copy Patch Shard - 0=None, 1=Partial, 2=Full
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -1334,13 +1335,26 @@ func main() {
 
                                 //****************************************************************
                                 //* Copy to Output File Name                                     *
+                                //*  Note: a Shard is any expanded WildCard Directory - Shards   *
+                                //*        can be used to logically group duplicate file names   *
                                 //****************************************************************
-                                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+                                if setCPath == 0 || len(MCpShard) < 1 {
+                                    MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+                                } else {
+                                    MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
+                                }
+                                ConsOut = fmt.Sprintf("[+] Multi-Copy File: %s\n    To: %s\n", file_found, MCprcO)
+                                ConsLogSys(ConsOut, 1, 1)
 
-                                fmt.Printf("Multi-Copy File(1): %s To: %s - Shard: %s\n", file_found, MCprcO, MCpShard)
-                                nBytes, copy_err := binCopy(file_found, MCprcO, MCpShard)
-                                fmt.Printf("nBytes: %d - Error: %s\n", nBytes, copy_err)
+                                nBytes, copy_err := binCopy(file_found, MCprcO)
 
+                                if copy_err != nil {
+                                    ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                } else {
+                                    ConsOut = fmt.Sprintf("[+] Copy Complete: %d Bytes Copied\n", nBytes)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                }
                             }
 
                             if (iNative == 0) {
@@ -1388,9 +1402,24 @@ func main() {
                                         //****************************************************************
                                         //* Copy to Output File Name                                     *
                                         //****************************************************************
-                                        MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+                                        if setCPath == 0 || len(MCpShard) < 1 {
+                                            MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+                                        } else { 
+                                            MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
+                                        }
 
-                                        fmt.Printf("Multi-Copy File(2): %s TO %s\n", file_found, MCprcO)
+                                        ConsOut = fmt.Sprintf("[+] Multi-Copy Redir File: %s\n    To: %s\n", file_found, MCprcO)
+                                        ConsLogSys(ConsOut, 1, 1)
+
+                                        nBytes, copy_err := binCopy(file_found, MCprcO)
+
+                                        if copy_err != nil {
+                                            ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
+                                            ConsLogSys(ConsOut, 1, 1)
+                                        } else {
+                                            ConsOut = fmt.Sprintf("[+] Copy Complete: %d Bytes Copied\n", nBytes)
+                                            ConsLogSys(ConsOut, 1, 1)
+                                        }
                                     }
                                 }
                             }
@@ -1413,7 +1442,19 @@ func main() {
                             //****************************************************************
                             MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
 
-                            fmt.Printf("Singl-Copy File: %s TO %s\n", splitString1, MCprcO)
+                            ConsOut = fmt.Sprintf("[+] Singl-Copy File: %s\n    To: %s\n", splitString1, MCprcO)
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            nBytes, copy_err := binCopy(splitString1, MCprcO)
+
+                            if copy_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
+                                ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                ConsOut = fmt.Sprintf("[+] Copy Complete: %d Bytes Copied\n", nBytes)
+                                ConsLogSys(ConsOut, 1, 1)
+                            }
+
 
                             if (iNative == 0) {
                                 //****************************************************************
@@ -1441,7 +1482,25 @@ func main() {
                                     //****************************************************************
                                     MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
 
-                                    fmt.Printf("Singl-Copy File: %s TO %s\n", splitString1, MCprcO)
+                                    ConsOut = fmt.Sprintf("[+] Singl-Copy Redir File: %s\n    To: %s\n", splitString1, MCprcO)
+                                    ConsLogSys(ConsOut, 1, 1)
+
+                                    nBytes, copy_err := binCopy(splitString1, MCprcO)
+
+                                    if copy_err != nil {
+                                        ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
+                                        ConsLogSys(ConsOut, 1, 1)
+                                    } else {
+                                        ConsOut = fmt.Sprintf("[+]Copy Complete: %d Bytes Copied\n", nBytes)
+                                        ConsLogSys(ConsOut, 1, 1)
+                                    }
+
+
+
+
+
+
+
                                  }
                             }
                         }
@@ -1914,7 +1973,7 @@ func twoSplit(SpString string) (string, string, int) {
 //***********************************************************************
 //* Binary Copy Two Files - FromFile, TooFile, PathShard                *
 //***********************************************************************
-func binCopy(FrmFile, TooFile, FrmShard string) (int64, error) {
+func binCopy(FrmFile, TooFile string) (int64, error) {
 
     FrmFileStat, stat_err := os.Stat(FrmFile)
     if stat_err != nil {
