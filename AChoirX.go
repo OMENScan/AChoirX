@@ -1338,6 +1338,9 @@ func main() {
                                 MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
 
                                 fmt.Printf("Multi-Copy File(1): %s To: %s - Shard: %s\n", file_found, MCprcO, MCpShard)
+                                nBytes, copy_err := binCopy(file_found, MCprcO, MCpShard)
+                                fmt.Printf("nBytes: %d - Error: %s\n", nBytes, copy_err)
+
                             }
 
                             if (iNative == 0) {
@@ -1908,28 +1911,33 @@ func twoSplit(SpString string) (string, string, int) {
 }
 
 
-func binCopy(src, dst string) (int64, error) {
-        sourceFileStat, err := os.Stat(src)
-        if err != nil {
-                return 0, err
-        }
+//***********************************************************************
+//* Binary Copy Two Files - FromFile, TooFile, PathShard                *
+//***********************************************************************
+func binCopy(FrmFile, TooFile, FrmShard string) (int64, error) {
 
-        if !sourceFileStat.Mode().IsRegular() {
-                return 0, fmt.Errorf("%s is not a regular file", src)
-        }
+    FrmFileStat, stat_err := os.Stat(FrmFile)
+    if stat_err != nil {
+        return 0, stat_err
+    }
 
-        source, err := os.Open(src)
-        if err != nil {
-                return 0, err
-        }
-        defer source.Close()
+    if !FrmFileStat.Mode().IsRegular() {
+        return 0, fmt.Errorf("[!] Copy Error: %s is not a Regular File", FrmFile)
+    }
 
-        destination, err := os.Create(dst)
-        if err != nil {
-                return 0, err
-        }
-        defer destination.Close()
-        nBytes, err := io.Copy(destination, source)
-        return nBytes, err
+    FrmSource, frm_err := os.Open(FrmFile)
+    if frm_err != nil {
+        return 0, frm_err
+    }
+    defer FrmSource.Close()
+
+    TooDest, too_err := os.Create(TooFile)
+    if too_err != nil {
+        return 0, too_err
+    }
+    defer TooDest.Close()
+
+    nBytes, copy_err := io.Copy(TooDest, FrmSource)
+    return nBytes, copy_err
 }
 
