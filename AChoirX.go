@@ -100,6 +100,13 @@ var tokRec scanner.Scanner                      // Used to Tokenize Records into
 var tokCount = 0                                // Token Counter
 var Delims = ","                                // Tokenizing Delimiters
 var CntsTring = ""                              // Convert Cnt Integer Array Variable to String
+var MCpFName = "File.Name"                      // Parseing Multiple Files with Glob (Wildcards)
+var MCprcO = "FilePath"                         // Build Output File Name from Glob (Wildcards)
+var MCpRoot = "FilePath"                        // Multi-Copy Root (Before any WildCards)
+var MCpShard = "FilePath"                       // Multi-Copy Expanded Directories Shard (Before FileName)
+var iShard =0                                   // Shard Index Pointer
+var iAShard =0                                  // Asterisk Shard Index Pointer
+var iQShard =0                                  // Question Mark Shard Index Pointer
 
 // Input and Output Records
 var Inrec = "File Input Record"                 // File Input Record
@@ -656,10 +663,10 @@ func main() {
                         ForSlash = strings.LastIndexByte(Filrec, slashDelim)
                         if (ForSlash == -1) {
                             ForFName = Filrec
-                        } else if len(Filrec[RootSlash+1:]) < 2 {
+                        } else if len(Filrec[ForSlash+1:]) < 2 {
                             ForFName = "Unknown"
                         } else {
-                            ForFName = Filrec[RootSlash+1:]
+                            ForFName = Filrec[ForSlash+1:]
                         }
 
                     } else {
@@ -1253,7 +1260,7 @@ func main() {
                     splitString1, splitString2, SplitRC := twoSplit(Cpyrec)
 
                     if SplitRC == 1 {
-                        ConsOut = fmt.Sprintf("[!] Copying Requires both a FROM and a TO File\n")
+                        ConsOut = fmt.Sprintf("[!] Copying Requires both a FROM File and a TO Directory\n")
                         ConsLogSys(ConsOut, 1, 1)
                     } else {
                         fmt.Sprintf("CPY: %s to %s\n", splitString1, splitString2)
@@ -1262,6 +1269,35 @@ func main() {
                         //* If we see any wildcards, do search for multiple occurances   *
                         //****************************************************************
                         if strings.Contains(splitString1, "*") || strings.Contains(splitString1, "?") {
+
+                            //****************************************************************
+                            // Parse out the Expanded Directory Shard (pre-wildcard)         *
+                            //****************************************************************
+                            iAShard = strings.IndexByte(splitString1, '*')
+                            iQShard = strings.IndexByte(splitString1, '?')
+
+                            if iAShard < 0 {
+                                iShard = strings.LastIndexByte(splitString1[:iQShard], slashDelim) + 1
+                            } else if iQShard < 0 {
+                                iShard = strings.LastIndexByte(splitString1[:iAShard], slashDelim) + 1
+                            } else if iAShard < iQShard {
+                                iShard = strings.LastIndexByte(splitString1[:iAShard], slashDelim) + 1
+                            } else if iQShard < iAShard {
+                                iShard = strings.LastIndexByte(splitString1[:iQShard], slashDelim) + 1
+                            } else {
+                                iShard = 0
+                            }
+
+                            if iShard > 1 {
+                                MCpRoot = splitString1[:iShard]
+                            } else {
+                                MCpRoot = ""
+                            }
+
+
+                            //****************************************************************
+                            // Do File Search using Glob                                     *
+                            //****************************************************************
                             files_glob, err_glob := filepath.Glob(splitString1)
 
                             if err_glob != nil {
@@ -1271,10 +1307,140 @@ func main() {
                             }
 
                             for _, file_found := range files_glob {
-                                fmt.Printf("Multi-Copy File: %s\n", file_found)
+                                //****************************************************************
+                                //* Ignore Directories - Only Process Files                      *
+                                //****************************************************************
+                                file_stat, _ := os.Stat(file_found)
+                                if file_stat.IsDir() {
+                                    continue
+                                }
+
+
+                                //****************************************************************
+                                //* Get Just the File Name                                       *
+                                //****************************************************************
+                                ForSlash = strings.LastIndexByte(file_found, slashDelim)
+
+                                if (ForSlash == -1) {
+                                    MCpFName = file_found
+                                    MCpShard = ""
+                                } else if len(file_found[ForSlash+1:]) < 2 {
+                                    MCpFName = file_found
+                                    MCpShard = file_found[iShard:len(file_found)]
+                                } else {
+                                    MCpFName = file_found[ForSlash+1:]
+                                    MCpShard = file_found[iShard:len(file_found)-len(MCpFName)]
+                                }
+
+                                //****************************************************************
+                                //* Copy to Output File Name                                     *
+                                //****************************************************************
+                                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+
+                                fmt.Printf("Multi-Copy File(1): %s To: %s - Shard: %s\n", file_found, MCprcO, MCpShard)
                             }
+
+                            if (iNative == 0) {
+                                //****************************************************************
+                                //* Replace System32 with Sysnative if we are non-native         *
+                                //****************************************************************
+                                if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
+                                    TempDir = splitString1
+
+                                    repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
+                                    TempDir = repl_sys.Replace(TempDir)
+
+                                    ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
+                                    ConsLogSys(ConsOut, 1, 1)
+
+                                    files_glob, err_glob := filepath.Glob(TempDir)
+
+                                    if err_glob != nil {
+                                        ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", err_glob)
+                                        ConsLogSys(ConsOut, 1, 1)
+                                        continue
+                                    }
+
+                                    for _, file_found := range files_glob {
+                                        //****************************************************************
+                                        //* Ignore Directories - Only Process Files                      *
+                                        //****************************************************************
+                                        file_stat, _ := os.Stat(file_found)
+                                        if file_stat.IsDir() {
+                                            continue
+                                        }
+
+                                        //****************************************************************
+                                        //* Get Just the File Name                                       *
+                                        //****************************************************************
+                                        ForSlash = strings.LastIndexByte(file_found, slashDelim)
+                                        if (ForSlash == -1) {
+                                            MCpFName = file_found
+                                        } else if len(file_found[ForSlash+1:]) < 2 {
+                                            MCpFName = file_found
+                                        } else {
+                                            MCpFName = file_found[ForSlash+1:]
+                                        }
+
+                                        //****************************************************************
+                                        //* Copy to Output File Name                                     *
+                                        //****************************************************************
+                                        MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+
+                                        fmt.Printf("Multi-Copy File(2): %s TO %s\n", file_found, MCprcO)
+                                    }
+                                }
+                            }
+
                         } else {
-                            fmt.Printf("Singl-Copy File: %s\n", splitString1)
+                            //****************************************************************
+                            //* Get Just the File Name                                       *
+                            //****************************************************************
+                            ForSlash = strings.LastIndexByte(splitString1, slashDelim)
+                            if (ForSlash == -1) {
+                                MCpFName = splitString1
+                            } else if len(splitString1[ForSlash+1:]) < 2 {
+                                MCpFName = splitString1
+                            } else {
+                                MCpFName = splitString1[ForSlash+1:]
+                            }
+
+                            //****************************************************************
+                            //* Copy to Output File Name                                     *
+                            //****************************************************************
+                            MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+
+                            fmt.Printf("Singl-Copy File: %s TO %s\n", splitString1, MCprcO)
+
+                            if (iNative == 0) {
+                                //****************************************************************
+                                //* Replace System32 with Sysnative if we are non-native         *
+                                //****************************************************************
+                                if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
+                                    TempDir = splitString1
+                                    ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
+                                    ConsLogSys(ConsOut, 1, 1)
+
+                                    //****************************************************************
+                                    //* Get Just the File Name                                       *
+                                    //****************************************************************
+                                    ForSlash = strings.LastIndexByte(splitString1, slashDelim)
+                                    if (ForSlash == -1) {
+                                        MCpFName = splitString1
+                                    } else if len(splitString1[ForSlash+1:]) < 2 {
+                                        MCpFName = splitString1
+                                    } else {
+                                        MCpFName = splitString1[ForSlash+1:]
+                                    }
+
+                                    //****************************************************************
+                                    //* Copy to Output File Name                                     *
+                                    //****************************************************************
+                                    MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+
+                                    fmt.Printf("Singl-Copy File: %s TO %s\n", splitString1, MCprcO)
+                                 }
+                            }
                         }
                     }
 
@@ -1729,7 +1895,7 @@ func twoSplit(SpString string) (string, string, int) {
     tokCount = len(tokFields)
 
     if tokCount < 2 {
-        ConsOut = fmt.Sprintf("[!] No Delimiters Found for: %s\n", SpString)
+        ConsOut = fmt.Sprintf("[!] No Separating Delimiters Found for: %s\n", SpString)
         ConsLogSys(ConsOut, 1, 2)
         return SpString, "", 1
     } else if tokCount > 2 {
@@ -1739,5 +1905,31 @@ func twoSplit(SpString string) (string, string, int) {
     } else {
         return tokFields[0], tokFields[1], 2
     } 
+}
+
+
+func binCopy(src, dst string) (int64, error) {
+        sourceFileStat, err := os.Stat(src)
+        if err != nil {
+                return 0, err
+        }
+
+        if !sourceFileStat.Mode().IsRegular() {
+                return 0, fmt.Errorf("%s is not a regular file", src)
+        }
+
+        source, err := os.Open(src)
+        if err != nil {
+                return 0, err
+        }
+        defer source.Close()
+
+        destination, err := os.Create(dst)
+        if err != nil {
+                return 0, err
+        }
+        defer destination.Close()
+        nBytes, err := io.Copy(destination, source)
+        return nBytes, err
 }
 
