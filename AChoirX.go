@@ -99,11 +99,12 @@ var setCPath = 1                                // Output Copy Patch Shard - 0=N
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
 var tokCount = 0                                // Token Counter
-var Delims = ","                                // Tokenizing Delimiters
+var Delims = ",\\/"                             // Tokenizing Delimiters (Lst, For(Win), For(Lin)
 var CntsTring = ""                              // Convert Cnt Integer Array Variable to String
 var MCpFName = "File.Name"                      // Parseing Multiple Files with Glob (Wildcards)
 var MCprcO = "FilePath"                         // Build Output File Name from Glob (Wildcards)
 var MCpRoot = "FilePath"                        // Multi-Copy Root (Before any WildCards)
+var MCpPath = "FilePath"                        // Path minus File Name
 var MCpShard = "FilePath"                       // Multi-Copy Expanded Directories Shard (Before FileName)
 var iShard =0                                   // Shard Index Pointer
 var iAShard =0                                  // Asterisk Shard Index Pointer
@@ -790,7 +791,15 @@ func main() {
                     // Split string, we will likely need it split 
                     runeDelims := []rune(Delims)
                     tokRdr := csv.NewReader(strings.NewReader(Filrec))
-                    tokRdr.Comma = runeDelims[0]
+
+                    // Windows Delim Stored in Delims[1] - Linux Delim Stored in Delims[2]
+                    // This is setable with SET:Delims= (Default is: ,\/)
+                    if iopSystem == 0 {
+                        tokRdr.Comma = runeDelims[1]
+                    } else {
+                        tokRdr.Comma = runeDelims[2]
+                    }
+
                     tokRdr.FieldsPerRecord = -1
                     tokRdr.TrimLeadingSpace = true
                     tokFields, tok_err := tokRdr.Read()
@@ -847,7 +856,6 @@ func main() {
                             tokFields = append(tokFields, "")
                         }
                     }
-
 
                     if CaseInsensitiveContains(o32VarRec, "&Lst") {
 
@@ -1348,15 +1356,19 @@ func main() {
                                 if (ForSlash == -1) {
                                     MCpFName = file_found
                                     MCpShard = ""
+                                    MCpPath = ""
                                 } else if iShard == 0 {
                                     MCpFName = file_found[ForSlash+1:]
-                                    MCpShard = ""                                    
+                                    MCpShard = ""
+                                    MCpPath = file_found[:ForSlash] 
                                 } else if len(file_found[ForSlash+1:]) < 2 {
                                     MCpFName = file_found
                                     MCpShard = file_found[iShard:len(file_found)]
+                                    MCpPath = file_found[:ForSlash] 
                                 } else {
                                     MCpFName = file_found[ForSlash+1:]
                                     MCpShard = file_found[iShard:len(file_found)-len(MCpFName)]
+                                    MCpPath = file_found[:ForSlash] 
                                 }
 
                                 //****************************************************************
@@ -1364,10 +1376,15 @@ func main() {
                                 //*  Note: a Shard is any expanded WildCard Directory - Shards   *
                                 //*        can be used to logically group duplicate file names   *
                                 //****************************************************************
-                                if setCPath == 0 || len(MCpShard) < 1 {
+                                if setCPath == 0 {
                                     MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
-                                } else {
+                                } else if setCPath == 1 && len(MCpShard) < 1 {
+                                    MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+                                } else if setCPath == 1 {
                                     MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
+                                } else if setCPath == 2 {
+                                    MCpPath = strings.Replace(MCpPath, ":", "", -1)
+                                    MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpPath, MCpFName)
                                 }
                                 ConsOut = fmt.Sprintf("[+] Multi-Copy File: %s\n    To: %s\n", file_found, MCprcO)
                                 ConsLogSys(ConsOut, 1, 1)
