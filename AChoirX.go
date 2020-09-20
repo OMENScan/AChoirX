@@ -474,8 +474,7 @@ func main() {
         ConsLogSys(ConsOut, 1, 3)
 
         // Check to see if BACQDir Directory Already Exists
-        _, exist_err := os.Stat(BACQDir)
-        if os.IsNotExist(exist_err) {
+        if _, exist_err := os.Stat(BACQDir); os.IsNotExist(exist_err) {
             DirAllocErr(BACQDir)
             DirAllocErr(CachDir)
             PreIndex()
@@ -1006,9 +1005,7 @@ func main() {
 
 
                     // Have we created the Base Acquisition Directory Yet?
-                    _, BACQ_err := os.Stat(BACQDir)
-
-                    if os.IsNotExist(BACQ_err) {
+                    if _, BACQ_err := os.Stat(BACQDir); os.IsNotExist(BACQ_err) {
                         // Set iRunMode=1 to be sure we post-process the Acquired Artifacts
                         // (In case we had not set it originally due to remote BACQDIR)
                         iRunMode = 1;
@@ -1046,17 +1043,14 @@ func main() {
                     LvlSplit := strings.Split(ACQDir, slashDelimS)
                     LevelOne := fmt.Sprintf("%s%c%s", BACQDir, slashDelim, LvlSplit[0])
 
-                    _, level_err := os.Stat(LevelOne)
-                    if os.IsNotExist(level_err) && iHtmMode == 1 {
+                    if _, level_err := os.Stat(LevelOne); os.IsNotExist(level_err) && iHtmMode == 1 {
                         fmt.Fprintf(HtmHndl, "</td><td align=center>\n");
                         fmt.Fprintf(HtmHndl, "<a href=file:%s target=AFrame> %s </a>\n", LvlSplit[0], LvlSplit[0]);
                     }
 
 
                     // Have we created this Directory already?
-                    _, ACQDir_err := os.Stat(TempDir)
-
-                    if os.IsNotExist(ACQDir_err) {
+                    if _, ACQDir_err := os.Stat(TempDir); os.IsNotExist(ACQDir_err) {
                         ConsOut = fmt.Sprintf("[+] Creating Acquisition Sub-Directory: %s\n", ACQDir)
                         ConsLogSys(ConsOut, 1, 1)
 
@@ -1098,9 +1092,7 @@ func main() {
                     }
 
                     // Have we created this Directory already?
-                    _, CurrDir_err := os.Stat(TempDir)
-
-                    if os.IsNotExist(CurrDir_err) {
+                    if _, CurrDir_err := os.Stat(TempDir); os.IsNotExist(CurrDir_err) {
                         ConsOut = fmt.Sprintf("[+] Creating Sub-Directory: %s\n", CurrDir)
                         ConsLogSys(ConsOut, 1, 1)
 
@@ -1116,9 +1108,7 @@ func main() {
                     CurrFil = Inrec[4:]
                     TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir);
 
-                    _, CurrDir_err := os.Stat(TempDir)
-
-                    if os.IsNotExist(CurrDir_err) {
+                    if _, CurrDir_err := os.Stat(TempDir); os.IsNotExist(CurrDir_err) {
                         ConsOut = fmt.Sprintf("[+] Creating Sub-Directory: %s\n", CurrDir)
                         ConsLogSys(ConsOut, 1, 1)
 
@@ -1173,8 +1163,9 @@ func main() {
                             IniScan = bufio.NewScanner(os.Stdin)
                         }
                     } else {
-                        _, exist_err := os.Stat(IniFile)
-                        if os.IsNotExist(exist_err) {
+                        // _, exist_err := os.Stat(IniFile)
+                        // if os.IsNotExist(exist_err) {
+                        if FileExists(IniFile) {
                             ConsOut = fmt.Sprintf("[!] Requested INI File Not Found: %s - Ignored.\n", Inrec[4:])
                             ConsLogSys(ConsOut, 1, 2)
                         } else {
@@ -1667,9 +1658,7 @@ func DownloadFile(filepath string, url string) error {
 /***********************************************************/
 func DirAllocErr(DirToCreat string) {
     // Check to see if Directory Already Exists
-    _, exist_err := os.Stat(DirToCreat)
-
-    if os.IsNotExist(exist_err) {
+    if _, exist_err := os.Stat(DirToCreat); os.IsNotExist(exist_err) {
         // Try to Create the Directory
         creat_err := os.MkdirAll(DirToCreat, 0644)
         if creat_err != nil {
@@ -2014,10 +2003,12 @@ func twoSplit(SpString string) (string, string, int) {
 
 
 //***********************************************************************
-//* Binary Copy Two Files - FromFile, TooFile, PathShard                *
+//* Binary Copy Two Files - FromFile, TooFile                           *
 //***********************************************************************
 func binCopy(FrmFile, TooFile string) (int64, error) {
+    var TmpFile = ""
     var LastSlash = 0
+    var iFileCount = 0
     var PathOnly = "/"
 
     FrmFileStat, stat_err := os.Stat(FrmFile)
@@ -2045,6 +2036,24 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
 
 
     //***********************************************************************
+    //* Never OverWrite a File - Rename if it is already there              *
+    //***********************************************************************
+    if FileExists(TooFile) {
+        TmpFile = TooFile
+        iFileCount = 0
+        for FileExists(TmpFile) {
+            iFileCount++;
+            TmpFile = fmt.Sprintf("%s(%d)", TooFile, iFileCount)
+        }
+
+        TooFile = TmpFile
+        ConsOut = fmt.Sprintf("[*] Destination File Already Exists.\n    Renamed To: %s\n", TooFile)
+        ConsLogSys(ConsOut, 1, 2)
+    }
+
+
+
+    //***********************************************************************
     //* Now Copy the File                                                   *
     //***********************************************************************
     TooDest, too_err := os.Create(TooFile)
@@ -2055,5 +2064,22 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
 
     nBytes, copy_err := io.Copy(TooDest, FrmSource)
     return nBytes, copy_err
+}
+
+
+//***********************************************************************
+// FileExists checks if a file exists and is not a directory before we  *
+//  try using it to prevent further errors.                             *
+//***********************************************************************
+func FileExists(CheckFilename string) bool {
+    // See if the File is already there
+    fexst_info, fexst_err := os.Stat(CheckFilename)
+
+    if os.IsNotExist(fexst_err) {
+        return false
+    }
+
+    return !fexst_info.IsDir()
+
 }
 
