@@ -108,6 +108,8 @@ var MCpShard = "FilePath"                       // Multi-Copy Expanded Directori
 var iShard =0                                   // Shard Index Pointer
 var iAShard =0                                  // Asterisk Shard Index Pointer
 var iQShard =0                                  // Question Mark Shard Index Pointer
+var iOldLen = 0                                 // Old length of a string
+var iNewLen = 0                                 // New length of a string
 
 // Input and Output Records
 var Inrec = "File Input Record"                 // File Input Record
@@ -1260,6 +1262,27 @@ func main() {
 
                     splitString1, splitString2, SplitRC := twoSplit(Cpyrec)
 
+                    // Remove any duplicate Delimiters - This is necessary to prevent indexing errors when
+                    //  The found file does not match the search string (OS ignore duplicated delimiters)
+                    oneDelim := fmt.Sprintf("%c", slashDelim)
+                    twoDelim := fmt.Sprintf("%c%c", slashDelim, slashDelim)
+
+                    iOldLen = 1
+                    iNewLen = 0
+                    for iOldLen != iNewLen {
+                        iOldLen = len(splitString1)
+                        splitString1 = strings.Replace(splitString1, twoDelim, oneDelim, -1)
+                        iNewLen = len(splitString1)
+                    }
+
+                    iOldLen = 1
+                    iNewLen = 0
+                    for iOldLen != iNewLen {
+                        iOldLen = len(splitString2)
+                        splitString2 = strings.Replace(splitString2, twoDelim, oneDelim, -1)
+                        iNewLen = len(splitString2)
+                    }
+
                     if SplitRC == 1 {
                         ConsOut = fmt.Sprintf("[!] Copying Requires both a FROM File and a TO Directory\n")
                         ConsLogSys(ConsOut, 1, 1)
@@ -1325,6 +1348,9 @@ func main() {
                                 if (ForSlash == -1) {
                                     MCpFName = file_found
                                     MCpShard = ""
+                                } else if iShard == 0 {
+                                    MCpFName = file_found[ForSlash+1:]
+                                    MCpShard = ""                                    
                                 } else if len(file_found[ForSlash+1:]) < 2 {
                                     MCpFName = file_found
                                     MCpShard = file_found[iShard:len(file_found)]
@@ -1974,6 +2000,8 @@ func twoSplit(SpString string) (string, string, int) {
 //* Binary Copy Two Files - FromFile, TooFile, PathShard                *
 //***********************************************************************
 func binCopy(FrmFile, TooFile string) (int64, error) {
+    var LastSlash = 0
+    var PathOnly = "/"
 
     FrmFileStat, stat_err := os.Stat(FrmFile)
     if stat_err != nil {
@@ -1990,6 +2018,18 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     }
     defer FrmSource.Close()
 
+
+    //***********************************************************************
+    //* Check to make sure Dest Directory Exists                            *
+    //***********************************************************************
+    LastSlash = strings.LastIndexByte(TooFile, slashDelim)
+    PathOnly = TooFile[:LastSlash]
+    ExpandDirs(PathOnly)    
+
+
+    //***********************************************************************
+    //* Now Copy the File                                                   *
+    //***********************************************************************
     TooDest, too_err := os.Create(TooFile)
     if too_err != nil {
         return 0, too_err
