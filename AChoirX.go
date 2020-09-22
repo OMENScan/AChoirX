@@ -1165,10 +1165,8 @@ func main() {
                     } else {
                         // _, exist_err := os.Stat(IniFile)
                         // if os.IsNotExist(exist_err) {
+
                         if FileExists(IniFile) {
-                            ConsOut = fmt.Sprintf("[!] Requested INI File Not Found: %s - Ignored.\n", Inrec[4:])
-                            ConsLogSys(ConsOut, 1, 2)
-                        } else {
                             ConsOut = fmt.Sprintf("[!] Switching to INI File: %s\n", Inrec[4:])
                             ConsLogSys(ConsOut, 1, 1)
 
@@ -1191,6 +1189,9 @@ func main() {
                             IniScan = bufio.NewScanner(IniHndl)
                             RunMe = 0  // Conditional run Script default is yes
 
+                        } else {
+                            ConsOut = fmt.Sprintf("[!] Requested INI File Not Found: %s - Ignored.\n", Inrec[4:])
+                            ConsLogSys(ConsOut, 1, 2)
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "ADM:CHECK") {
@@ -2006,11 +2007,54 @@ func twoSplit(SpString string) (string, string, int) {
 //* Binary Copy Two Files - FromFile, TooFile                           *
 //***********************************************************************
 func binCopy(FrmFile, TooFile string) (int64, error) {
-    var TmpFile = ""
+    var TmpFrmFile = ""
+    var TmpTooFile = ""
     var LastSlash = 0
     var iFileCount = 0
     var PathOnly = "/"
 
+    if !FileExists(FrmFile) {
+        ConsOut = fmt.Sprintf("[*] Source Copy File Not Found: \n    %s\n", FrmFile)
+        ConsLogSys(ConsOut, 1, 2)
+
+        // Check for Sysnative edge case (running 32 bit on 64 bit)
+        if (iNative == 0) {
+            //****************************************************************
+            // Wait... Maybe it's a file Redirect                            *
+            //****************************************************************
+            //* Replace System32 with Sysnative if we are non-native         *
+            //****************************************************************
+            if CaseInsensitiveContains(FrmFile, "\\System32\\") || CaseInsensitiveContains(FrmFile, "/System32/") {
+                TmpFrmFile = FrmFile
+
+                repl_frm := NewCaseInsensitiveReplacer("System32", "sysnative")
+                TmpFrmFile = repl_frm.Replace(TmpFrmFile)
+
+                ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Trying Sysnative Redirection:\n    %s\n", TmpFrmFile)
+                ConsLogSys(ConsOut, 1, 1)
+
+                if !FileExists(TmpFrmFile) {
+                    ConsOut = fmt.Sprintf("[*] Sysnative Source Copy Also File Not Found:\n    %s\n", TmpFrmFile)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    //No... Sorry... Not Sysnative
+                    return 0, fmt.Errorf("[!] Copy Error - File Could Not Be Found: %s", FrmFile)
+
+                } else {
+                    ConsOut = fmt.Sprintf("[*] Sysnative Source Copy File Found. Now Substituting:\n    %s\n", TmpFrmFile)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    // Yes... Substitution Successful
+                    FrmFile = TmpFrmFile
+                }
+            }
+        }
+    }
+
+
+    //***********************************************************************
+    //* Check to make sure its a Regular File                               *
+    //***********************************************************************
     FrmFileStat, stat_err := os.Stat(FrmFile)
     if stat_err != nil {
         return 0, stat_err
@@ -2020,6 +2064,10 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
         return 0, fmt.Errorf("[!] Copy Error: %s is not a Regular File", FrmFile)
     }
 
+
+    //***********************************************************************
+    //* Open it up with Defer Close                                         *
+    //***********************************************************************
     FrmSource, frm_err := os.Open(FrmFile)
     if frm_err != nil {
         return 0, frm_err
@@ -2039,14 +2087,14 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     //* Never OverWrite a File - Rename if it is already there              *
     //***********************************************************************
     if FileExists(TooFile) {
-        TmpFile = TooFile
+        TmpTooFile = TooFile
         iFileCount = 0
-        for FileExists(TmpFile) {
+        for FileExists(TmpTooFile) {
             iFileCount++;
-            TmpFile = fmt.Sprintf("%s(%d)", TooFile, iFileCount)
+            TmpTooFile = fmt.Sprintf("%s(%d)", TooFile, iFileCount)
         }
 
-        TooFile = TmpFile
+        TooFile = TmpTooFile
         ConsOut = fmt.Sprintf("[*] Destination File Already Exists.\n    Renamed To: %s\n", TooFile)
         ConsLogSys(ConsOut, 1, 2)
     }
