@@ -2066,6 +2066,16 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
 
 
     //***********************************************************************
+    //* Make sure we have enough free disk space                            *
+    //***********************************************************************
+    _, FreeBytes := winFreeDisk()
+    FrmFileSize := FrmFileStat.Size()
+    if (int64(FreeBytes) < FrmFileSize) {
+        return 0, fmt.Errorf("[!] Copy Error: Not Enough Disk Space Available: %d", FreeBytes)
+    }
+
+
+    //***********************************************************************
     //* Open it up with Defer Close                                         *
     //***********************************************************************
     FrmSource, frm_err := os.Open(FrmFile)
