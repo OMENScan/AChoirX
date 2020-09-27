@@ -6,9 +6,13 @@ package main
 
 import (
     "fmt"
+    "syscall"
+    "os"
+    "time"
     "golang.org/x/sys/windows"
     "github.com/gonutz/w32"
 )
+
 
 func winListDrives() {
     var drvRoot []uint16
@@ -74,5 +78,23 @@ func winGetVolInfo(rootDrive string) (string) {
     }
 
     return volType
+}
+
+
+// Gets the Modified, Create and Access time of a file
+func FTime(FileName string) (time.Time, time.Time, time.Time) {
+    var atime, mtime, ctime time.Time
+
+    stat, err_ftime := os.Stat(FileName)
+    if err_ftime != nil {
+        return time.Time{}, time.Time{}, time.Time{}
+    }
+
+    wstat := stat.Sys().(*syscall.Win32FileAttributeData)
+    atime = time.Unix(0, wstat.LastAccessTime.Nanoseconds())
+    mtime = time.Unix(0, wstat.LastWriteTime.Nanoseconds())
+    ctime = time.Unix(0, wstat.CreationTime.Nanoseconds())
+
+    return atime, mtime, ctime
 }
 

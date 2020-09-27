@@ -33,6 +33,7 @@ import (
     "strconv"
     "text/scanner"
     "encoding/csv"
+    "encoding/hex"
     "regexp"
     "runtime"
     "net/http"
@@ -199,6 +200,12 @@ var VardArray = []string{"", "", "", "", "", "", "", "", "", ""}
 var CntsArray = []string{"&CN0", "&CN1", "&CN2", "&CN3", "&CN4", "&CN5", "&CN6", "&CN7", "&CN8", "&CN9"}
 var CntxArray = []string{"CN0:", "CN1:", "CN2:", "CN3:", "CN4:", "CN5:", "CN6:", "CN7:", "CN8:", "CN9:"}
 var CntiArray = []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+// File Signature Copy Table Variables
+var iSigCount = 0
+var iSigTMax = 100
+var SigTabl [100]string
+var TypTabl [100]string
 
 
 // Main Line
@@ -1526,20 +1533,44 @@ func main() {
                                         ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                                         ConsLogSys(ConsOut, 1, 1)
                                     } else {
-                                        ConsOut = fmt.Sprintf("[+]Copy Complete: %d Bytes Copied\n", nBytes)
+                                        ConsOut = fmt.Sprintf("[+] Copy Complete: %d Bytes Copied\n", nBytes)
                                         ConsLogSys(ConsOut, 1, 1)
                                     }
-
-
-
-
-
-
-
                                  }
                             }
                         }
                     }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SIG:") {
+                    /****************************************************************/
+                    /* Clear the File Signature Table, or Load a signature          */
+                    /****************************************************************/
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "SIG:CLEAR") {
+                        iSigCount = 0
+                    } else {
+                        if strings.Contains(Inrec, "=") {
+                            SigSplit := strings.Split(Inrec, "=")
+                            if len(SigSplit[0]) > 4 && len(SigSplit[1]) > 0 {
+                                TypTabl[iSigCount] = SigSplit[0][4:]
+                                SigTabl[iSigCount] = SigSplit[1]
+
+                                // Max Signatures?
+                                if iSigCount < iSigTMax {
+                                    ConsOut = fmt.Sprintf("[+] Signature Added. Type: %s, Sig: %s, Count: %d/100\n", TypTabl[iSigCount], SigTabl[iSigCount], iSigCount+1)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                    iSigCount++
+                                } else {
+                                    ConsOut = fmt.Sprintf("[+] Signature Not Added. Maximum Signature Count is 100\n")
+                                    ConsLogSys(ConsOut, 1, 1)
+                                }
+                            }
+                        }
+                    }
+
+
+
+
+
 
 
 
@@ -2012,7 +2043,13 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     var LastSlash = 0
     var iFileCount = 0
     var PathOnly = "/"
+    var iCPSFound = 0
+    var iSig = 0
 
+
+    //***********************************************************************
+    //* Does the From File Exist?                                           *
+    //***********************************************************************
     if !FileExists(FrmFile) {
         ConsOut = fmt.Sprintf("[*] Source Copy File Not Found: \n    %s\n", FrmFile)
         ConsLogSys(ConsOut, 1, 2)
@@ -2083,6 +2120,71 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
         return 0, frm_err
     }
     defer FrmSource.Close()
+
+
+    //***********************************************************************
+    //* Get FrmSource File MetaData                                         *
+    //***********************************************************************
+    Atime, Mtime, Ctime := FTime(FrmFile)
+
+    fmt.Printf("atime(2): %v\n", Atime)
+    fmt.Printf("mtime(2): %v\n", Mtime)
+    fmt.Printf("ctime(2): %v\n", Ctime)
+
+
+    //***********************************************************************
+    //* If we are doing CPS (Copy by Signature) check for Magic Numbers     *
+    //***********************************************************************
+    iCPSFound = 0     // Default to NOT Found
+
+    // For CPY: it's ALWAYS found, for CPS: do the compare
+    if iCPS == 0 {
+        iCPSFound = 1
+    } else if iCPS == 1 {
+        /****************************************************************/
+        /* If we are doing an CPS - Read the first 32 Bytes and compare */
+        /*  to the Signature Table entries                              */
+        /****************************************************************/
+        // Read in signature bytes
+        tmpSigBytes := make([]byte, 32)
+        inSize, sigb_err := FrmSource.Read(tmpSigBytes)
+        tmpSig := hex.EncodeToString(tmpSigBytes)
+
+        // Parse Out the FileType for Signature Checking
+        filetype := filepath.Ext(FrmFile)
+        if len(filetype) > 1 {
+            filetype = filetype[1:]
+        } else {
+            filetype = ""
+        }
+
+
+        // Compare with the Signature and FileType Tables
+        for iSig = 0; iSig < iSigCount; iSig++ {
+            // Make Sure we got some data from the File to Check
+            if inSize > 0 && sigb_err == nil {
+                if strings.HasPrefix(tmpSig, SigTabl[iSig]) {
+                    iCPSFound = 1
+                    ConsOut = fmt.Sprintf("[*] Header Signature Match Found in File: %s\n", SigTabl[iSig])
+                    ConsLogSys(ConsOut, 2, 2)
+                    break
+                }
+            }
+
+            if filetype == TypTabl[iSig] {
+                iCPSFound = 1
+                ConsOut = fmt.Sprintf("[*] File Extension Match Found: %s\n", filetype)
+                ConsLogSys(ConsOut, 2, 2)
+                break
+            }
+        }
+    }
+
+    if iCPSFound == 1 {
+        FrmSource.Seek(0, 0)
+    } else {
+        return 0, fmt.Errorf("[!] No Signature Match in File. File Bypassed\n")
+    }
 
 
     //***********************************************************************

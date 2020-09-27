@@ -7,6 +7,8 @@ package main
 import (
     "fmt"
     "syscall"
+    "os"
+    "time"
 )
 
 func winListDrives() {
@@ -44,5 +46,23 @@ func winConHideShow(HideOrShow int) {
 func winGetVolInfo(rootDrive string) (string) {
     fmt.Printf("[!] Drive Listing not Implemeted for Linux\n")
     return "UNKNOWN"
+}
+
+
+// Gets the Modified, Create and Access time of a file
+func FTime(FileName string) (time.Time, time.Time, time.Time) {
+     var atime, mtime, ctime time.Time
+
+    FileInfo, err_ftime := os.Stat(FileName)
+    if err_ftime != nil {
+        return time.Time{}, time.Time{}, time.Time{}
+    }
+
+    var stat = FileInfo.Sys().(*syscall.Stat_t)
+    atime = time.Unix(stat.Atim.Sec, stat.Atim.Nsec)
+    ctime = time.Unix(stat.Ctim.Sec, stat.Ctim.Nsec)
+    mtime = time.Unix(stat.Mtim.Sec, stat.Mtim.Nsec)
+
+    return atime, mtime, ctime
 }
 
