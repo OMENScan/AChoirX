@@ -20,7 +20,16 @@
 // Changes from AChoir:
 //  Environment Variable Expansion now uses GoLang $Var or ${Var} 
 //
-//
+// Not Implemented AChoir:
+//  Raw NTFS
+//  NTP
+//  Console Colors
+//  Windows Version Detection
+//  Check for Windows Escalated Privs
+//  Check for Memory Size
+//  Native SMB/CIFS
+//  USB Protection (Registry Key)
+//  Transfer File MetaData on Copy (Dates, Perms, Owner, etc) 
 // ****************************************************************
 
 package main
@@ -41,6 +50,7 @@ import (
     "io"
     "bufio"
     "crypto/tls"
+    "crypto/md5"
     syslog "github.com/NextronSystems/simplesyslog"
 )
 
@@ -1393,9 +1403,11 @@ func main() {
                                 if copy_err != nil {
                                     ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                                     ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    ConsOut = fmt.Sprintf("[+] Copy Complete: %d Bytes Copied\n", nBytes)
-                                    ConsLogSys(ConsOut, 1, 1)
+
+                                    if nBytes < 1 {
+                                        ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                                        ConsLogSys(ConsOut, 1, 1)
+                                    }
                                 }
                             }
 
@@ -1458,9 +1470,11 @@ func main() {
                                         if copy_err != nil {
                                             ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                                             ConsLogSys(ConsOut, 1, 1)
-                                        } else {
-                                            ConsOut = fmt.Sprintf("[+] Copy Complete: %d Bytes Copied\n", nBytes)
-                                            ConsLogSys(ConsOut, 1, 1)
+
+                                            if nBytes < 1 {
+                                                ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                                                ConsLogSys(ConsOut, 1, 1)
+                                            }
                                         }
                                     }
                                 }
@@ -1492,9 +1506,11 @@ func main() {
                             if copy_err != nil {
                                 ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                                 ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[+] Copy Complete: %d Bytes Copied\n", nBytes)
-                                ConsLogSys(ConsOut, 1, 1)
+
+                                if nBytes < 1 {
+                                    ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                }
                             }
 
 
@@ -1532,11 +1548,13 @@ func main() {
                                     if copy_err != nil {
                                         ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                                         ConsLogSys(ConsOut, 1, 1)
-                                    } else {
-                                        ConsOut = fmt.Sprintf("[+] Copy Complete: %d Bytes Copied\n", nBytes)
-                                        ConsLogSys(ConsOut, 1, 1)
+
+                                        if nBytes < 1 {
+                                            ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                                            ConsLogSys(ConsOut, 1, 1)
+                                        }
                                     }
-                                 }
+                                }
                             }
                         }
                     }
@@ -2046,6 +2064,10 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     var iCPSFound = 0
     var iSig = 0
 
+    var FrmATime, FrmMTime, FrmCTime time.Time
+    var TooATime, TooMTime, TooCTime time.Time
+
+    var FrmMD5, TooMD5 string
 
     //***********************************************************************
     //* Does the From File Exist?                                           *
@@ -2113,11 +2135,17 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
 
 
     //***********************************************************************
+    //* MD5 the Input File                                                  *
+    //***********************************************************************
+    FrmMD5 = GetMD5File(FrmFile)
+
+
+    //***********************************************************************
     //* Open it up with Defer Close                                         *
     //***********************************************************************
     FrmSource, frm_err := os.Open(FrmFile)
     if frm_err != nil {
-        return 0, frm_err
+        return 0, fmt.Errorf("[!] Copy Error: %s", frm_err)
     }
     defer FrmSource.Close()
 
@@ -2125,11 +2153,10 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     //***********************************************************************
     //* Get FrmSource File MetaData                                         *
     //***********************************************************************
-    Atime, Mtime, Ctime := FTime(FrmFile)
+    FrmATime, FrmMTime, FrmCTime = FTime(FrmFile)
 
-    fmt.Printf("atime(2): %v\n", Atime)
-    fmt.Printf("mtime(2): %v\n", Mtime)
-    fmt.Printf("ctime(2): %v\n", Ctime)
+    ConsOut = fmt.Sprintf("[+] From File Meta Data: \n    Bytes: %d\n    ATime: %v\n    MTime: %v\n    CTime: %v\n", FrmFileSize, FrmATime, FrmMTime, FrmCTime)
+    ConsLogSys(ConsOut, 1, 1)
 
 
     //***********************************************************************
@@ -2222,7 +2249,47 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     }
     defer TooDest.Close()
 
+    // File Copy
     nBytes, copy_err := io.Copy(TooDest, FrmSource)
+
+
+    //***********************************************************************
+    //* If Copy worked, Collect Output file Meta Data                       *
+    //***********************************************************************
+    if copy_err == nil {
+        TooMD5 = GetMD5File(TooFile)
+
+        TooFileStat, stat_err := os.Stat(TooFile)
+        if stat_err == nil {
+            TooFileSize := TooFileStat.Size()
+            TooATime, TooMTime, TooCTime = FTime(TooFile)
+
+            ConsOut = fmt.Sprintf("[+] Copy Complete: %d Bytes Copied\n", nBytes)
+            ConsLogSys(ConsOut, 1, 1)
+
+            ConsOut = fmt.Sprintf("[+] To File Meta Data: \n    Bytes: %d\n    ATime: %v\n    MTime: %v\n    CTime: %v\n", TooFileSize, TooATime, TooMTime, TooCTime)
+            ConsLogSys(ConsOut, 1, 1)
+
+            if FrmMD5 == TooMD5 {
+                ConsOut = fmt.Sprintf("[+] From MD5: %s and To MD5: %s Match\n", FrmMD5, TooMD5)
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                ConsOut = fmt.Sprintf("[!] From MD5: %s and To MD5: %s DO NOT MATCH\n", FrmMD5, TooMD5)
+                ConsLogSys(ConsOut, 1, 1)
+            }
+
+            if FrmFileSize == TooFileSize {
+                ConsOut = fmt.Sprintf("[+] From File Size: %d and To File Size: %d Match\n", FrmFileSize, TooFileSize)
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                ConsOut = fmt.Sprintf("[+] From File Size: %d and To File Size: %d DO NOT MATCH\n", FrmFileSize, TooFileSize)
+                ConsLogSys(ConsOut, 1, 1)
+            }
+
+        }
+    }
+
+
     return nBytes, copy_err
 }
 
@@ -2243,3 +2310,26 @@ func FileExists(CheckFilename string) bool {
 
 }
 
+
+//***********************************************************************
+// MD5 A File                                                           *
+//***********************************************************************
+func GetMD5File(InFileName string) string {
+    MD5Hndl, open_err := os.Open(InFileName)
+    if open_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Generating MD5 for: %s\n", InFileName)
+        ConsLogSys(ConsOut, 1, 1)
+        return "00000000000000000000000000000000"  //No such MD5
+    }
+    defer MD5Hndl.Close()
+
+    MD5New := md5.New()
+    if _, MD5_err := io.Copy(MD5New, MD5Hndl); MD5_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Generating MD5 for: %s\n", InFileName)
+        ConsLogSys(ConsOut, 1, 1)
+        return "00000000000000000000000000000000"  //No such MD5
+    }
+
+    return hex.EncodeToString(MD5New.Sum(nil))
+
+}
