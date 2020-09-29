@@ -1584,6 +1584,30 @@ func main() {
                             }
                         }
                     }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "EQU:") {
+                    Cpyrec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Cpyrec)
+
+                    if SplitRC == 1 {
+                        ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        if(consOrFile == 1) {
+                            if splitString1 != splitString2 {
+                                ConsOut = fmt.Sprintf("[*] Strings Are NOT Equal: %s != %s\n", splitString1, splitString2)
+                                ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                ConsOut = fmt.Sprintf("[*] Strings ARE Equal: %s == %s\n", splitString1, splitString2)
+                                ConsLogSys(ConsOut, 1, 1)
+                            }
+                        } else {
+                            if splitString1 != splitString2 {
+                                RunMe++
+                            }
+                        }
+                    }
+
+
 
 
 
