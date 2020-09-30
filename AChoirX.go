@@ -1606,7 +1606,74 @@ func main() {
                             }
                         }
                     }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "N>>:") || strings.HasPrefix(strings.ToUpper(Inrec), "N<<:") || strings.HasPrefix(strings.ToUpper(Inrec), "N==:") {
+                    Cpyrec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Cpyrec)
 
+                    if SplitRC == 1 {
+                        ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Numbers\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        longString1, _ := strconv.Atoi(splitString1)
+                        longString2, _ := strconv.Atoi(splitString2)
+
+                        if strings.HasPrefix(strings.ToUpper(Inrec), "N>>:") {
+                            if longString1 > longString2 {
+                                if(consOrFile == 1) {
+                                    ConsOut = fmt.Sprintf("[*] %d Is Greater Than %d\n", longString1, longString2)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                }
+                            } else {
+                                if(consOrFile == 1) {
+                                    ConsOut = fmt.Sprintf("[*] %d Is NOT Greater Than %d\n", longString1, longString2)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                } else {
+                                    RunMe++
+                                }
+                            }
+                        } else if strings.HasPrefix(strings.ToUpper(Inrec), "N<<:") {
+                            if longString1 < longString2 {
+                                if(consOrFile == 1) {
+                                    ConsOut = fmt.Sprintf("[*] %d Is Less Than %d\n", longString1, longString2)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                }
+                            } else {
+                                if(consOrFile == 1) {
+                                    ConsOut = fmt.Sprintf("[*] %d Is NOT Less Than %d\n", longString1, longString2)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                } else {
+                                    RunMe++
+                                }
+                            }
+                        } else if strings.HasPrefix(strings.ToUpper(Inrec), "N==:") {
+                            if longString1 == longString2 {
+                                if(consOrFile == 1) {
+                                    ConsOut = fmt.Sprintf("[*] %d Is Equal To %d\n", longString1, longString2)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                }
+                            } else {
+                                if(consOrFile == 1) {
+                                    ConsOut = fmt.Sprintf("[*] %d Is NOT Equal To %d\n", longString1, longString2)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                } else {
+                                    RunMe++
+                                }
+                            }
+                        }
+                    }
+
+
+
+
+
+
+
+
+
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SAY:") {
+                    ConsOut = fmt.Sprintf("%s\n", Inrec[4:])
+                    ConsLogSys(ConsOut, 1, 1)
 
 
 
@@ -1629,7 +1696,7 @@ func main() {
 
 
                 // Testing...
-                fmt.Printf("Out: %s\nOut: %s\n", o32VarRec, o64VarRec)
+                // fmt.Printf("Out: %s\nOut: %s\n", o32VarRec, o64VarRec)
 
 
             }
