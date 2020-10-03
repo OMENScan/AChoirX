@@ -24,7 +24,6 @@
 //  Raw NTFS
 //  NTP
 //  Console Colors
-//  Windows Version Detection
 //  Check for Windows Escalated Privs
 //  Check for Memory Size
 //  Native SMB/CIFS
@@ -38,6 +37,7 @@ import (
     "fmt"
     "time"
     "os"
+    "os/exec"
     "strings"
     "strconv"
     "text/scanner"
@@ -107,6 +107,9 @@ var volType = ""                                // Volume File System
 var isNTFS = 0                                  // Is the Volume NTFS
 var iCPS = 0                                    // Copy based on Magic Number (Signature)
 var setCPath = 1                                // Output Copy Patch Shard - 0=None, 1=Partial, 2=Full
+var iOutOfDiskSpace = 0                         // Did we get any Out Of Disk Space Errors
+var iXitCmd = 0                                 // Are we runnning an Exit Command
+var XitCmd = "Exit"                             // Exit Command (AChoirX Post Processing)
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -158,6 +161,7 @@ var iSyslogLvl = 0                              // Syslog Level - Default=0 (Off
 // Global File Names
 var IniFile = "C:\\AChoir\\AChoir.Acq"          // AChoir Script File
 var LogFile = "C:\\AChoir\\LogFile.dat"         // AChoir Log File
+var CpyFile = "C:\\AChoir\\LogFile.dat"         // Copy To this File
 var HtmFile = "C:\\AChoir\\Index.htm"           // AChoir HTML Output File
 var WGetFile = "C:\\AChoir\\Download.dat"       // Downloaded WGet File
 var LstFile = "C:\\AChoir\\Data.Lst"            // List of Data
@@ -269,7 +273,7 @@ func main() {
     slashDelimS = fmt.Sprintf("%c", slashDelim)
     ACQName = fmt.Sprintf("ACQ-IR-%s-%04d%02d%02d-%02d%02d", cName, iYYYY, iMonth, iDay, iHour, iMin) 
     inFnam = "AChoir.ACQ"
-
+    iOutOfDiskSpace = 0
 
     // Default Case Settings 
     caseNumbr = ACQName
@@ -1212,7 +1216,7 @@ func main() {
                                 ConsOut = fmt.Sprintf("[!] Error Opening Ini File: %s - Exiting.\n", IniFile)
                                 ConsLogSys(ConsOut, 1, 2)
 
-                                //cleanUp_Exit(3)
+                                cleanUp_Exit(3)
                                 os.Exit(3)
                             }
 
@@ -1241,7 +1245,7 @@ func main() {
                         ConsOut = fmt.Sprintf("[+] NOT Running as Admin - Exiting...\n")
                         ConsLogSys(ConsOut, 1, 1)
 
-                        //cleanUp_Exit(3)
+                        cleanUp_Exit(3)
                         os.Exit(3)
                     }
 
@@ -1831,10 +1835,17 @@ func main() {
                             RunMe++
                         }
                     }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "REQ:") {
+                    if FileExists(Inrec[4:]) {
+                        ConsOut = fmt.Sprintf("[*] [!] Required File Found: %s\n", Inrec[4:])
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        ConsOut = fmt.Sprintf("[*] [!] Required File Not Found: %s - Exiting!\n", Inrec[4:])
+                        ConsLogSys(ConsOut, 1, 1)
 
-
-
-
+                        cleanUp_Exit(3)
+                        os.Exit(3)
+                    }
 
 
 
@@ -2403,6 +2414,7 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     _, FreeBytes := winFreeDisk()
     FrmFileSize := FrmFileStat.Size()
     if (int64(FreeBytes) < FrmFileSize) {
+        iOutOfDiskSpace = 1
         return 0, fmt.Errorf("[!] Copy Error: Not Enough Disk Space Available: %d", FreeBytes)
     }
 
@@ -2606,3 +2618,133 @@ func GetMD5File(InFileName string) string {
     return hex.EncodeToString(MD5New.Sum(nil))
 
 }
+
+
+func cleanUp_Exit(exitRC int) {
+    //****************************************************************
+    //* Cleanup and Exit                                             *
+    //****************************************************************
+    if FileExists(ForFile) {
+        os.Remove(ForFile)
+    }
+
+    if FileExists(ForDisk) {
+        os.Remove(ForDisk)
+    }
+
+    if FileExists(MCpFile) {
+        os.Remove(MCpFile)
+    }
+
+
+    if iHtmMode == 1 {
+        fmt.Fprintf(HtmHndl, "</td><td align=right>\n");
+        fmt.Fprintf(HtmHndl, "<button onclick=\"window.history.forward()\">&gt;&gt;</button>\n");
+        fmt.Fprintf(HtmHndl, "</td></tr></table></Center>\n<p>\n");
+        fmt.Fprintf(HtmHndl, "<iframe name=AFrame style=\"padding:2px;border:3px Lavender solid;\"  height=75%% width=98%% scrolling=auto src=file:./></iframe>\n");
+        fmt.Fprintf(HtmHndl, "</p>\n</body></html>\n");
+
+        HtmHndl.Close();
+    }
+
+
+    //****************************************************************
+    //* Cleanup - Did we run out of Disk Space?                      *
+    //****************************************************************
+    if iOutOfDiskSpace == 1 {
+        ConsOut = fmt.Sprintf("[!] WARNING: Files Copied During this Acquisition RAN OUT OF DISK SPACE\n")
+        ConsLogSys(ConsOut, 1, 1)
+    }
+
+
+    //****************************************************************
+    //* Cleanup - Normal Run (RunMode 1)                             *
+    //****************************************************************
+    if iRunMode == 1 {
+        ConsOut = fmt.Sprintf("[+] Setting All Artifacts to Read-Only.\n")
+        ConsLogSys(ConsOut, 1, 1)
+
+        TempDir = fmt.Sprintf("%s\\*.*", BACQDir)
+        filepath.Walk(TempDir, SetReadOnly)
+    }
+
+
+    //****************************************************************
+    //* All Done with Acquisition                    `               *
+    //****************************************************************
+    showTime("Acquisition Completed");
+
+    if iXitCmd == 1 {
+        ConsOut = fmt.Sprintf("[+] Queuing Exit Program: %s\n", XitCmd)
+        ConsLogSys(ConsOut, 1, 1)
+    }
+
+
+    //****************************************************************
+    //* Make a Copy of the Logfile in the ACQ Directory              *
+    //****************************************************************
+    if _, BACQDir_err := os.Stat(BACQDir); os.IsNotExist(BACQDir_err) {
+        ConsOut = fmt.Sprintf("[+] Base Acquisition Directory Not Found: %s\n", BACQDir)
+        ConsLogSys(ConsOut, 1, 1)
+    } else {
+        iCPS = 0; //ALWAYS Copy LogFile
+
+        ConsOut = fmt.Sprintf("[+] Copying Log File...\n")
+        ConsLogSys(ConsOut, 1, 1)
+
+        //Very Last Log Entry - Close Log now, and copy WITHOUT LOGGING
+        LogHndl.Close();
+
+        //Reset setCPath to Relative and copy Log
+        setCPath = 0
+
+        CpyFile = fmt.Sprintf("%s\\%s.Log", BACQDir, ACQName)
+        nBytes, copy_err := binCopy(LogFile, CpyFile)
+
+        if copy_err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
+            ConsLogSys(ConsOut, 1, 1)
+
+            if nBytes < 1 {
+                ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                ConsLogSys(ConsOut, 1, 1)
+
+            }
+        }
+    }
+
+
+    //****************************************************************
+    //* Run Final Exit Program - This will not be logged             *
+    //****************************************************************
+    if iXitCmd == 1 {
+        cmdSplit := strings.Split(XitCmd, " ")
+	if XIT_err := exec.Command(cmdSplit[0], cmdSplit[:1]...).Run(); XIT_err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Running XIT Command: %s\n    %s\n", os.Stderr, XIT_err)
+            ConsLogSys(ConsOut, 1, 1)
+
+            os.Exit(1)
+        }
+    }
+
+
+    /****************************************************************/
+    /* Final Syslog Out                                             */
+    /****************************************************************/
+    if iSyslogLvl > 0 {
+        ConsOut = fmt.Sprintf("[+] AChoir Version: %s Acquisition Completed.  Return Code: %d  ACQ: %s", Version, exitRC, ACQName)
+        ConsLogSys(ConsOut, 1, 1)
+    }
+
+}
+
+
+func SetReadOnly(Setfilepath string, SetInfo os.FileInfo, Set_err error) error {
+    //****************************************************************
+    //* Set File to Read Only                                        *
+    //****************************************************************
+    ROS_err := os.Chmod(Setfilepath, 0444)
+    return ROS_err
+ }
+
+
