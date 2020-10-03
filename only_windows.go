@@ -98,3 +98,12 @@ func FTime(FileName string) (time.Time, time.Time, time.Time) {
     return atime, mtime, ctime
 }
 
+
+// Gets the Windows Version: Major, Minor, and BuildNumber
+func GetOSVer() string {
+    osVersion := w32.RtlGetVersion()
+    str_osVersion := fmt.Sprintf("Windows %d.%d.%d", osVersion.MajorVersion, osVersion.MinorVersion, osVersion.BuildNumber)
+
+    return str_osVersion
+}
+

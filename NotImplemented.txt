@@ -13,7 +13,6 @@ Some of the Functions that will not be in the initial release:
 * Raw NTFS
 * NTP
 * Console Colors
-* Windows Version Detection
 * Check for Windows Escalated Privs
 * Check for Memory Size
 * Native SMB/CIFS

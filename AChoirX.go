@@ -68,6 +68,7 @@ var consOrFile = 0                              // Console Input instead of File
 var opArchit = "AMD64"                          // Architecture
 var opSystem = "Windows"                        // Which Operating System are we running on
 var iopSystem = 0                               // Operating System Flag (0=win, 1=lin, 2=osx, 3=?)
+var OSVersion = "Windows 10.0.0"                // Operating System Version: OS Major.Minor.Build
 var slashDelim byte = '\\'                      // Directory Delimiter Win vs. Lin vs. OSX
 var slashDelimS string = "\\"                   // Same Thing but a String
 var WGetURL = "http://Company.com/file"         // URL For HTTP Get
@@ -128,6 +129,7 @@ var Inrec = "File Input Record"                 // File Input Record
 var Conrec = "Console Record"                   // Console Output Record
 var Tmprec = "Formatted Console Record"         // Console Formatting Record
 var Cpyrec = "Copy Record"                      // Used by Copy Routine
+var Cmprec = "Compare Record"                   // Used by Compare Routines
 var Filrec = "File Record"                      // File Record 
 var Lstrec = "File Record"                      // List Record 
 var Dskrec = "File Record"                      // Disk Record 
@@ -237,6 +239,7 @@ func main() {
 
     // Get Operating System and Architecture
     opArchit = runtime.GOARCH
+    Procesr = opArchit
 
     opSystem = runtime.GOOS
     switch opSystem {
@@ -244,7 +247,7 @@ func main() {
         iopSystem = 0
         slashDelim = '\\'
         WinRoot = os.Getenv("SYSTEMROOT")
-        Procesr = os.Getenv("PROCESSOR_ARCHITECTURE")
+        //Procesr = os.Getenv("PROCESSOR_ARCHITECTURE")
         TempVar = os.Getenv("TEMP")
         ProgVar = os.Getenv("PROGRAMFILES")
     case "linux":
@@ -257,6 +260,9 @@ func main() {
         iopSystem = 3
         slashDelim = '/'
     }
+
+    // If Windows we get Major.Minor.Build - Linux and OSX not implemented yet
+    OSVersion = GetOSVer()
 
 
     // Initial Settings and Confiiguration
@@ -442,7 +448,7 @@ func main() {
 
     iLogOpen = 1
   
-    ConsOut = fmt.Sprintf("[+] AChoirX ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, opSystem, opArchit)
+    ConsOut = fmt.Sprintf("[+] AChoirX ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, OSVersion, opArchit)
     ConsLogSys(ConsOut, 1, 1)
 
     showTime("Start Acquisition")
@@ -473,7 +479,7 @@ func main() {
             iIsAdmin = 1
             sIsAdmin = ""
         } else {
-            iIsAdmin = 0;
+            iIsAdmin = 0
             sIsAdmin = "NON-"
         }
 
@@ -507,7 +513,7 @@ func main() {
     if consOrFile == 1 {
         ConsOut = fmt.Sprintf("[+] Switching to Console Input.\n")
         ConsLogSys(ConsOut, 1, 1)
-        fmt.Printf(">>>");
+        fmt.Printf(">>>")
 
         IniScan = bufio.NewScanner(os.Stdin)
 
@@ -519,12 +525,11 @@ func main() {
         }
 
         IniScan = bufio.NewScanner(IniHndl)
-        
     }
 
-    for IniScan.Scan() {
-        RunMe = 0;  // Conditional run Script default is yes
+    RunMe = 0  // Conditional run Script default is yes
 
+    for IniScan.Scan() {
         //Remove any preceding blanks
         Tmprec = strings.TrimSpace(IniScan.Text())
 
@@ -567,10 +572,12 @@ func main() {
             } else if strings.HasPrefix(strings.ToUpper(Tmprec), "N==:") {
                 RunMe++
             } else if strings.HasPrefix(strings.ToUpper(Tmprec), "END:") {
-                RunMe--
+                if RunMe > 0 {
+                    RunMe--
+                }
             }
         } else {
-            Looper = 1;
+            Looper = 1
 
             //****************************************************************
             //* ForFiles Looper Setup                                        *
@@ -621,7 +628,7 @@ func main() {
             }
 
             if ifLst == 1 {
-                LstMe = 1;
+                LstMe = 1
 
                 LstHndl, lst_err = os.Open(LstFile)
 
@@ -662,7 +669,7 @@ func main() {
             //****************************************************************
             //* Loop (FOR: and LST:) until Looper = 1                        *
             //****************************************************************
-            LoopNum = 0;
+            LoopNum = 0
             for Looper > 0 {
                 if ForMe == 0 && LstMe == 0 && DskMe == 0 {
                     Looper = 0
@@ -690,7 +697,7 @@ func main() {
                         }
 
                     } else {
-                        break;
+                        break
                     }
                 } else if ForMe == 0 && LstMe == 1 && DskMe == 0 {
                     lst_rcd = LstScan.Scan()
@@ -936,6 +943,12 @@ func main() {
                     o32VarRec = repl_Prc.Replace(o32VarRec)
                 }
 
+                if CaseInsensitiveContains(o32VarRec, "&Ver") {
+
+                    repl_Ver := NewCaseInsensitiveReplacer("&Ver", OSVersion)
+                    o32VarRec = repl_Ver.Replace(o32VarRec)
+                }
+
                 if CaseInsensitiveContains(o32VarRec, "&Vck") {
                     
                     repl_Vck := NewCaseInsensitiveReplacer("&Vck", volType)
@@ -1010,7 +1023,7 @@ func main() {
                     if strings.HasPrefix(strings.ToUpper(Inrec), "CSE:GET") {
                         getCaseInfo(1)
                     } else {
-                        getCaseInfo(0);
+                        getCaseInfo(0)
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "ACQ:") {
                     // Sanity Check - Replace Delimiters base on OS
@@ -1025,11 +1038,11 @@ func main() {
                     if _, BACQ_err := os.Stat(BACQDir); os.IsNotExist(BACQ_err) {
                         // Set iRunMode=1 to be sure we post-process the Acquired Artifacts
                         // (In case we had not set it originally due to remote BACQDIR)
-                        iRunMode = 1;
+                        iRunMode = 1
 
-                        DirAllocErr(BACQDir);
-                        DirAllocErr(CachDir);
-                        PreIndex();
+                        DirAllocErr(BACQDir)
+                        DirAllocErr(CachDir)
+                        PreIndex()
                     }
 
                     // Explicit Path (Dependent upon OS!
@@ -1051,7 +1064,7 @@ func main() {
                             }
 
                             ACQDir += Inrec[4:]
-                            TempDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir);
+                            TempDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
                         }
                     }
 
@@ -1061,8 +1074,8 @@ func main() {
                     LevelOne := fmt.Sprintf("%s%c%s", BACQDir, slashDelim, LvlSplit[0])
 
                     if _, level_err := os.Stat(LevelOne); os.IsNotExist(level_err) && iHtmMode == 1 {
-                        fmt.Fprintf(HtmHndl, "</td><td align=center>\n");
-                        fmt.Fprintf(HtmHndl, "<a href=file:%s target=AFrame> %s </a>\n", LvlSplit[0], LvlSplit[0]);
+                        fmt.Fprintf(HtmHndl, "</td><td align=center>\n")
+                        fmt.Fprintf(HtmHndl, "<a href=file:%s target=AFrame> %s </a>\n", LvlSplit[0], LvlSplit[0])
                     }
 
 
@@ -1071,7 +1084,7 @@ func main() {
                         ConsOut = fmt.Sprintf("[+] Creating Acquisition Sub-Directory: %s\n", ACQDir)
                         ConsLogSys(ConsOut, 1, 1)
 
-                        ExpandDirs(TempDir);
+                        ExpandDirs(TempDir)
 
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "DIR:") {
@@ -1104,7 +1117,7 @@ func main() {
                             }
 
                             CurrDir += Inrec[4:]
-                            TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir);
+                            TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
                         }
                     }
 
@@ -1113,23 +1126,23 @@ func main() {
                         ConsOut = fmt.Sprintf("[+] Creating Sub-Directory: %s\n", CurrDir)
                         ConsLogSys(ConsOut, 1, 1)
 
-                        ExpandDirs(TempDir);
+                        ExpandDirs(TempDir)
 
                     }
 
                     // Reset The WorkingDirectory to the new Directory
-                    CurrWorkDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir);
-                    os.Chdir(CurrWorkDir); 
+                    CurrWorkDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
+                    os.Chdir(CurrWorkDir)
 
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "FIL:") {
                     CurrFil = Inrec[4:]
-                    TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir);
+                    TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
 
                     if _, CurrDir_err := os.Stat(TempDir); os.IsNotExist(CurrDir_err) {
                         ConsOut = fmt.Sprintf("[+] Creating Sub-Directory: %s\n", CurrDir)
                         ConsLogSys(ConsOut, 1, 1)
 
-                        ExpandDirs(TempDir);
+                        ExpandDirs(TempDir)
                     }
 
                     ConsOut = fmt.Sprintf("[+] File has been Set to: %s\n", CurrFil)
@@ -1172,11 +1185,11 @@ func main() {
                             iRunMode = 1
                             consOrFile = 1
 
-                            ConsOut = fmt.Sprintf("[+] Switching to Console (Interactive Mode\n")
+                            ConsOut = fmt.Sprintf("[+] Switching to Console (Interactive Mode)\n")
                             ConsLogSys(ConsOut, 1, 1)
 
                             IniHndl.Close()
-                            fmt.Printf(">>>");
+                            //fmt.Printf(">>>")
                             IniScan = bufio.NewScanner(os.Stdin)
                         }
                     } else {
@@ -1252,7 +1265,7 @@ func main() {
                     iSleep, _ = strconv.Atoi(Inrec[4:])
                     time.Sleep (time.Duration(iSleep) * time.Second)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "INP:") {
-                    consInput(Inrec[4:], 1, 0);
+                    consInput(Inrec[4:], 1, 0)
                     Inprec = Conrec
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "VCK:") {
                     isNTFS = 0
@@ -1585,8 +1598,8 @@ func main() {
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "EQU:") {
-                    Cpyrec = Inrec[4:]
-                    splitString1, splitString2, SplitRC := twoSplit(Cpyrec)
+                    Cmprec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Cmprec)
 
                     if SplitRC == 1 {
                         ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings\n")
@@ -1607,8 +1620,8 @@ func main() {
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "N>>:") || strings.HasPrefix(strings.ToUpper(Inrec), "N<<:") || strings.HasPrefix(strings.ToUpper(Inrec), "N==:") {
-                    Cpyrec = Inrec[4:]
-                    splitString1, splitString2, SplitRC := twoSplit(Cpyrec)
+                    Cmprec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Cmprec)
 
                     if SplitRC == 1 {
                         ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Numbers\n")
@@ -1661,6 +1674,167 @@ func main() {
                             }
                         }
                     }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "NEQ:") {
+                    //****************************************************************
+                    //* Check for NOT EQUAL                                          *
+                    //****************************************************************
+                    Cmprec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Cmprec)
+
+                    if SplitRC == 1 {
+                        ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        if(consOrFile == 1) {
+                            if splitString1 == splitString2 {
+                                ConsOut = fmt.Sprintf("[*] Strings are (NOT NOT) Equal: %s == %s\n", splitString1, splitString2)
+                                ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                ConsOut = fmt.Sprintf("[*] Strings are NOT Equal: %s != %s\n", splitString1, splitString2)
+                                ConsLogSys(ConsOut, 1, 1)
+                            }
+                        } else {
+                            if splitString1 == splitString2 {
+                                RunMe++
+                            }
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "VER:") {
+                    //****************************************************************
+                    //* Check the Input String vor Version.  This can be Partial.    *
+                    //*  For Example: Windows 10.0.18362 will get a TRUE for         *
+                    //*  Ver:Win, Ver:Windows 10, Ver:Windows 10.0.183, etc...       *
+                    //****************************************************************
+                    if consOrFile == 1 {
+                        ConsOut = fmt.Sprintf("[*] OS Version Detected: %s\n", OSVersion)
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        if !strings.HasPrefix(strings.ToUpper(OSVersion), strings.ToUpper(Inrec[4:])) {
+                            RunMe++
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC=:") {
+                    ChkRC, _ := strconv.Atoi(Inrec[4:]);
+                    if consOrFile == 1 {
+                        if LastRC != ChkRC {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was not: %d - It was: %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was: %d\n", LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if LastRC != ChkRC {
+                            RunMe++
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC!:") {
+                    ChkRC, _ := strconv.Atoi(Inrec[4:]);
+                    if consOrFile == 1 {
+                        if LastRC == ChkRC {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was (NOT NOT): %d - It was: %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was not: %d - It was %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if LastRC == ChkRC {
+                            RunMe++
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC<:") {
+                    ChkRC, _ := strconv.Atoi(Inrec[4:]);
+                    if consOrFile == 1 {
+                        if LastRC >= ChkRC {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was not Less Than: %d - It was: %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was Less Than: %d - It was: %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if LastRC >= ChkRC {
+                            RunMe++
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC>:") {
+                    ChkRC, _ := strconv.Atoi(Inrec[4:]);
+                    if consOrFile == 1 {
+                        if LastRC <= ChkRC {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was not Greater Than: %d - It was: %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was Greater Than: %d - It was: %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if LastRC <= ChkRC {
+                            RunMe++
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CKY:") {
+                    ChkFile = Inrec[4:]
+                    if consOrFile == 1 {
+                        if !FileExists(ChkFile) {
+                            ConsOut = fmt.Sprintf("[*] File Does Not Exist: %s\n", ChkFile)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] File Exists: %s\n", ChkFile)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if !FileExists(ChkFile) {
+                            RunMe++
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CKN:") {
+                    ChkFile = Inrec[4:]
+                    if consOrFile == 1 {
+                        if FileExists(ChkFile) {
+                            ConsOut = fmt.Sprintf("[*] File Does (NOT NOT) Exist: %s\n", ChkFile)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] File Does Not Exist: %s\n", ChkFile)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if FileExists(ChkFile) {
+                            RunMe++
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "64B:") {
+                    if consOrFile == 1 {
+                        if strings.ToUpper(Procesr) != "AMD64" {
+                            ConsOut = fmt.Sprintf("[*] Not running in 64Bit. Processor: %s\n", Procesr)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Running in 64Bit. Processor: %s\n", Procesr)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if strings.ToUpper(Procesr) != "AMD64" {
+                            RunMe++
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "32B:") {
+                    if consOrFile == 1 {
+                        if strings.ToUpper(Procesr) != "386" {
+                            ConsOut = fmt.Sprintf("[*] Not running in 32Bit. Processor: %s\n", Procesr)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Running in 32Bit. Processor: %s\n", Procesr)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if strings.ToUpper(Procesr) != "386" {
+                            RunMe++
+                        }
+                    }
+
+
+
+
 
 
 
@@ -1674,7 +1848,10 @@ func main() {
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SAY:") {
                     ConsOut = fmt.Sprintf("%s\n", Inrec[4:])
                     ConsLogSys(ConsOut, 1, 1)
-
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "END:") {
+                    if RunMe > 0 {
+                        RunMe--
+                    }
 
 
 
@@ -1729,6 +1906,11 @@ func main() {
         if consOrFile == 1 {
             fmt.Printf(">>>")
         }
+
+
+
+
+
     }
 
 
@@ -1878,10 +2060,10 @@ func PreIndex() {
     HtmHndl, htm_err = os.Create(HtmFile)
     if htm_err != nil {
         if iLogOpen == 1 {
-            fmt.Fprintf(LogHndl, "[!] Could not Create Artifact Index: %s\n", HtmFile);
+            fmt.Fprintf(LogHndl, "[!] Could not Create Artifact Index: %s\n", HtmFile)
         }
         if (setMSGLvl > 1) {
-            fmt.Printf("[!] Could not Create Artifact Index: %s\n", HtmFile);
+            fmt.Printf("[!] Could not Create Artifact Index: %s\n", HtmFile)
         }
 
         return
@@ -1916,7 +2098,7 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
     }
 
     if iLogOpen == 1 {
-        fmt.Fprintf(LogHndl, ConLogMSG);
+        fmt.Fprintf(LogHndl, ConLogMSG)
     }
     
     if iSyslogLvl >= thisSyslog && iSyslogLvl > 0 {
@@ -1986,7 +2168,7 @@ func getCaseInfo(SayOrGet int) {
     ConsLogSys(ConsOut, 1, 1)
 
     // Run This Routine ONLY ONCE to avoid ambiguity
-    iCase = 1;
+    iCase = 1
 }
 
 
@@ -2016,7 +2198,7 @@ func consInput(consString string, conLog int, conHide int) {
         if conHide == 1 {
             ConsOut = fmt.Sprintf("[?] *Redacted*\n")
         } else {
-            ConsOut = fmt.Sprintf("[?] %s\n", Conrec);
+            ConsOut = fmt.Sprintf("[?] %s\n", Conrec)
         }
 
         ConsLogSys(ConsOut, 1, 1)
@@ -2103,7 +2285,7 @@ func ExpandDirs(FullDirName string) {
             TempDirName += slashDelimS
             TempDirName += DirSplit[iDir]
 
-            DirAllocErr(TempDirName);
+            DirAllocErr(TempDirName)
         }
     }
 }
@@ -2320,7 +2502,7 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
         TmpTooFile = TooFile
         iFileCount = 0
         for FileExists(TmpTooFile) {
-            iFileCount++;
+            iFileCount++
             TmpTooFile = fmt.Sprintf("%s(%d)", TooFile, iFileCount)
         }
 

@@ -66,3 +66,9 @@ func FTime(FileName string) (time.Time, time.Time, time.Time) {
     return atime, mtime, ctime
 }
 
+
+// Gets the Modified, Create and Access time of a file
+func GetOSVer() string {
+    return "Linux"
+}
+
