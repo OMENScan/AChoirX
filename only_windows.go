@@ -14,24 +14,14 @@ import (
 )
 
 
-func winListDrives() {
-    var drvRoot []uint16
+func GetDriveType(DriveLetter string) (uint32) {
+    //var drvRoot []uint16
     var uinRoot *uint16
 
-    uinRoot, _ = windows.UTF16PtrFromString("C:\\")
-    fmt.Printf("C Drive Type = %d\n", windows.GetDriveType(uinRoot))
+    uinRoot, _ = windows.UTF16PtrFromString(DriveLetter)
 
-    drvRoot, _ = windows.UTF16FromString("H:\\")
-    fmt.Printf("H Drive Type = %d\n", windows.GetDriveType(&drvRoot[0]))
-
-    drvRoot, _ = windows.UTF16FromString("I:\\")
-    fmt.Printf("I Drive Type = %d\n", windows.GetDriveType(&drvRoot[0]))
-
-    drvRoot, _ = windows.UTF16FromString("Z:\\")
-    fmt.Printf("Z Drive Type = %d\n", windows.GetDriveType(&drvRoot[0]))
-
-    drvRoot, _ = windows.UTF16FromString("M:\\")
-    fmt.Printf("M Drive Type = %d\n", windows.GetDriveType(&drvRoot[0]))
+    // return windows.GetDriveType(&drvRoot[0])
+    return windows.GetDriveType(uinRoot)
 }
 
 

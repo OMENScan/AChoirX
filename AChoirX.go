@@ -87,6 +87,7 @@ var Looper = 0                                  // Flag to Keep Looping
 var ForMe = 0                                   // Flag to identify &For is being used
 var LstMe = 0                                   // Flag to identify &LST is being used
 var DskMe = 0                                   // Flag to identify &DSK is being used
+var dskTyp uint32 = 3                           // Default Disk Type is Fixed (Type 3)
 var LoopNum = 0                                 // Loop Counter
 var ForFName = "File.txt"                       // Parsed File name from Path
 var iNative = 0                                 // Are we Native 64Bit on 64Bit (Native = 1, NonNative = 0)
@@ -221,6 +222,9 @@ var VardArray = []string{"", "", "", "", "", "", "", "", "", ""}
 var CntsArray = []string{"&CN0", "&CN1", "&CN2", "&CN3", "&CN4", "&CN5", "&CN6", "&CN7", "&CN8", "&CN9"}
 var CntxArray = []string{"CN0:", "CN1:", "CN2:", "CN3:", "CN4:", "CN5:", "CN6:", "CN7:", "CN8:", "CN9:"}
 var CntiArray = []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+var DrvsArray = []string{"C:\\", "D:\\", "E:\\", "F:\\", "G:\\", "H:\\", "I:\\", "J:\\", "K:\\", "L:\\",
+                         "M:\\", "N:\\", "O:\\", "P:\\", "Q:\\", "R:\\", "S:\\", "T:\\", "U:\\", "V:\\",
+                         "W:\\", "X:\\", "Y:\\", "Z:\\"}
 
 // File Signature Copy Table Variables
 var iSigCount = 0
@@ -658,6 +662,19 @@ func main() {
             //* DskFiles Looper Setup                                        *
             //****************************************************************
             if strings.HasPrefix(strings.ToUpper(Tmprec), "&DSK") {
+
+
+
+
+
+                // Testing to isolate bug
+                fmt.Println("Got Here - &DSK\n")
+
+
+
+
+
+
                 DskMe = 1
 
                 DskHndl, dsk_err = os.Open(ForDisk)
@@ -1932,6 +1949,56 @@ func main() {
                     filepath.Walk(TempDir, MD5FileOut)
 
                     MD5Hndl.Close()
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "DSK:") {
+                    // Checking Drive Types for Windows only
+                    // DRIVE_CDROM = 5, DRIVE_FIXED = 3, DRIVE_RAMDISK = 6, DRIVE_REMOTE = 4, DRIVE_REMOVABLE = 2
+                    if iopSystem == 0 {
+                        if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "REMOV") {
+                            dskTyp = 2
+                        } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "FIXED") {
+                            dskTyp = 3
+                        } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "REMOT") {
+                            dskTyp = 4
+                        } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "CDROM") {
+                            dskTyp = 5
+                        } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "RAMDI") {
+                            dskTyp = 6
+                        } else {
+                            dskTyp = 3
+                        }
+
+                        DskHndl, dsk_err = os.OpenFile(ForDisk, os.O_CREATE|os.O_WRONLY, 0644)
+                        if opn_err != nil {
+                            ConsOut = fmt.Sprintf("[!] System Disk Tracking File Could not be opened.\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                            break
+                        }
+
+
+                        for iDrv := 0; iDrv < 24; iDrv++ {
+                            GotDriveType := GetDriveType(DrvsArray[iDrv])
+
+                            if GotDriveType == dskTyp {
+                                DskHndl.WriteString(DrvsArray[iDrv] + "\n")
+                            }
+                        }
+
+                        DskHndl.Close()
+
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] Bypassing Drive and Memory Routines - We are not running on Windows\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1998,14 +2065,6 @@ func main() {
 
 
 
-    // Some Test Code for checking Drive Types for Windows
-    // DRIVE_CDROM = 5, DRIVE_FIXED = 3, DRIVE_RAMDISK = 6, DRIVE_REMOTE = 4, DRIVE_REMOVABLE = 2
-    if iopSystem == 0 {
-        winListDrives()
-        winFreeDisk()
-    } else {
-        fmt.Printf("[!] Bypassing Drive and Memory Routines - We are not running on Windows\n")
-    }
 
 
 

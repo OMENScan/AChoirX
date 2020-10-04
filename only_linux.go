@@ -11,9 +11,11 @@ import (
     "time"
 )
 
-func winListDrives() {
+
+func GetDriveType(DriveLetter string) (uint32) {
     fmt.Printf("[!] Drive Listing not relevant to Linux\n")
 
+    return 0
 }
 
 func winFreeDisk() (uint64, uint64) {
