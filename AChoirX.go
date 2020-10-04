@@ -661,19 +661,7 @@ func main() {
             //****************************************************************
             //* DskFiles Looper Setup                                        *
             //****************************************************************
-            if strings.HasPrefix(strings.ToUpper(Tmprec), "&DSK") {
-
-
-
-
-
-                // Testing to isolate bug
-                fmt.Println("Got Here - &DSK\n")
-
-
-
-
-
+            if strings.Contains(strings.ToUpper(Tmprec), "&DSK") {
 
                 DskMe = 1
 
@@ -1968,7 +1956,7 @@ func main() {
                         }
 
                         DskHndl, dsk_err = os.OpenFile(ForDisk, os.O_CREATE|os.O_WRONLY, 0644)
-                        if opn_err != nil {
+                        if dsk_err != nil {
                             ConsOut = fmt.Sprintf("[!] System Disk Tracking File Could not be opened.\n")
                             ConsLogSys(ConsOut, 1, 1)
                             break
