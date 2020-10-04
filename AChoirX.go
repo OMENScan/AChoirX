@@ -1908,10 +1908,10 @@ func main() {
 
 
                     if strings.ToUpper(Inrec[4:]) == "ACQ" {
-                        MD5File = fmt.Sprintf("%s\\ACQHash.txt", BACQDir)
+                        MD5File = fmt.Sprintf("%s%cACQHash.txt", BACQDir, slashDelim)
                         TempDir = BACQDir
                     } else if strings.ToUpper(Inrec[4:]) == "DIR" {
-                        MD5File = fmt.Sprintf("%s\\DirHash.txt", BaseDir)
+                        MD5File = fmt.Sprintf("%s%cDirHash.txt", BaseDir, slashDelim)
                         TempDir = BaseDir
                     } else {
                         ConsOut = fmt.Sprintf("[+] Invalid Hash Directory Parameter.\n")
@@ -2762,7 +2762,7 @@ func cleanUp_Exit(exitRC int) {
         //Reset setCPath to Relative and copy Log
         setCPath = 0
 
-        CpyFile = fmt.Sprintf("%s\\%s.Log", BACQDir, ACQName)
+        CpyFile = fmt.Sprintf("%s%c%s.Log", BACQDir, slashDelim, ACQName)
         nBytes, copy_err := binCopy(LogFile, CpyFile)
 
         if copy_err != nil {
