@@ -110,6 +110,7 @@ var setCPath = 1                                // Output Copy Patch Shard - 0=N
 var iOutOfDiskSpace = 0                         // Did we get any Out Of Disk Space Errors
 var iXitCmd = 0                                 // Are we runnning an Exit Command
 var XitCmd = "Exit"                             // Exit Command (AChoirX Post Processing)
+var iOPNisOpen = 0                              // Is the User Defined File Open?
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -166,6 +167,7 @@ var HtmFile = "C:\\AChoir\\Index.htm"           // AChoir HTML Output File
 var WGetFile = "C:\\AChoir\\Download.dat"       // Downloaded WGet File
 var LstFile = "C:\\AChoir\\Data.Lst"            // List of Data
 var ChkFile = "C:\\AChoir\\Data.Chk"            // Check For File Existence
+var MD5File = "C:\\AChoir\\Hash.txt"            // Saved Hashes
 var BACQDir = "C:\\AChoir"                      // Base Acquisition Directory
 var ACQDir = ""                                 // Relative Acquisition Directory
 var CachDir = "C:\\AChoir\\Cache"               // AChoir Caching Directory 
@@ -193,12 +195,15 @@ var IniHndl *os.File                            // File Handle for the IniFile
 var ForHndl *os.File                            // File Handle for the ForFile
 var LstHndl *os.File                            // File Handle for the LstFile
 var DskHndl *os.File                            // File Handle for the DskFile
+var OpnHndl *os.File                            // User Defined Output File(s)
+var MD5Hndl *os.File                            // Save Hashes of Files
 var log_err error                               // Logging Errors
 var htm_err error                               // HTML Writer Errors
 var ini_err error                               // Ini File Errors
 var for_err error                               // For File Errors
 var lst_err error                               // Lst File Errors
 var dsk_err error                               // Dsk File Errors
+var opn_err error                               // User Defined File Errors
 var for_rcd bool                                // Return Code for ForFile Read
 var lst_rcd bool                                // Return Code for LstFile Read
 var dsk_rcd bool                                // Return Code for DskFile Read
@@ -1356,10 +1361,10 @@ func main() {
                             //****************************************************************
                             // Do File Search using Glob                                     *
                             //****************************************************************
-                            files_glob, err_glob := filepath.Glob(splitString1)
+                            files_glob, glob_err := filepath.Glob(splitString1)
 
-                            if err_glob != nil {
-                                ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", err_glob)
+                            if glob_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
                                 ConsLogSys(ConsOut, 1, 1)
                                 continue
                             }
@@ -1441,10 +1446,10 @@ func main() {
                                     ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
                                     ConsLogSys(ConsOut, 1, 1)
 
-                                    files_glob, err_glob := filepath.Glob(TempDir)
+                                    files_glob, glob_err := filepath.Glob(TempDir)
 
-                                    if err_glob != nil {
-                                        ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", err_glob)
+                                    if glob_err != nil {
+                                        ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
                                         ConsLogSys(ConsOut, 1, 1)
                                         continue
                                     }
@@ -1846,16 +1851,6 @@ func main() {
                         cleanUp_Exit(3)
                         os.Exit(3)
                     }
-
-
-
-
-
-
-
-
-
-
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SAY:") {
                     ConsOut = fmt.Sprintf("%s\n", Inrec[4:])
                     ConsLogSys(ConsOut, 1, 1)
@@ -1863,6 +1858,81 @@ func main() {
                     if RunMe > 0 {
                         RunMe--
                     }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "OPN:") {
+                    // If we already had a file open, close it now.
+                    if iOPNisOpen == 1 {
+                        ConsOut = fmt.Sprintf("[*] Previously Opened File has been Closed.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        OpnHndl.Close()
+                    }
+
+                    OpnHndl, opn_err = os.OpenFile(Inrec[4:], os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+                    if opn_err != nil {
+                        ConsOut = fmt.Sprintf("[!] File Could not be opened for Append:\n    %s\n", Inrec[4:])
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        iOPNisOpen = 0
+                    } else {
+                        ConsOut = fmt.Sprintf("[+] File Opened for Append:\n    %s\n", Inrec[4:])
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        iOPNisOpen = 1
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "OUT:") {
+                    if iOPNisOpen == 1 {
+                        OpnHndl.WriteString(Inrec[4:]+"\n")
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] No File OPN:(ed) for Append:\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "PZZ:") {
+                    ConsOut = fmt.Sprintf("%s\n", Inrec[4:])
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    consInput(Inrec[4:], 1, 0)
+                    Inprec = Conrec
+
+                    if len(Inprec) > 0 {
+                        if Inprec[0] == 'q' || Inprec[0] == 'Q' {
+                            ConsOut = fmt.Sprintf("[+] You Have Requested AChoirX to Quit.\n")
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            cleanUp_Exit(0)
+                            os.Exit(0)
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "HSH:") {
+                    ConsOut = fmt.Sprintf("[+] Now Hashing  Acquisition Files.\n")
+                    ConsLogSys(ConsOut, 1, 1)
+
+
+                    if strings.ToUpper(Inrec[4:]) == "ACQ" {
+                        MD5File = fmt.Sprintf("%s\\ACQHash.txt", BACQDir)
+                        TempDir = BACQDir
+                    } else if strings.ToUpper(Inrec[4:]) == "DIR" {
+                        MD5File = fmt.Sprintf("%s\\DirHash.txt", BaseDir)
+                        TempDir = BaseDir
+                    } else {
+                        ConsOut = fmt.Sprintf("[+] Invalid Hash Directory Parameter.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        break
+                    }
+
+                    //****************************************************************
+                    // Do File Search using Walk because Glob does not support **    *
+                    //****************************************************************
+                    MD5Hndl, opn_err = os.OpenFile(MD5File, os.O_CREATE|os.O_WRONLY, 0644)
+                    if opn_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Openning Hash Log: %s\n", opn_err)
+                        ConsLogSys(ConsOut, 1, 1)
+                        break
+                    }
+
+                    filepath.Walk(TempDir, MD5FileOut)
+
+                    MD5Hndl.Close()
+
 
 
 
@@ -2021,18 +2091,13 @@ func showTime(showText string) {
         showlocal.Month(), showlocal.Day(), showlocal.Year(),
         showlocal.Hour(), showlocal.Minute(), showlocal.Second())
     } else {
-        fmt.Printf("[+] %s: %02d/%02d/%04d - %02d:%02d:%02d\n", showText,
-        showlocal.Month(), showlocal.Day(), showlocal.Year(),
-        showlocal.Hour(), showlocal.Minute(), showlocal.Second())
-    }
-
-    // Only Log if we have opened the Log File.
-    if iLogOpen == 1 {
-        fmt.Fprintf(LogHndl, "[+] %s: %02d/%02d/%04d - %02d:%02d:%02d\n", showText,
+        ConsOut = fmt.Sprintf("[+] %s: %02d/%02d/%04d - %02d:%02d:%02d\n", showText,
         showlocal.Month(), showlocal.Day(), showlocal.Year(),
         showlocal.Hour(), showlocal.Minute(), showlocal.Second())
 
+        ConsLogSys(ConsOut, 1, 1)
     }
+
 }
 
 
@@ -2664,8 +2729,7 @@ func cleanUp_Exit(exitRC int) {
         ConsOut = fmt.Sprintf("[+] Setting All Artifacts to Read-Only.\n")
         ConsLogSys(ConsOut, 1, 1)
 
-        TempDir = fmt.Sprintf("%s\\*.*", BACQDir)
-        filepath.Walk(TempDir, SetReadOnly)
+        filepath.Walk(BACQDir, SetReadOnly)
     }
 
 
@@ -2746,5 +2810,26 @@ func SetReadOnly(Setfilepath string, SetInfo os.FileInfo, Set_err error) error {
     ROS_err := os.Chmod(Setfilepath, 0444)
     return ROS_err
  }
+
+
+func MD5FileOut(MD5filepath string, MD5Info os.FileInfo, MD5_err error) error {
+    //****************************************************************
+    //* Hash the Files and Write Them to a Log                       *
+    //****************************************************************
+    //* Ignore Directories - Only MD5 Files                          *
+    //****************************************************************
+    file_stat, _ := os.Stat(MD5filepath)
+    if file_stat.IsDir() {
+        MD5Hndl.WriteString("Directory: " + MD5filepath + "\n")
+    } else {
+        //***********************************************************************
+        //* MD5 the Input File                                                  *
+        //***********************************************************************
+        FileMD5 := GetMD5File(MD5filepath)
+        MD5Hndl.WriteString("File: " + MD5filepath + " - MD5: " + FileMD5 +"\n")
+    }
+    return nil
+
+}
 
 
