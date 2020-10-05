@@ -1547,6 +1547,10 @@ func main() {
                                 //****************************************************************
                                 if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
                                     TempDir = splitString1
+
+                                    repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
+                                    TempDir = repl_sys.Replace(TempDir)
+
                                     ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
                                     ConsLogSys(ConsOut, 1, 1)
 
@@ -1927,7 +1931,7 @@ func main() {
                     //****************************************************************
                     // Do File Search using Walk because Glob does not support **    *
                     //****************************************************************
-                    MD5Hndl, opn_err = os.OpenFile(MD5File, os.O_CREATE|os.O_WRONLY, 0644)
+                    MD5Hndl, opn_err = os.OpenFile(MD5File, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
                     if opn_err != nil {
                         ConsOut = fmt.Sprintf("[!] Error Openning Hash Log: %s\n", opn_err)
                         ConsLogSys(ConsOut, 1, 1)
@@ -1955,7 +1959,7 @@ func main() {
                             dskTyp = 3
                         }
 
-                        DskHndl, dsk_err = os.OpenFile(ForDisk, os.O_CREATE|os.O_WRONLY, 0644)
+                        DskHndl, dsk_err = os.OpenFile(ForDisk, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
                         if dsk_err != nil {
                             ConsOut = fmt.Sprintf("[!] System Disk Tracking File Could not be opened.\n")
                             ConsLogSys(ConsOut, 1, 1)
@@ -1977,17 +1981,80 @@ func main() {
                         ConsOut = fmt.Sprintf("[!] Bypassing Drive and Memory Routines - We are not running on Windows\n")
                         ConsLogSys(ConsOut, 1, 1)
                     }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "FOR:") {
+                    ForFile = fmt.Sprintf("%s%cForFiles", BaseDir, slashDelim)
+                    TempDir = Inrec[4:]
 
+                    ForHndl, for_err = os.OpenFile(ForFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+                    if for_err != nil {
+                        ConsOut = fmt.Sprintf("[!] System File Tracking File Could not be opened.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        break
+                    }
 
+                    files_glob, glob_err := filepath.Glob(TempDir)
 
+                    if glob_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
+                        ConsLogSys(ConsOut, 1, 1)
+                        continue
+                    }
 
+                    for _, file_found := range files_glob {
+                    //****************************************************************
+                    //* Ignore Directories - Only Process Files                      *
+                    //****************************************************************
+                        file_stat, _ := os.Stat(file_found)
+                        if file_stat.IsDir() {
+                            continue
+                        } else {
+                            ForHndl.WriteString(file_found + "\n")
+                        }
+                    }
 
+                    if (iNative == 0) {
+                        //****************************************************************
+                        //* Replace System32 with Sysnative if we are non-native         *
+                        //****************************************************************
+                        if CaseInsensitiveContains(TempDir, "\\System32\\") || CaseInsensitiveContains(TempDir, "/System32/") {
 
+                            repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
+                            TempDir = repl_sys.Replace(TempDir)
 
+                            ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
+                            ConsLogSys(ConsOut, 1, 1)
 
+                            files_glob, glob_err := filepath.Glob(TempDir)
 
+                            if glob_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
+                                ConsLogSys(ConsOut, 1, 1)
+                                continue
+                            }
 
+                            for _, file_found := range files_glob {
+                            //****************************************************************
+                            //* Ignore Directories - Only Process Files                      *
+                            //****************************************************************
+                                file_stat, _ := os.Stat(file_found)
+                                if file_stat.IsDir() {
+                                continue
+                                } else {
+                                    ForHndl.WriteString(file_found + "\n")
+                                }
+                            }
+                        }
+                    }
 
+                    ForHndl.Close()
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "LST:") {
+                    LstFile = fmt.Sprintf("%s%c%s", BaseDir,slashDelim, Inrec[4:])
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "END:") {
+                    RunMe--
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "BYE:") {
+                    cleanUp_Exit(LastRC);
+                    os.Exit(LastRC);
 
 
 
