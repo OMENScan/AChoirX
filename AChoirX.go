@@ -112,6 +112,7 @@ var iOutOfDiskSpace = 0                         // Did we get any Out Of Disk Sp
 var iXitCmd = 0                                 // Are we runnning an Exit Command
 var XitCmd = "Exit"                             // Exit Command (AChoirX Post Processing)
 var iOPNisOpen = 0                              // Is the User Defined File Open?
+var setCDepth = 10                              // Set Copy Depth
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -150,7 +151,8 @@ var caseExmnr = "Unknown"                       // Case Examiner
 
 // Syslog Variables
 var Syslogd = "127.0.0.1"                       // Syslog Server 
-var Syslogp = "514"                             // Syslog Port
+var Syslogp = "514"                             // Syslog Port string
+var iSyslogp = 514                              // Syslog Port Int
 var SyslogTMSG = "AChoir Syslog Started."       // Initialize Syslog Messages 
 var SyslogServer = "127.0.0.1:514"              // Syslog Server:Port
 var tlsConfig *tls.Config                       // TLS Config
@@ -1945,6 +1947,9 @@ func main() {
                     // Checking Drive Types for Windows only
                     // DRIVE_CDROM = 5, DRIVE_FIXED = 3, DRIVE_RAMDISK = 6, DRIVE_REMOTE = 4, DRIVE_REMOVABLE = 2
                     if iopSystem == 0 {
+                        ExpandDirs(CachDir)
+                        ForDisk = fmt.Sprintf("%s%cForDisks", CachDir, slashDelim)
+
                         if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "REMOV") {
                             dskTyp = 2
                         } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "FIXED") {
@@ -1982,7 +1987,8 @@ func main() {
                         ConsLogSys(ConsOut, 1, 1)
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "FOR:") {
-                    ForFile = fmt.Sprintf("%s%cForFiles", BaseDir, slashDelim)
+                    ExpandDirs(CachDir)
+                    ForFile = fmt.Sprintf("%s%cForFiles", CachDir, slashDelim)
                     TempDir = Inrec[4:]
 
                     ForHndl, for_err = os.OpenFile(ForFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
@@ -2055,6 +2061,56 @@ func main() {
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "BYE:") {
                     cleanUp_Exit(LastRC);
                     os.Exit(LastRC);
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:DELIMS=") {
+                    Delims = Inrec[4:]
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=NONE") {
+                    setCPath = 0
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=PART") {
+                    setCPath = 1
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=FULL") {
+                    setCPath = 2
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYDEPTH=") {
+                    setCDepth, _ = strconv.Atoi(Inrec[14:]);
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGS=") {
+                    Syslogd = Inrec[12:]
+                    if iSyslogLvl < 1 {
+                        iSyslogLvl = 1
+                    }
+
+                    ConsOut = fmt.Sprintf("[*] AChoir Version: %s Syslogging Started.  Level: %d  ACQ: %s\n", Version, iSyslogLvl, ACQName)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGP=") {
+                    Syslogp = Inrec[12:]
+                    iSyslogp, _ = strconv.Atoi(Syslogp)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGL=NONE") {
+                    if iSyslogLvl > 0 {
+                        ConsOut = fmt.Sprintf("[*] AChoir Version: %s Syslogging Stopped.  Old Level = %d\n", Version, iSyslogLvl)
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+
+                    iSyslogLvl = 0; 
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGL=MIN") {
+                    ConsOut = fmt.Sprintf("[*] Syslog Level Set to Min: 1\n")
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    iSyslogLvl = 1 
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGL=MAX") {
+                    ConsOut = fmt.Sprintf("[*] Syslog Level Set to Max: 2\n")
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    iSyslogLvl = 2
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "XIT:") && len(Inrec) > 4 {
+                    iXitCmd = 1
+
+                    if Inrec[4] == '\\' {
+                        XitCmd = fmt.Sprintf("%s%s", BaseDir, Inrec[4:])
+                    } else {
+                        XitCmd = fmt.Sprintf("%s", Inrec[4:])
+                    }
+
+                    ConsOut = fmt.Sprintf("[*] Exit Program Set: %s\n", XitCmd)
+                    ConsLogSys(ConsOut, 1, 1)
+
 
 
 
@@ -2897,12 +2953,24 @@ func cleanUp_Exit(exitRC int) {
     //****************************************************************
     if iXitCmd == 1 {
         cmdSplit := strings.Split(XitCmd, " ")
-	if XIT_err := exec.Command(cmdSplit[0], cmdSplit[:1]...).Run(); XIT_err != nil {
+
+        XIT_cmd := exec.Command(cmdSplit[0], cmdSplit[1:]...)
+	XIT_cmd.Stdout = os.Stdout
+	XIT_cmd.Stderr = os.Stderr
+	XIT_err := XIT_cmd.Run()
+	if XIT_err != nil {
             ConsOut = fmt.Sprintf("[!] Error Running XIT Command: %s\n    %s\n", os.Stderr, XIT_err)
             ConsLogSys(ConsOut, 1, 1)
+	}
 
-            os.Exit(1)
-        }
+
+        //if XIT_err := exec.Command(cmdSplit[0], cmdSplit[1:]...).Run(); XIT_err != nil {
+        //    ConsOut = fmt.Sprintf("[!] Error Running XIT Command: %s\n    %s\n", os.Stderr, XIT_err)
+        //    ConsLogSys(ConsOut, 1, 1)
+        //} else {
+        //    ConsOut = fmt.Sprintf("[*] XIT Command Completed: %s\n", XitCmd)
+        //    ConsLogSys(ConsOut, 1, 1)
+        //}
     }
 
 
