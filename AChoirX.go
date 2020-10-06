@@ -43,6 +43,7 @@ import (
     "text/scanner"
     "encoding/csv"
     "encoding/hex"
+    "archive/zip"
     "regexp"
     "runtime"
     "net/http"
@@ -136,6 +137,7 @@ var Conrec = "Console Record"                   // Console Output Record
 var Tmprec = "Formatted Console Record"         // Console Formatting Record
 var Cpyrec = "Copy Record"                      // Used by Copy Routine
 var Cmprec = "Compare Record"                   // Used by Compare Routines
+var Ziprec = "Zip Record"                       // Used by Unzip Routines
 var Filrec = "File Record"                      // File Record 
 var Lstrec = "File Record"                      // List Record 
 var Dskrec = "File Record"                      // Disk Record 
@@ -172,6 +174,7 @@ var LstFile = "C:\\AChoir\\Data.Lst"            // List of Data
 var ChkFile = "C:\\AChoir\\Data.Chk"            // Check For File Existence
 var MD5File = "C:\\AChoir\\Hash.txt"            // Saved Hashes
 var BACQDir = "C:\\AChoir"                      // Base Acquisition Directory
+var BaseDir = "C:\\AChoir"                      // Base Directory
 var ACQDir = ""                                 // Relative Acquisition Directory
 var CachDir = "C:\\AChoir\\Cache"               // AChoir Caching Directory 
 var ForFile = "C:\\AChoir\\Cache\\ForFiles"     // Do action for these Files
@@ -207,6 +210,7 @@ var for_err error                               // For File Errors
 var lst_err error                               // Lst File Errors
 var dsk_err error                               // Dsk File Errors
 var opn_err error                               // User Defined File Errors
+var cwd_err error                               // Current Directory Errors
 var for_rcd bool                                // Return Code for ForFile Read
 var lst_rcd bool                                // Return Code for LstFile Read
 var dsk_rcd bool                                // Return Code for DskFile Read
@@ -294,7 +298,7 @@ func main() {
 
 
     // What Directory are we in?
-    BaseDir, cwd_err := os.Getwd()
+    BaseDir, cwd_err = os.Getwd()
     if cwd_err != nil {
         BaseDir = fmt.Sprintf("%cAChoir%cACQ-IR-%s-%04d%02d%02d-%02d%02d", slashDelim, slashDelim, cName, iYYYY, iMonth, iDay, iHour, iMin) 
 
@@ -2110,94 +2114,75 @@ func main() {
 
                     ConsOut = fmt.Sprintf("[*] Exit Program Set: %s\n", XitCmd)
                     ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "EXE:") {
+                    RunCommand(Inrec[4:], 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "EXA:") {
+                    RunCommand(Inrec[4:], 2)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SYS:") {
+                    RunCommand(Inrec[4:], 3)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "GET:") {
+                    WGetURL = Inrec[4:]
+                    RootSlash = strings.LastIndexByte(WGetURL, '/')
+                    if (RootSlash == -1) {
+                        CurrFil = fmt.Sprintf("%s%cAChoir.Acq", slashDelim, CurrWorkDir)
+                    } else if len(WGetURL[RootSlash+1:]) < 2 {
+                        CurrFil = fmt.Sprintf("%s%cAChoir.Acq", slashDelim, CurrWorkDir)
+                    } else {
+                        CurrFil = fmt.Sprintf("%s%c%s", CurrWorkDir, slashDelim, WGetURL[RootSlash+1:])
+                    }
 
+                    ConsOut = fmt.Sprintf("[+] HTTP GetFile: %s (%s)\n", WGetURL, CurrFil)
+                    ConsLogSys(ConsOut, 1, 1)
 
+                    http_err := DownloadFile(CurrFil, WGetURL)
+                    if http_err != nil {
+                        ConsOut = fmt.Sprintf("[+] Download Failed: %s\n", WGetURL)
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        ConsOut = fmt.Sprintf("[+] Download Success: %s\n", WGetURL)
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "UNZ:") {
+                    Ziprec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Ziprec)
 
+                    if SplitRC == 1 {
+                        ConsOut = fmt.Sprintf("[!] Unzip Requires both a Zip File Name and Destination Directory\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        Unzfiles, unz_err := Unzip(splitString1, splitString2)
+                        if unz_err != nil {
+                            ConsOut = fmt.Sprintf("[!] Unzip Error: %s\n", unz_err)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
 
+                        for iUnz := 0; iUnz < len(Unzfiles); iUnz++ {
+                            ConsOut = fmt.Sprintf("[*] Unzipped File: %s\n", Unzfiles[iUnz])
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
 
-
-
-
-
-
+                        
+                    }
                 }
-
-
-
-
-
-
-
-
-
-
-                // Testing...
-                // fmt.Printf("Out: %s\nOut: %s\n", o32VarRec, o64VarRec)
-
-
             }
-
-
-
-
-
-
-
-
-
-
-
         }
-
-
-
-
-
-
-        // Testing - Echo Input
-        //fmt.Printf(Tmprec)
-
-
-
-
-
 
         if consOrFile == 1 {
             fmt.Printf(">>>")
         }
-
-
-
-
-
     }
 
 
+    //****************************************************************
+    //* Cleanup                                                      *
+    //****************************************************************
+    if RunMe > 0 {
+        ConsOut = fmt.Sprintf("[!] You have and extra END: Hanging! Check your Logic.\n")
+        ConsLogSys(ConsOut, 1, 1)
+    }
 
-
-
-
-
-
-
-
-    // Print Stuff Cause GoLang makes us use variables 
-    fmt.Println("[+] Windows EnVars: ", WinRoot, Procesr, TempVar, ProgVar)
-
-
-
-
-
-
-
-
-    // Clean-Up Routines for Testing...
-    fmt.Fprintf(LogHndl, "[+] Closing LogFile\n")
-    LogHndl.Close()
-    // End of Cleanup Testing Routines
-
-
-
+    cleanUp_Exit(0);
+    os.Exit(0);
 
 }
 
@@ -2952,25 +2937,7 @@ func cleanUp_Exit(exitRC int) {
     //* Run Final Exit Program - This will not be logged             *
     //****************************************************************
     if iXitCmd == 1 {
-        cmdSplit := strings.Split(XitCmd, " ")
-
-        XIT_cmd := exec.Command(cmdSplit[0], cmdSplit[1:]...)
-	XIT_cmd.Stdout = os.Stdout
-	XIT_cmd.Stderr = os.Stderr
-	XIT_err := XIT_cmd.Run()
-	if XIT_err != nil {
-            ConsOut = fmt.Sprintf("[!] Error Running XIT Command: %s\n    %s\n", os.Stderr, XIT_err)
-            ConsLogSys(ConsOut, 1, 1)
-	}
-
-
-        //if XIT_err := exec.Command(cmdSplit[0], cmdSplit[1:]...).Run(); XIT_err != nil {
-        //    ConsOut = fmt.Sprintf("[!] Error Running XIT Command: %s\n    %s\n", os.Stderr, XIT_err)
-        //    ConsLogSys(ConsOut, 1, 1)
-        //} else {
-        //    ConsOut = fmt.Sprintf("[*] XIT Command Completed: %s\n", XitCmd)
-        //    ConsLogSys(ConsOut, 1, 1)
-        //}
+        RunCommand(XitCmd, 1)
     }
 
 
@@ -3014,4 +2981,150 @@ func MD5FileOut(MD5filepath string, MD5Info os.FileInfo, MD5_err error) error {
 
 }
 
+
+func RunCommand(Commandstring string, Commandtype int) error {
+    var Fullpath = BaseDir
+
+    //****************************************************************
+    //* Run an External Command, either blocked or unblocked         *
+    //****************************************************************
+    cmdSplit := strings.Split(Commandstring, " ")
+
+    //****************************************************************
+    //* Make sure the command is there, then hash it.                *
+    //****************************************************************
+    if Commandtype < 3 {
+        // EXE: or EXA: runs from AChoir Dirs
+
+        // Are we requesting an explicit path?
+        if len(cmdSplit[0]) > 0 {
+            if cmdSplit[0][0] == slashDelim {
+                Fullpath = fmt.Sprintf("%s%s", BaseDir, cmdSplit[0])
+            } else {
+                Fullpath = fmt.Sprintf("%s", cmdSplit[0])
+            }
+
+            if FileExists(Fullpath) {
+                ConsOut = fmt.Sprintf("[+] Command: %s\n    MD5: %s\n", Commandstring, GetMD5File(Fullpath))
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                ConsOut = fmt.Sprintf("[!] Command could not be Located: %s\n", Commandstring)
+                ConsLogSys(ConsOut, 1, 1)
+
+                return fmt.Errorf("[!] Command Could not be Located: %s", Commandstring)
+            }
+        } else {
+            ConsOut = fmt.Sprintf("[!] Blank command Entered.\n")
+            ConsLogSys(ConsOut, 1, 1)
+
+            return fmt.Errorf("[!] Blank Command Entered.\n")
+        }
+    } else {
+        // SYS: Go Search the System Path
+        RunPath, path_err := exec.LookPath(cmdSplit[0])
+        Fullpath = fmt.Sprintf("%s", RunPath)
+
+        if path_err != nil {
+            ConsOut = fmt.Sprintf("[!] Command could not be Located: %s\n    %s\n", Commandstring, path_err)
+            ConsLogSys(ConsOut, 1, 1)
+
+            return path_err
+        } else {
+            ConsOut = fmt.Sprintf("[+] Command: %s\n    MD5: %s\n", Commandstring, GetMD5File(Fullpath))
+            ConsLogSys(ConsOut, 1, 1)
+        }
+    }
+
+    //****************************************************************
+    //* Setup the command to run                                     *
+    //****************************************************************
+    run_cmd := exec.Command(Fullpath, cmdSplit[1:]...)
+    run_cmd.Stdout = os.Stdout
+    run_cmd.Stderr = os.Stderr
+
+    if Commandtype == 1 || Commandtype == 3 {
+        // Blocked (EXE: or SYS:)
+        run_err := run_cmd.Run()
+        if run_err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Running Command: %s\n    %s\n", Commandstring, run_err)
+            ConsLogSys(ConsOut, 1, 1)
+
+            return run_err
+        }
+    } else {
+        // Non-Blocked/Asynchronous (EXA:)
+        strt_err := run_cmd.Start()
+        if strt_err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Startng Command: %s\n    %s\n", Commandstring, strt_err)
+            ConsLogSys(ConsOut, 1, 1)
+
+            return strt_err
+        }
+    }
+
+    return nil
+
+}
+
+
+//***************************************************************************
+// Unzip will decompress a zip archive, moving all files and folders        *
+// within the zip file (parameter 1) to an output directory (parameter 2).  *
+//   https://golangcode.com/unzip-files-in-go/                              *
+//***************************************************************************
+func Unzip(ZipSrc string, ZipDest string) ([]string, error) {
+
+    var ZipFNames []string
+
+    ZipRdr, zip_err := zip.OpenReader(ZipSrc)
+    if zip_err != nil {
+        return ZipFNames, zip_err
+    }
+    defer ZipRdr.Close()
+
+    for _, ZipFile := range ZipRdr.File {
+
+        // Store filename/path for returning and using later on
+        ZipFpath := filepath.Join(ZipDest, ZipFile.Name)
+
+        // Check for ZipSlip. More Info: http://bit.ly/2MsjAWE
+        if !strings.HasPrefix(ZipFpath, filepath.Clean(ZipDest)+string(os.PathSeparator)) {
+            return ZipFNames, fmt.Errorf("%s: illegal file path", ZipFpath)
+        }
+
+        ZipFNames = append(ZipFNames, ZipFpath)
+
+        if ZipFile.FileInfo().IsDir() {
+            // Make Folder
+            os.MkdirAll(ZipFpath, os.ModePerm)
+            continue
+        }
+
+        // Make File
+        if zip_err = os.MkdirAll(filepath.Dir(ZipFpath), os.ModePerm); zip_err != nil {
+            return ZipFNames, zip_err
+        }
+
+        ZipOutFile, zip_err := os.OpenFile(ZipFpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, ZipFile.Mode())
+        if zip_err != nil {
+            return ZipFNames, zip_err
+        }
+
+        Ziprc, zip_err := ZipFile.Open()
+        if zip_err != nil {
+            return ZipFNames, zip_err
+        }
+
+        _, zip_err = io.Copy(ZipOutFile, Ziprc)
+
+        // Close the file without defer to close before next iteration of loop
+        ZipOutFile.Close()
+        Ziprc.Close()
+
+        if zip_err != nil {
+            return ZipFNames, zip_err
+        }
+    }
+    return ZipFNames, nil
+}
 
