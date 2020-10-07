@@ -3075,6 +3075,7 @@ func RunCommand(Commandstring string, Commandtype int) error {
     } else {
         STDOHndl, _ := os.Create(STDOutF)
         run_cmd.Stdout = STDOHndl
+        defer STDOHndl.Close()
     }
 
     if iSTDErr == 0 {
@@ -3082,6 +3083,7 @@ func RunCommand(Commandstring string, Commandtype int) error {
     } else {
         STDEHndl, _ := os.Create(STDErrF)
         run_cmd.Stderr = STDEHndl
+        defer STDEHndl.Close()
     }
         
 
@@ -3094,6 +3096,7 @@ func RunCommand(Commandstring string, Commandtype int) error {
 
             return run_err
         }
+
     } else {
         // Non-Blocked/Asynchronous (EXA:)
         strt_err := run_cmd.Start()
