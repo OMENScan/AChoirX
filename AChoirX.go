@@ -73,6 +73,7 @@ var OSVersion = "Windows 10.0.0"                // Operating System Version: OS 
 var slashDelim byte = '\\'                      // Directory Delimiter Win vs. Lin vs. OSX
 var slashDelimS string = "\\"                   // Same Thing but a String
 var WGetURL = "http://Company.com/file"         // URL For HTTP Get
+var WGetDir = "c:\\Achoir"                      // Directory For HTTP Get (Downloaded File)
 var RootSlash = 0                               // Last Occurance of Slash to find Root URL
 var ForSlash = 0                                // Last Occurance of Slash to find File in Path
 var CurrFil = "Current.fil"                     // Current File Name
@@ -138,9 +139,10 @@ var Tmprec = "Formatted Console Record"         // Console Formatting Record
 var Cpyrec = "Copy Record"                      // Used by Copy Routine
 var Cmprec = "Compare Record"                   // Used by Compare Routines
 var Ziprec = "Zip Record"                       // Used by Unzip Routines
+var Getrec = "Get Record"                       // Used by HTTP Get: Routines
 var Filrec = "File Record"                      // File Record 
-var Lstrec = "File Record"                      // List Record 
-var Dskrec = "File Record"                      // Disk Record 
+var Lstrec = "List Record"                      // List Record 
+var Dskrec = "Disk Record"                      // Disk Record 
 var Inprec = "Console Input"                    // Console Input Record 
 var o32VarRec = "32 bit Variables"              // 32 Bit Variable Expansion Record
 var o64VarRec = "64 bit Variables"              // 64 Bit Variable Expansion Record
@@ -183,6 +185,10 @@ var ForDisk = "C:\\AChoir\\Cache\\ForDisk"      // Do Action for Multiple Disk D
 var CurrDir = ""                                // Current Directory
 var TempDir = ""                                // Temp Build Directory String
 var TempAcq = ""                                // Temp ACQ Directory String
+var STDOutF = "C:\\AChoir\\Cache\\STDOut"       // Write exec stdout to this file 
+var STDErrF = "C:\\AChoir\\Cache\\STDErr"       // Write exec stderr to this file 
+var iSTDOut = 0                                 // Exec STDOut is Console(0) or File(1) 
+var iSTDErr = 0                                 // Exec STDErr is Console(0) or File(1) 
 
 // Windows OS Variables
 var WinRoot = "NA"                              // Windows Root Directory
@@ -203,6 +209,8 @@ var LstHndl *os.File                            // File Handle for the LstFile
 var DskHndl *os.File                            // File Handle for the DskFile
 var OpnHndl *os.File                            // User Defined Output File(s)
 var MD5Hndl *os.File                            // Save Hashes of Files
+var STDOHndl *os.File                           // STDOut File Handle
+var STDEHndl *os.File                           // STDErr File Handle
 var log_err error                               // Logging Errors
 var htm_err error                               // HTML Writer Errors
 var ini_err error                               // Ini File Errors
@@ -1980,7 +1988,10 @@ func main() {
                             GotDriveType := GetDriveType(DrvsArray[iDrv])
 
                             if GotDriveType == dskTyp {
-                                DskHndl.WriteString(DrvsArray[iDrv] + "\n")
+                                //DskHndl.WriteString(DrvsArray[iDrv] + "\n")
+
+                                DrvLtr := fmt.Sprintf("%c\n", DrvsArray[iDrv][0])
+                                DskHndl.WriteString(DrvLtr)
                             }
                         }
 
@@ -2074,7 +2085,21 @@ func main() {
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=FULL") {
                     setCPath = 2
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYDEPTH=") {
-                    setCDepth, _ = strconv.Atoi(Inrec[14:]);
+                    setCDepth, _ = strconv.Atoi(Inrec[14:])
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:EXESTDOUT=") {
+                    if strings.HasPrefix(strings.ToUpper(Inrec[14:]), "CONS") {
+                        iSTDOut = 0
+                    } else {
+                        iSTDOut = 1
+                        STDOutF = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[14:])
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:EXESTDERR=") {
+                    if strings.HasPrefix(strings.ToUpper(Inrec[14:]), "CONS") {
+                        iSTDErr = 0
+                    } else {
+                        iSTDErr = 1
+                        STDErrF = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[14:])
+                    }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGS=") {
                     Syslogd = Inrec[12:]
                     if iSyslogLvl < 1 {
@@ -2121,14 +2146,18 @@ func main() {
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SYS:") {
                     RunCommand(Inrec[4:], 3)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "GET:") {
-                    WGetURL = Inrec[4:]
-                    RootSlash = strings.LastIndexByte(WGetURL, '/')
-                    if (RootSlash == -1) {
-                        CurrFil = fmt.Sprintf("%s%cAChoir.Acq", slashDelim, CurrWorkDir)
-                    } else if len(WGetURL[RootSlash+1:]) < 2 {
-                        CurrFil = fmt.Sprintf("%s%cAChoir.Acq", slashDelim, CurrWorkDir)
-                    } else {
-                        CurrFil = fmt.Sprintf("%s%c%s", CurrWorkDir, slashDelim, WGetURL[RootSlash+1:])
+                    Getrec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Getrec)
+                    WGetURL = splitString1
+                    CurrFil = splitString2
+
+                    if SplitRC == 1 {
+                        WGetDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
+                        CurrFil = fmt.Sprintf("%s%c%s%cDownload.dat", BACQDir, slashDelim, ACQDir, slashDelim)
+                        ExpandDirs(WGetDir)
+
+                        ConsOut = fmt.Sprintf("[!] Target Download File Name Not Specified.  Using: %s\n", CurrFil)
+                        ConsLogSys(ConsOut, 1, 1)
                     }
 
                     ConsOut = fmt.Sprintf("[+] HTTP GetFile: %s (%s)\n", WGetURL, CurrFil)
@@ -2160,8 +2189,6 @@ func main() {
                             ConsOut = fmt.Sprintf("[*] Unzipped File: %s\n", Unzfiles[iUnz])
                             ConsLogSys(ConsOut, 1, 1)
                         }
-
-                        
                     }
                 }
             }
@@ -3035,12 +3062,28 @@ func RunCommand(Commandstring string, Commandtype int) error {
         }
     }
 
+
     //****************************************************************
     //* Setup the command to run                                     *
     //****************************************************************
     run_cmd := exec.Command(Fullpath, cmdSplit[1:]...)
-    run_cmd.Stdout = os.Stdout
-    run_cmd.Stderr = os.Stderr
+    //run_cmd.Stdout = os.Stdout
+    //run_cmd.Stderr = os.Stderr
+
+    if iSTDOut == 0 {
+        run_cmd.Stdout = os.Stdout
+    } else {
+        STDOHndl, _ := os.Create(STDOutF)
+        run_cmd.Stdout = STDOHndl
+    }
+
+    if iSTDErr == 0 {
+        run_cmd.Stderr = os.Stderr
+    } else {
+        STDEHndl, _ := os.Create(STDErrF)
+        run_cmd.Stderr = STDEHndl
+    }
+        
 
     if Commandtype == 1 || Commandtype == 3 {
         // Blocked (EXE: or SYS:)
