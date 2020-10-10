@@ -488,9 +488,9 @@ func main() {
     //* Are we running Non-Native (Sysnative vs. System32)           *
     //****************************************************************
     if iopSystem == 0 {
-        TempDir = fmt.Sprintf("%s\\Sysnative", WinRoot)
-
-        if _, fol_err := os.Stat(TempDir); os.IsNotExist(fol_err) {
+        //TempDir = fmt.Sprintf("%s\\Sysnative", WinRoot)
+        //if _, fol_err := os.Stat(TempDir); os.IsNotExist(fol_err) {
+        if strings.ToUpper(Procesr) == "AMD64" {
             sNative = "64Bit "
             iNative = 1
         } else {
@@ -735,6 +735,12 @@ func main() {
                     if lst_err == nil && lst_rcd == true {
                         Lstrec = strings.TrimSpace(LstScan.Text())
 
+                        // Simple way to ignore UTF-16 - Not Great, but it works
+                        Lstrec = strings.Replace(Lstrec, "\x00", "", -1) 
+                        Lstrec = strings.Replace(Lstrec, "\xfe", "", -1) 
+                        Lstrec = strings.Replace(Lstrec, "\xff", "", -1) 
+                        //Lstrec = strings.ToValidUTF8(Lstrec, "")   // Force it to be UTF-8
+
                         Looper = 1
                         LoopNum++
                     } else {
@@ -770,7 +776,11 @@ func main() {
                 //* but native GOLang support $Var or ${Var}.  AChoirS now uses  *
                 //* the Native GoLang functions to prevent reinventing the wheel *
                 //****************************************************************
-                varConvert(Tmprec)
+                if strings.Contains(Tmprec, "${") {
+                    varConvert(Tmprec)
+                 } else {
+                     o32VarRec = Tmprec
+                 }
 
 
                 //****************************************************************
@@ -893,6 +903,7 @@ func main() {
                     tokRdr.Comma = runeDelims[0]
                     tokRdr.FieldsPerRecord = -1
                     tokRdr.TrimLeadingSpace = true
+                    //tokRdr.LazyQuotes = true
                     tokFields, tok_err := tokRdr.Read()
 
                     if tok_err != nil {
@@ -2077,7 +2088,7 @@ func main() {
                     cleanUp_Exit(LastRC);
                     os.Exit(LastRC);
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:DELIMS=") {
-                    Delims = Inrec[4:]
+                    Delims = Inrec[11:]
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=NONE") {
                     setCPath = 0
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=PART") {
@@ -2474,7 +2485,17 @@ func consInput(consString string, conLog int, conHide int) {
 // the Native GoLang functions to prevent reinventing the wheel  *
 //****************************************************************
 func varConvert(inVarRec string) {
-    o32VarRec = os.ExpandEnv(inVarRec)
+    // o32VarRec = os.ExpandEnv(inVarRec)  // Deprecated
+    // New code below ensures that only the ${} type expansion is done
+    //  this is to avoid expansion of items like $MFT as a variable
+    o32VarRec = inVarRec
+    VaRegex := regexp.MustCompile(`\$\{[a-zA-Z0-9_]+\}`)
+    VaArray := VaRegex.FindAllString(o32VarRec, -1)
+
+    for iRgx := 0; iRgx < len(VaArray); iRgx++ {
+        o32VarRec = strings.Replace(o32VarRec, VaArray[iRgx], os.ExpandEnv(VaArray[iRgx]), -1) 
+    }
+
 
     //  This doesn't apply to Linux or OSX
     if iopSystem == 0 {
@@ -3004,6 +3025,7 @@ func MD5FileOut(MD5filepath string, MD5Info os.FileInfo, MD5_err error) error {
         FileMD5 := GetMD5File(MD5filepath)
         MD5Hndl.WriteString("File: " + MD5filepath + " - MD5: " + FileMD5 +"\n")
     }
+
     return nil
 
 }
@@ -3011,11 +3033,41 @@ func MD5FileOut(MD5filepath string, MD5Info os.FileInfo, MD5_err error) error {
 
 func RunCommand(Commandstring string, Commandtype int) error {
     var Fullpath = BaseDir
+    var cmdSplit []string = nil
+    var tmpSTDRedir = 0
 
     //****************************************************************
     //* Run an External Command, either blocked or unblocked         *
     //****************************************************************
-    cmdSplit := strings.Split(Commandstring, " ")
+    tmpSplit := strings.Split(Commandstring, " ")
+
+    //****************************************************************
+    //* Look for AChoirX Command Enhancements. Process them, and     *
+    //*  pull them out                                               *
+    //*  --EXESTDOUT=  Sets STDOut                                   *
+    //*  --EXESTDERR=  Sets STDErr                                   *
+    //****************************************************************
+    for iCmd := 0; iCmd < len(tmpSplit); iCmd++ {
+        if strings.HasPrefix(strings.ToUpper(tmpSplit[iCmd]), "--EXESTDOUT=") {
+            tmpSTDRedir = 1
+            if strings.HasPrefix(strings.ToUpper(tmpSplit[iCmd][12:]), "CONS") {
+                iSTDOut = 0
+            } else {
+                iSTDOut = 1
+                STDOutF = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, tmpSplit[iCmd][12:])
+            }
+        } else if strings.HasPrefix(strings.ToUpper(tmpSplit[iCmd]), "--EXESTDERR=") {
+            tmpSTDRedir = 1
+            if strings.HasPrefix(strings.ToUpper(tmpSplit[iCmd][12:]), "CONS") {
+                iSTDErr = 0
+            } else {
+                iSTDErr = 1
+                STDErrF = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, tmpSplit[iCmd][12:])
+            }
+        } else {
+            cmdSplit = append(cmdSplit, tmpSplit[iCmd])
+        }
+    }
 
     //****************************************************************
     //* Make sure the command is there, then hash it.                *
@@ -3032,7 +3084,7 @@ func RunCommand(Commandstring string, Commandtype int) error {
             }
 
             if FileExists(Fullpath) {
-                ConsOut = fmt.Sprintf("[+] Command: %s\n    MD5: %s\n", Commandstring, GetMD5File(Fullpath))
+                ConsOut = fmt.Sprintf("[+] Command: %s\n    Command MD5: %s\n", Commandstring, GetMD5File(Fullpath))
                 ConsLogSys(ConsOut, 1, 1)
             } else {
                 ConsOut = fmt.Sprintf("[!] Command could not be Located: %s\n", Commandstring)
@@ -3057,7 +3109,7 @@ func RunCommand(Commandstring string, Commandtype int) error {
 
             return path_err
         } else {
-            ConsOut = fmt.Sprintf("[+] Command: %s\n    MD5: %s\n", Commandstring, GetMD5File(Fullpath))
+            ConsOut = fmt.Sprintf("[+] Command: %s\n    Command MD5: %s\n", Commandstring, GetMD5File(Fullpath))
             ConsLogSys(ConsOut, 1, 1)
         }
     }
@@ -3088,6 +3140,13 @@ func RunCommand(Commandstring string, Commandtype int) error {
         
 
     if Commandtype == 1 || Commandtype == 3 {
+        // Reset STDout and STDErr if it was Temporary
+        if tmpSTDRedir == 1 {
+            iSTDOut = 0
+            iSTDErr = 0
+        }
+
+
         // Blocked (EXE: or SYS:)
         run_err := run_cmd.Run()
         if run_err != nil {
@@ -3098,6 +3157,12 @@ func RunCommand(Commandstring string, Commandtype int) error {
         }
 
     } else {
+        // Reset STDout and STDErr if it was Temporary
+        if tmpSTDRedir == 1 {
+            iSTDOut = 0
+            iSTDErr = 0
+        }
+
         // Non-Blocked/Asynchronous (EXA:)
         strt_err := run_cmd.Start()
         if strt_err != nil {
