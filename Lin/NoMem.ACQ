@@ -294,6 +294,99 @@ Ver:Linux
  BYE:
 END:
 Ver:Darwin
- SAY:OSX Acquisition Section Not Built Yet... Stay Tuned...
+ SAY:OSX Acquisition (A Work In Progress)...
+ SAY:
+ SAY: 3. Gathering Disk Information...
+ SAY:
+ ACQ:/Disk
+ SYS:mount --exestdout=&acn/Disk/MountedDisks.dat
+ SYS:df -h --exestdout=&acn/Disk/DiskUsage.dat
+ SAY:
+ SAY: 4. Gathering System Information...
+ SAY:
+ ACQ:/Sys
+ SYS:system_profiler --exestdout=&acn/Sys/Profiler.dat
+ SAY:
+ SAY: 6. Copying var/log Directory...
+ SAY:
+ ACQ:/Var/Log
+ CPY:/var/Log/**/* &Acq
+ ACQ:/Var/Log/Private
+ CPY:/private/var/Log/**/* &Acq
+ SAY: 7. Copying Etc Directory...
+ SAY:
+ ACQ:/Sys/Etc
+ CPY:/etc/* &acq
+ SAY:
+ SAY: 8. Parsing Environment Variables...
+ SAY:
+ ACQ:/Sys
+ SYS:printenv --exestdout=&acn/Sys/EnVar.dat
+ SAY:
+ SAY: 9. Querying Sofware/Patch List...
+ SAY:
+ ACQ:/Sys
+ SYS:pkgutil --pkgs --exestdout=&acn/Sys/pkgutil-pkgs.dat
+ SAY:
+ SAY: 10. Gathering Running Process List Information...
+ SAY:
+ ACQ:/Sys
+ SYS:ps aux --forest --exestdout=&acn/Sys/PSList.dat
+ SYS:ps -ef --exestdout=&acn/Sys/PS-ef.dat
+ SYS:top -l 1 --exestdout=&acn/Sys/PSTop.dat
+ SAY:
+ SAY: 11. Gathering Connection Information...
+ SAY:
+ ACQ:/Sys
+ SYS:netstat -anp --exestdout=&acn/Sys/Netstat-anp.dat
+ SYS:netstat -rn --exestdout=&acn/Sys/Netstat-rn.dat
+ SYS lsof -i -n -P --exestdout=&acn/Sys/lsofConnections.dat
+ SAY:
+ SAY: 12. Gathering IP Config Information...
+ SAY:
+ SYS:ifconfig -a --exestdout=&acn/Sys/IFConfig.dat
+ SAY:
+ SAY: 13. Gathering ARP Information...
+ SAY:
+ SYS:arp -an --exestdout=&acn/Sys/ArpInfo.dat
+ SAY:
+ SAY:
+ SAY: 15. Gathering Open Files/Process Information...
+ SAY:
+ ACQ:/Sys
+ SYS:lsof --exestdout=&acn/Sys/OpenFiles.dat
+ SAY:
+ SAY: 16. Gathering Scheduled Task (cron) Information...
+ SAY:
+ ACQ:/Cron
+ cpy:/etc/crontab &Acq
+ ACQ:/Cron/Usr
+ cpy:/usr/lib/cron/tabs/**/*
+ SAY:
+ SAY: 17. Gathering System Logon Information...
+ SAY:
+ ACQ:/Sys
+ SYS:who --exestdout=&acn/Sys/Logon.dat
+ SYS:last --exestdout=&acn/Sys/Last.dat
+ SAY:
+ SAY:
+ SAY: 18. Gathering Services Information...
+ SAY:
+ ACQ:/Sys
+ SYS:launchctl list --exestdout=&acn/Sys/Services.dat
+ SAY:
+ SAY: 20. Gathering User Information...
+ SAY:
+ ACQ:/UserInfo
+ SYS:whoami --exestdout=&acn/UserInfo/Whoami.dat
+ SYS:logname --exestdout=&acn/UserInfo/Logname.dat
+ SAY:
+ SAY: 22. Gathering Current User Config Files...
+ SAY:
+ ACQ:/Home
+ cpy:/users/**/.* &Acq
+ HSH:ACQ
+ SAY:
+ PZZ: All Done!  Press Any Key to Finish.
  BYE:
 END:
