@@ -207,7 +207,7 @@ Ver:Linux
  SAY: 6. Copying var/log Directory...
  SAY:
  ACQ:/Var/Log
- cpy: /var/Log/**/* &Acq
+ cpy: /var/log/**/* &Acq
  SAY: 7. Copying Etc Directory...
  SAY:
  ACQ:/Sys/Etc
@@ -310,9 +310,9 @@ Ver:Darwin
  SAY: 6. Copying var/log Directory...
  SAY:
  ACQ:/Var/Log
- CPY:/var/Log/**/* &Acq
+ CPY:/var/log/**/* &Acq
  ACQ:/Var/Log/Private
- CPY:/private/var/Log/**/* &Acq
+ CPY:/private/var/log/**/* &Acq
  SAY: 7. Copying Etc Directory...
  SAY:
  ACQ:/Sys/Etc
