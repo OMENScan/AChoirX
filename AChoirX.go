@@ -3035,7 +3035,7 @@ func CopyParser(splitString1 string, splitString2 string) {
 
 
             //****************************************************************
-            //* Get Just the File Name                   *
+            //* Get Just the File Name                                       *
             //****************************************************************
             ForSlash = strings.LastIndexByte(file_found, slashDelim)
 
@@ -3058,7 +3058,7 @@ func CopyParser(splitString1 string, splitString2 string) {
             }
 
             //****************************************************************
-            //* Copy to Output File Name                 *
+            //* Copy to Output File Name                                     *
             //*  Note: a Shard is any expanded WildCard Directory - Shards   *
             //*        can be used to logically group duplicate file names   *
             //****************************************************************
@@ -3120,7 +3120,7 @@ func CopyParser(splitString1 string, splitString2 string) {
                     }
 
                     //****************************************************************
-                    //* Get Just the File Name                   *
+                    //* Get Just the File Name                                       *
                     //****************************************************************
                     ForSlash = strings.LastIndexByte(file_found, slashDelim)
                     if (ForSlash == -1) {
@@ -3132,7 +3132,7 @@ func CopyParser(splitString1 string, splitString2 string) {
                     }
 
                     //****************************************************************
-                    //* Copy to Output File Name                 *
+                    //* Copy to Output File Name                                     *
                     //****************************************************************
                     if setCPath == 0 || len(MCpShard) < 1 {
                         MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
@@ -3159,7 +3159,7 @@ func CopyParser(splitString1 string, splitString2 string) {
         }
     } else {
         //****************************************************************
-        //* Get Just the File Name                   *
+        //* Get Just the File Name                                       *
         //****************************************************************
         ForSlash = strings.LastIndexByte(splitString1, slashDelim)
         if (ForSlash == -1) {
@@ -3171,7 +3171,7 @@ func CopyParser(splitString1 string, splitString2 string) {
         }
 
         //****************************************************************
-        //* Copy to Output File Name                 *
+        //* Copy to Output File Name                                     *
         //****************************************************************
         MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
 
@@ -3346,7 +3346,4 @@ func ForParser(ForDir string) {
         }
     }
 }
-
-
-
 
