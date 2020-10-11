@@ -18,190 +18,189 @@ SAY:
 SAY:  WARNING: This will take while, and will create a HUGE memory image File.
 SAY:  You've been warned ;-) 
 SAY:
-SAY: Checking for available Disk Space (Min Required: &MEM)
-SAY:
-ACQ:\MemDump
-EXE:\MEM\WinPmem_3.2.exe --output &Acq\WinPmemDump.Raw --logfile &Acq\WinPmemDump.Log --volume_format raw -dd -t
-SAY:
-SAY: 2. Extracting Prefetch Directory...
-SAY:
-ACQ:\Prf
-CPY:"&Win\prefetch\*" "&Acq"
-CPY:"&Win\prefetch\*\*" "&Acq"
-SAY:
-SAY: 3a. Copy Raw $MFT(s)...
-SAY:
-DSK:Fixed
-ACQ:\RawData
-EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe $MFT \\.\&dsk: --exestdout=&acn\RawData\MFT-&Dsk
-SAY:
-SAY: 3b. Copy Raw $LogFile...
-SAY:
-EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe $LogFile \\.\&dsk: --exestdout=&acn\RawData\LogFile-&Dsk
-SAY:
-SAY: 3c. Now Extracting USNJrnl...
-SAY:
-EXE:\DSK\ExtractUSNJrnl.exe /DevicePath:c: /OutputPath:&Acq
-SAY:
-SAY: 3d. Now Parsing USNJrnl...
-SAY:
-SYS:fsutil usn enumdata 1 0 1 C: --exestdout=&acn\RawData\USNJrnl.dat
-SYS:fsutil usn readjournal C: csv --exestdout=&acn\RawData\USNJrnl.csv
-SAY:
-SAY: 4a. Gathering System Information...
-SAY:
-ACQ:\
-EXE:\SYS\PSInfo.exe /accepteula -s --exestdout=&acn\Info.dat
-SAY:
-SAY: 4b. Gathering System Audit Information...
-SAY:
-EXE:\SYS\WinAudit.exe /r=gsoPxuTUeERNtnzDaIbMpmidcSArCOHG /f=&Acq\WinAudit.htm /l=&Acq\WinAudLog.txt
-SAY:
-SAY: 4c. Gathering Group Policy Information...
-SAY:
-CMD:GPResult /R /Z --exestdout=&acn\GPResult.txt
-SAY:
-SAY: 5. Raw Copy Registry Hives...
-SAY:
-ACQ:\Reg
-EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SECURITY \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SECURITY
-EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SOFTWARE \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SOFTWARE
-EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SAM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SAM
-EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SYSTEM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SYSTEM
-CPY:"&Win\AppCompat\Programs\Amcache.hve" "&Acq"
-SAY:
-SAY: 6. Copying (System32) EventViewer Logs...
-SAY:
-ACQ:\Evt
-ACQ:\Evt\Sys32
-CPY:"&Win\System32\winevt\Logs\*" "&Acq"
-SAY:
-SAY: 6a. Copying (Sysnative) EventViewer Logs...
-SAY:
-ACQ:\Evt\Nativ
-CPY:"&Win\sysnative\winevt\Logs\*" "&Acq"
-SAY:
-SAY: 7. Parsing (System32) Etc Directory, and SRUM...
-SAY:
-ACQ:\SYS
-ACQ:\SYS\Sys32
-CPY:"&Win\System32\Drivers\Etc\*" "&Acq"
-CPY:"&Win\System32\sru\SRUDB.dat" "&Acq"
-SAY:
-SAY: 7a. Parsing (Sysnative) Hosts And Services Directory...
-SAY:
-ACQ:\SYS\Nativ
-CPY:"&Win\sysnative\Drivers\Etc\*" "&Acq"
-CPY:"&Win\sysnative\sru\SRUDB.dat" "&Acq"
-SAY:
-SAY: 8. Parsing Environment Variables...
-SAY:
-ACQ:\SYS
-SYS:CMD /c Set --exestdout=&acn\SYS\EnVar.dat
-SAY:
-SAY: 9. Parsing The Patch List...
-SAY:
-SYS:WMIC qfe list --exestdout=&acn\SYS\QFEList.dat
-SAY:
-SAY: 10. Gathering Running Process List Information...
-SAY:
-SYS:Tasklist /v --exestdout=&acn\SYS\Tasklist.dat
-SYS:Tasklist /M --exestdout=&acn\SYS\TaskAll.dat
-EXE:\SYS\PSList.exe /accepteula -x --exestdout=&acn\SYS\PSList.dat
-SAY:
-SAY: 11. Gathering Connection Information...
-SAY:
-EXE:\SYS\cports.exe /scomma &Acq\CPorts.csv
-SAY:
-SAY: 12. Gathering IP Config Information...
-SAY:
-SYS:IPConfig /all --exestdout=&acn\SYS\IPConfig.dat
-SYS:IPConfig /DisplayDNS --exestdout=&acn\SYS\IPCfgDNS.dat
-SAY:
-SAY: 13. Gathering ARP Information...
-SAY:
-SYS:Arp -a --exestdout=&acn\SYS\ArpInfo.dat
-SAY:
-SAY: 14. Gathering NetBIOS Information...
-SAY:
-CKY:&Win\System32\NBTStat.exe
- SYS:&Win\System32\NBTStat.exe -scn --exestdout=&acn\SYS\NetBios.dat
+VER:Windows
+ ACQ:\MemDump
+ EXE:\MEM\WinPmem_3.2.exe --output &Acq\WinPmemDump.Raw --logfile &Acq\WinPmemDump.Log --volume_format raw -dd -t
+ SAY:
+ SAY: 2. Extracting Prefetch Directory...
+ SAY:
+ ACQ:\Prf
+ CPY:"&Win\prefetch\**\*" "&Acq"
+ SAY:
+ SAY: 3a. Copy Raw $MFT(s)...
+ SAY:
+ DSK:Fixed
+ ACQ:\RawData
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe $MFT \\.\&dsk: --exestdout=&acn\RawData\MFT-&Dsk
+ SAY:
+ SAY: 3b. Copy Raw $LogFile...
+ SAY:
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe $LogFile \\.\&dsk: --exestdout=&acn\RawData\LogFile-&Dsk
+ SAY:
+ SAY: 3c. Now Extracting USNJrnl...
+ SAY:
+ EXE:\DSK\ExtractUSNJrnl.exe /DevicePath:c: /OutputPath:&Acq
+ SAY:
+ SAY: 3d. Now Parsing USNJrnl...
+ SAY:
+ SYS:fsutil usn enumdata 1 0 1 C: --exestdout=&acn\RawData\USNJrnl.dat
+ SYS:fsutil usn readjournal C: csv --exestdout=&acn\RawData\USNJrnl.csv
+ SAY:
+ SAY: 4a. Gathering System Information...
+ SAY:
+ ACQ:\
+ EXE:\SYS\PSInfo.exe /accepteula -s --exestdout=&acn\Info.dat
+ SAY:
+ SAY: 4b. Gathering System Audit Information...
+ SAY:
+ EXE:\SYS\WinAudit.exe /r=gsoPxuTUeERNtnzDaIbMpmidcSArCOHG /f=&Acq\WinAudit.htm /l=&Acq\WinAudLog.txt
+ SAY:
+ SAY: 4c. Gathering Group Policy Information...
+ SAY:
+ CMD:GPResult /R /Z --exestdout=&acn\GPResult.txt
+ SAY:
+ SAY: 5. Raw Copy Registry Hives...
+ SAY:
+ ACQ:\Reg
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SECURITY \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SECURITY
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SOFTWARE \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SOFTWARE
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SAM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SAM
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SYSTEM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SYSTEM
+ CPY:"&Win\AppCompat\Programs\Amcache.hve" "&Acq"
+ SAY:
+ SAY: 6. Copying (System32) EventViewer Logs...
+ SAY:
+ ACQ:\Evt
+ ACQ:\Evt\Sys32
+ CPY:"&Win\System32\winevt\Logs\*" "&Acq"
+ SAY:
+ SAY: 6a. Copying (Sysnative) EventViewer Logs...
+ SAY:
+ ACQ:\Evt\Nativ
+ CPY:"&Win\sysnative\winevt\Logs\*" "&Acq"
+ SAY:
+ SAY: 7. Parsing (System32) Etc Directory, and SRUM...
+ SAY:
+ ACQ:\SYS
+ ACQ:\SYS\Sys32
+ CPY:"&Win\System32\Drivers\Etc\*" "&Acq"
+ CPY:"&Win\System32\sru\SRUDB.dat" "&Acq"
+ SAY:
+ SAY: 7a. Parsing (Sysnative) Hosts And Services Directory...
+ SAY:
+ ACQ:\SYS\Nativ
+ CPY:"&Win\sysnative\Drivers\Etc\*" "&Acq"
+ CPY:"&Win\sysnative\sru\SRUDB.dat" "&Acq"
+ SAY:
+ SAY: 8. Parsing Environment Variables...
+ SAY:
+ ACQ:\SYS
+ SYS:CMD /c Set --exestdout=&acn\SYS\EnVar.dat
+ SAY:
+ SAY: 9. Parsing The Patch List...
+ SAY:
+ SYS:WMIC qfe list --exestdout=&acn\SYS\QFEList.dat
+ SAY:
+ SAY: 10. Gathering Running Process List Information...
+ SAY:
+ SYS:Tasklist /v --exestdout=&acn\SYS\Tasklist.dat
+ SYS:Tasklist /M --exestdout=&acn\SYS\TaskAll.dat
+ EXE:\SYS\PSList.exe /accepteula -x --exestdout=&acn\SYS\PSList.dat
+ SAY:
+ SAY: 11. Gathering Connection Information...
+ SAY:
+ EXE:\SYS\cports.exe /scomma &Acq\CPorts.csv
+ SAY:
+ SAY: 12. Gathering IP Config Information...
+ SAY:
+ SYS:IPConfig /all --exestdout=&acn\SYS\IPConfig.dat
+ SYS:IPConfig /DisplayDNS --exestdout=&acn\SYS\IPCfgDNS.dat
+ SAY:
+ SAY: 13. Gathering ARP Information...
+ SAY:
+ SYS:Arp -a --exestdout=&acn\SYS\ArpInfo.dat
+ SAY:
+ SAY: 14. Gathering NetBIOS Information...
+ SAY:
+ CKY:&Win\System32\NBTStat.exe
+  SYS:&Win\System32\NBTStat.exe -scn --exestdout=&acn\SYS\NetBios.dat
+ END:
+ CKY:&Win\sysnative\NBTStat.exe
+  SYS:&Win\sysnative\NBTStat.exe -scn --exestdout=&acn\SYS\NetBios-2.dat
+ END:
+ SAY:
+ SAY: 15. Gathering Open Files/Process Information...
+ SAY:
+ EXE:\SYS\Handle.exe /accepteula --exestdout=&acn\SYS\OpenFiles.dat
+ SAY:
+ SAY: 16. Gathering Scheduled Task Information...
+ SAY:
+ SYS:At --exestdout=&acn\SYS\SchedTasks.dat
+ SYS:Schtasks /query /fo LIST /v --exestdout=&acn\SYS\SchedTasks-2.dat
+ SAY:
+ SAY: 17. Gathering System Logon Information...
+ SAY:
+ EXE:\SYS\PSLoggedon.exe /accepteula --exestdout=&acn\SYS\Logon.dat
+ SAY:
+ SAY: 18. Gathering Services Information...
+ SAY:
+ SYS:Net Start --exestdout=&acn\SYS\Services.dat
+ SYS:sc query type= service state= all --exestdout=&acn\SYS\Services-2.dat
+ SYS:Tasklist /SVC --exestdout=&acn\SYS\Services-3.dat
+ SAY:
+ SAY: 19. Gathering Last Activity Information...
+ SAY:
+ EXE:\SYS\LastActivityView.exe /scomma &Acq\LastActivity.csv
+ SAY:
+ SAY: 20. Gathering User Assist Information...
+ SAY:
+ EXE:\SYS\UserAssistView.exe /scomma &Acq\UserAssist.csv
+ SAY:
+ SAY: 21. Gathering AutoRun Information...
+ SAY:
+ ACQ:\Arn
+ SAY:
+ EXE:\SYS\Autorunsc.exe /accepteula -a * -c -h --exestdout=&acn\Arn\AutoRun.dat
+ EXE:\SYS\Autorunsc.exe /accepteula -cvm --exestdout=&acn\Arn\AutoRun.cpy
+ LST:&acn\Arn\AutoRun.cpy
+ CPY:"&LS8" "&ACQ"
+ SAY:
+ SAY: 22a. Gathering Current (Open) User Registry...
+ SAY:
+ ACQ:\Reg
+ SYS:Reg Save HKCU &Acq\NTUSER.DAT
+ SAY:
+ SAY: 22b. Gathering All User Registries...
+ SAY:
+ FOR:C:\Users\*\ntuser.dat
+ ACQ:\Reg\&FO2
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
+ SAY:
+ SAY: 23. Now Extracting Browser History...
+ SAY:
+ ACQ:\Brw
+ EXE:\SYS\BrowsingHistoryView.exe /scomma &Acq\BrowseHist.csv
+ EXE:\SYS\BrowsingHistoryView.exe /shtml &Acq\BrowseHist.htm
+ SAY:
+ SAY: 24. Gathering $Recycle.Bin entries (Going 10 Levels Deep)...
+ SAY:
+ DSK:Fixed
+ ACQ:\RBin
+ CPY:"&Dsk:\$Recycle.Bin\**\*" "&Acq"
+ SAY:
+ SAY: Acquisition Complete...
+ SAY:
+ SAY: Now Hashing Artifacts...
+ HSH:ACQ
+ SAY:
+ PZZ: All Done!  Press Any Key to Finish.
+ BYE:
 END:
-CKY:&Win\sysnative\NBTStat.exe
- SYS:&Win\sysnative\NBTStat.exe -scn --exestdout=&acn\SYS\NetBios-2.dat
+Ver:Linux
+ SAY:Linux Acquisition Section Not Built Yet... Stay Tuned...
+ BYE:
 END:
-SAY:
-SAY: 15. Gathering Open Files/Process Information...
-SAY:
-EXE:\SYS\Handle.exe /accepteula --exestdout=&acn\SYS\OpenFiles.dat
-SAY:
-SAY: 16. Gathering Scheduled Task Information...
-SAY:
-SYS:At --exestdout=&acn\SYS\SchedTasks.dat
-SYS:Schtasks /query /fo LIST /v --exestdout=&acn\SYS\SchedTasks-2.dat
-SAY:
-SAY: 17. Gathering System Logon Information...
-SAY:
-EXE:\SYS\PSLoggedon.exe /accepteula --exestdout=&acn\SYS\Logon.dat
-SAY:
-SAY: 18. Gathering Services Information...
-SAY:
-SYS:Net Start --exestdout=&acn\SYS\Services.dat
-SYS:sc query type= service state= all --exestdout=&acn\SYS\Services-2.dat
-SYS:Tasklist /SVC --exestdout=&acn\SYS\Services-3.dat
-SAY:
-SAY: 19. Gathering Last Activity Information...
-SAY:
-EXE:\SYS\LastActivityView.exe /scomma &Acq\LastActivity.csv
-SAY:
-SAY: 20. Gathering User Assist Information...
-SAY:
-EXE:\SYS\UserAssistView.exe /scomma &Acq\UserAssist.csv
-SAY:
-SAY: 21. Gathering AutoRun Information...
-SAY:
-ACQ:\Arn
-SAY:
-EXE:\SYS\Autorunsc.exe /accepteula -a * -c -h --exestdout=&acn\Arn\AutoRun.dat
-EXE:\SYS\Autorunsc.exe /accepteula -cvm --exestdout=&acn\Arn\AutoRun.cpy
-LST:&acn\Arn\AutoRun.cpy
-CPY:"&LS8" "&ACQ"
-SAY:
-SAY: 22a. Gathering Current (Open) User Registry...
-SAY:
-ACQ:\Reg
-SYS:Reg Save HKCU &Acq\NTUSER.DAT
-SAY:
-SAY: 22b. Gathering All User Registries...
-SAY:
-FOR:C:\Users\*\ntuser.dat
-ACQ:\Reg\&FO2
-EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
-SAY:
-SAY: 23. Now Extracting Browser History...
-SAY:
-ACQ:\Brw
-EXE:\SYS\BrowsingHistoryView.exe /scomma &Acq\BrowseHist.csv
-EXE:\SYS\BrowsingHistoryView.exe /shtml &Acq\BrowseHist.htm
-SAY:
-SAY: 24. Gathering $Recycle.Bin entries (Going 10 Levels Deep)...
-SAY:
-DSK:Fixed
-ACQ:\RBin
-CPY:"&Dsk:\$Recycle.Bin\*" "&Acq"
-CPY:"&Dsk:\$Recycle.Bin\*\*" "&Acq"
-CPY:"&Dsk:\$Recycle.Bin\*\*\*" "&Acq"
-CPY:"&Dsk:\$Recycle.Bin\*\*\*\*" "&Acq"
-CPY:"&Dsk:\$Recycle.Bin\*\*\*\*\*" "&Acq"
-CPY:"&Dsk:\$Recycle.Bin\*\*\*\*\*\*" "&Acq"
-CPY:"&Dsk:\$Recycle.Bin\*\*\*\*\*\*\*" "&Acq"
-CPY:"&Dsk:\$Recycle.Bin\*\*\*\*\*\*\*\*" "&Acq"
-CPY:"&Dsk:\$Recycle.Bin\*\*\*\*\*\*\*\*\*" "&Acq"
-CPY:"&Dsk:\$Recycle.Bin\*\*\*\*\*\*\*\*\*\*" "&Acq"
-SAY:
-SAY: Acquisition Complete...
-SAY:
-SAY: Now Hashing Artifacts...
-HSH:ACQ
-SAY:
-PZZ: All Done!  Press Any Key to Finish.
+Ver:Darwin
+ SAY:OSX Acquisition Section Not Built Yet... Stay Tuned...
+ BYE:
+END:

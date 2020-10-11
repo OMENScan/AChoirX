@@ -9,9 +9,7 @@
 //  AChoirX is Achoir converted to GoLang.
 //
 // AChoirX v10.00.01 - Convert from C to Go for Xplatform capability
-//
-//
-//
+// AChoirX v10.00.20 - Alpha 2 - Mostly Feature Complete
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -57,7 +55,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.01"                       // AChoir Version
+var Version = "v10.00.20"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var iRunMode = 0                                // Int Runmode Flag (0, 1, 2)
@@ -126,11 +124,14 @@ var MCprcO = "FilePath"                         // Build Output File Name from G
 var MCpRoot = "FilePath"                        // Multi-Copy Root (Before any WildCards)
 var MCpPath = "FilePath"                        // Path minus File Name
 var MCpShard = "FilePath"                       // Multi-Copy Expanded Directories Shard (Before FileName)
-var iShard =0                                   // Shard Index Pointer
-var iAShard =0                                  // Asterisk Shard Index Pointer
-var iQShard =0                                  // Question Mark Shard Index Pointer
+var iShard = 0                                  // Shard Index Pointer
+var iAShard = 0                                 // Asterisk Shard Index Pointer
+var iQShard = 0                                 // Question Mark Shard Index Pointer
+var iDblShard = 0                               // Double Glob Shard Pointer
 var iOldLen = 0                                 // Old length of a string
 var iNewLen = 0                                 // New length of a string
+var WalkfileWild = "Wildcard"                   // Wildcard Portion of the WalkFile Routines
+var WalkfileToo = "TooFiled"                    // File Name Portion of the WalkFile Routines
 
 // Input and Output Records
 var Inrec = "File Input Record"                 // File Input Record
@@ -1356,262 +1357,31 @@ func main() {
                         ConsOut = fmt.Sprintf("[!] Copying Requires both a FROM File and a TO Directory\n")
                         ConsLogSys(ConsOut, 1, 1)
                     } else {
-                        fmt.Sprintf("CPY: %s to %s\n", splitString1, splitString2)
+                        ConsOut = fmt.Sprintf("CPY: %s to %s\n", splitString1, splitString2)
+                        ConsLogSys(ConsOut, 1, 1)
 
-                        //****************************************************************
-                        //* If we see any wildcards, do search for multiple occurances   *
-                        //****************************************************************
-                        if strings.Contains(splitString1, "*") || strings.Contains(splitString1, "?") {
 
-                            //****************************************************************
-                            // Parse out the Expanded Directory Shard (pre-wildcard)         *
-                            //****************************************************************
-                            iAShard = strings.IndexByte(splitString1, '*')
-                            iQShard = strings.IndexByte(splitString1, '?')
+                        //*****************************************************************
+                        //* Golang does not support ** - So this code approximates it     *
+                        //*  using filepath.Walk.  The limitation is that the string cant *
+                        //*  contain another * BEFORE the ** because filepath.Walk does   *
+                        //*  not support wildcards. This code is a decent compromise.     *
+                        //*****************************************************************
+                        DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
+                        if strings.Contains(splitString1, DubGlob) {
+                            iDblShard = strings.Index(splitString1, DubGlob)
+                            if iDblShard > 0 {
+                                WalkDir := splitString1[:iDblShard]
+                                WalkfileWild = splitString1[iDblShard+3:]
+                                WalkfileToo = splitString2
 
-                            if iAShard < 0 {
-                                iShard = strings.LastIndexByte(splitString1[:iQShard], slashDelim) + 1
-                            } else if iQShard < 0 {
-                                iShard = strings.LastIndexByte(splitString1[:iAShard], slashDelim) + 1
-                            } else if iAShard < iQShard {
-                                iShard = strings.LastIndexByte(splitString1[:iAShard], slashDelim) + 1
-                            } else if iQShard < iAShard {
-                                iShard = strings.LastIndexByte(splitString1[:iQShard], slashDelim) + 1
-                            } else {
-                                iShard = 0
+                                BasicCopy := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
+                                CopyParser(BasicCopy, splitString2)
+
+                                filepath.Walk(WalkDir, WalkCopyGlob)
                             }
-
-                            if iShard > 1 {
-                                MCpRoot = splitString1[:iShard]
-                            } else {
-                                MCpRoot = ""
-                            }
-
-
-                            //****************************************************************
-                            // Do File Search using Glob                                     *
-                            //****************************************************************
-                            files_glob, glob_err := filepath.Glob(splitString1)
-
-                            if glob_err != nil {
-                                ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
-                                ConsLogSys(ConsOut, 1, 1)
-                                continue
-                            }
-
-                            for _, file_found := range files_glob {
-                                //****************************************************************
-                                //* Ignore Directories - Only Process Files                      *
-                                //****************************************************************
-                                file_stat, _ := os.Stat(file_found)
-                                if file_stat.IsDir() {
-                                    continue
-                                }
-
-
-                                //****************************************************************
-                                //* Get Just the File Name                                       *
-                                //****************************************************************
-                                ForSlash = strings.LastIndexByte(file_found, slashDelim)
-
-                                if (ForSlash == -1) {
-                                    MCpFName = file_found
-                                    MCpShard = ""
-                                    MCpPath = ""
-                                } else if iShard == 0 {
-                                    MCpFName = file_found[ForSlash+1:]
-                                    MCpShard = ""
-                                    MCpPath = file_found[:ForSlash] 
-                                } else if len(file_found[ForSlash+1:]) < 2 {
-                                    MCpFName = file_found
-                                    MCpShard = file_found[iShard:len(file_found)]
-                                    MCpPath = file_found[:ForSlash] 
-                                } else {
-                                    MCpFName = file_found[ForSlash+1:]
-                                    MCpShard = file_found[iShard:len(file_found)-len(MCpFName)]
-                                    MCpPath = file_found[:ForSlash] 
-                                }
-
-                                //****************************************************************
-                                //* Copy to Output File Name                                     *
-                                //*  Note: a Shard is any expanded WildCard Directory - Shards   *
-                                //*        can be used to logically group duplicate file names   *
-                                //****************************************************************
-                                if setCPath == 0 {
-                                    MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
-                                } else if setCPath == 1 && len(MCpShard) < 1 {
-                                    MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
-                                } else if setCPath == 1 {
-                                    MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
-                                } else if setCPath == 2 {
-                                    MCpPath = strings.Replace(MCpPath, ":", "", -1)
-                                    MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpPath, MCpFName)
-                                }
-                                ConsOut = fmt.Sprintf("[+] Multi-Copy File: %s\n    To: %s\n", file_found, MCprcO)
-                                ConsLogSys(ConsOut, 1, 1)
-
-                                nBytes, copy_err := binCopy(file_found, MCprcO)
-
-                                if copy_err != nil {
-                                    ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
-                                    ConsLogSys(ConsOut, 1, 1)
-
-                                    if nBytes < 1 {
-                                        ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
-                                        ConsLogSys(ConsOut, 1, 1)
-                                    }
-                                }
-                            }
-
-                            if (iNative == 0) {
-                                //****************************************************************
-                                //* Replace System32 with Sysnative if we are non-native         *
-                                //****************************************************************
-                                if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
-                                    TempDir = splitString1
-
-                                    repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
-                                    TempDir = repl_sys.Replace(TempDir)
-
-                                    ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
-                                    ConsLogSys(ConsOut, 1, 1)
-
-                                    files_glob, glob_err := filepath.Glob(TempDir)
-
-                                    if glob_err != nil {
-                                        ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
-                                        ConsLogSys(ConsOut, 1, 1)
-                                        continue
-                                    }
-
-                                    for _, file_found := range files_glob {
-                                        //****************************************************************
-                                        //* Ignore Directories - Only Process Files                      *
-                                        //****************************************************************
-                                        file_stat, _ := os.Stat(file_found)
-                                        if file_stat.IsDir() {
-                                            continue
-                                        }
-
-                                        //****************************************************************
-                                        //* Get Just the File Name                                       *
-                                        //****************************************************************
-                                        ForSlash = strings.LastIndexByte(file_found, slashDelim)
-                                        if (ForSlash == -1) {
-                                            MCpFName = file_found
-                                        } else if len(file_found[ForSlash+1:]) < 2 {
-                                            MCpFName = file_found
-                                        } else {
-                                            MCpFName = file_found[ForSlash+1:]
-                                        }
-
-                                        //****************************************************************
-                                        //* Copy to Output File Name                                     *
-                                        //****************************************************************
-                                        if setCPath == 0 || len(MCpShard) < 1 {
-                                            MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
-                                        } else { 
-                                            MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
-                                        }
-
-                                        ConsOut = fmt.Sprintf("[+] Multi-Copy Redir File: %s\n    To: %s\n", file_found, MCprcO)
-                                        ConsLogSys(ConsOut, 1, 1)
-
-                                        nBytes, copy_err := binCopy(file_found, MCprcO)
-
-                                        if copy_err != nil {
-                                            ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
-                                            ConsLogSys(ConsOut, 1, 1)
-
-                                            if nBytes < 1 {
-                                                ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
-                                                ConsLogSys(ConsOut, 1, 1)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
                         } else {
-                            //****************************************************************
-                            //* Get Just the File Name                                       *
-                            //****************************************************************
-                            ForSlash = strings.LastIndexByte(splitString1, slashDelim)
-                            if (ForSlash == -1) {
-                                MCpFName = splitString1
-                            } else if len(splitString1[ForSlash+1:]) < 2 {
-                                MCpFName = splitString1
-                            } else {
-                                MCpFName = splitString1[ForSlash+1:]
-                            }
-
-                            //****************************************************************
-                            //* Copy to Output File Name                                     *
-                            //****************************************************************
-                            MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
-
-                            ConsOut = fmt.Sprintf("[+] Singl-Copy File: %s\n    To: %s\n", splitString1, MCprcO)
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            nBytes, copy_err := binCopy(splitString1, MCprcO)
-
-                            if copy_err != nil {
-                                ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
-                                ConsLogSys(ConsOut, 1, 1)
-
-                                if nBytes < 1 {
-                                    ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                }
-                            }
-
-
-                            if (iNative == 0) {
-                                //****************************************************************
-                                //* Replace System32 with Sysnative if we are non-native         *
-                                //****************************************************************
-                                if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
-                                    TempDir = splitString1
-
-                                    repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
-                                    TempDir = repl_sys.Replace(TempDir)
-
-                                    ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
-                                    ConsLogSys(ConsOut, 1, 1)
-
-                                    //****************************************************************
-                                    //* Get Just the File Name                                       *
-                                    //****************************************************************
-                                    ForSlash = strings.LastIndexByte(splitString1, slashDelim)
-                                    if (ForSlash == -1) {
-                                        MCpFName = splitString1
-                                    } else if len(splitString1[ForSlash+1:]) < 2 {
-                                        MCpFName = splitString1
-                                    } else {
-                                        MCpFName = splitString1[ForSlash+1:]
-                                    }
-
-                                    //****************************************************************
-                                    //* Copy to Output File Name                                     *
-                                    //****************************************************************
-                                    MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
-
-                                    ConsOut = fmt.Sprintf("[+] Singl-Copy Redir File: %s\n    To: %s\n", splitString1, MCprcO)
-                                    ConsLogSys(ConsOut, 1, 1)
-
-                                    nBytes, copy_err := binCopy(splitString1, MCprcO)
-
-                                    if copy_err != nil {
-                                        ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
-                                        ConsLogSys(ConsOut, 1, 1)
-
-                                        if nBytes < 1 {
-                                            ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
-                                            ConsLogSys(ConsOut, 1, 1)
-                                        }
-                                    }
-                                }
-                            }
+                            CopyParser(splitString1, splitString2)
                         }
                     }
 
@@ -2024,58 +1794,27 @@ func main() {
                         break
                     }
 
-                    files_glob, glob_err := filepath.Glob(TempDir)
 
-                    if glob_err != nil {
-                        ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
-                        ConsLogSys(ConsOut, 1, 1)
-                        continue
-                    }
+                    //*****************************************************************
+                    //* Golang does not support ** - So this code approximates it     *
+                    //*  using filepath.Walk.  The limitation is that the string cant *
+                    //*  contain another * BEFORE the ** because filepath.Walk does   *
+                    //*  not support wildcards. This code is a decent compromise.     *
+                    //*****************************************************************
+                    DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
+                    if strings.Contains(TempDir, DubGlob) {
+                        iDblShard = strings.Index(TempDir, DubGlob)
+                        if iDblShard > 0 {
+                            WalkDir := TempDir[:iDblShard]
+                            WalkfileWild = TempDir[iDblShard+3:]
 
-                    for _, file_found := range files_glob {
-                    //****************************************************************
-                    //* Ignore Directories - Only Process Files                      *
-                    //****************************************************************
-                        file_stat, _ := os.Stat(file_found)
-                        if file_stat.IsDir() {
-                            continue
-                        } else {
-                            ForHndl.WriteString(file_found + "\n")
+                            BasicFor := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
+                            ForParser(BasicFor)
+
+                            filepath.Walk(WalkDir, WalkForGlob)
                         }
-                    }
-
-                    if (iNative == 0) {
-                        //****************************************************************
-                        //* Replace System32 with Sysnative if we are non-native         *
-                        //****************************************************************
-                        if CaseInsensitiveContains(TempDir, "\\System32\\") || CaseInsensitiveContains(TempDir, "/System32/") {
-
-                            repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
-                            TempDir = repl_sys.Replace(TempDir)
-
-                            ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            files_glob, glob_err := filepath.Glob(TempDir)
-
-                            if glob_err != nil {
-                                ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
-                                ConsLogSys(ConsOut, 1, 1)
-                                continue
-                            }
-
-                            for _, file_found := range files_glob {
-                            //****************************************************************
-                            //* Ignore Directories - Only Process Files                      *
-                            //****************************************************************
-                                file_stat, _ := os.Stat(file_found)
-                                if file_stat.IsDir() {
-                                continue
-                                } else {
-                                    ForHndl.WriteString(file_found + "\n")
-                                }
-                            }
-                        }
+                    } else {
+                        ForParser(TempDir)
                     }
 
                     ForHndl.Close()
@@ -3238,4 +2977,376 @@ func Unzip(ZipSrc string, ZipDest string) ([]string, error) {
     }
     return ZipFNames, nil
 }
+
+
+//***************************************************************************
+// CopyParser: Parses out the Copy Parameters for Multi or Single Copy      *
+//***************************************************************************
+func CopyParser(splitString1 string, splitString2 string) {
+    //****************************************************************
+    //* If we see any wildcards, do search for multiple occurances   *
+    //****************************************************************
+    if strings.Contains(splitString1, "*") || strings.Contains(splitString1, "?") {
+
+        //****************************************************************
+        // Parse out the Expanded Directory Shard (pre-wildcard)         *
+        //****************************************************************
+        iAShard = strings.IndexByte(splitString1, '*')
+        iQShard = strings.IndexByte(splitString1, '?')
+
+        if iAShard < 0 {
+            iShard = strings.LastIndexByte(splitString1[:iQShard], slashDelim) + 1
+        } else if iQShard < 0 {
+            iShard = strings.LastIndexByte(splitString1[:iAShard], slashDelim) + 1
+        } else if iAShard < iQShard {
+            iShard = strings.LastIndexByte(splitString1[:iAShard], slashDelim) + 1
+        } else if iQShard < iAShard {
+            iShard = strings.LastIndexByte(splitString1[:iQShard], slashDelim) + 1
+        } else {
+            iShard = 0
+        }
+
+        if iShard > 1 {
+            MCpRoot = splitString1[:iShard]
+        } else {
+            MCpRoot = ""
+        }
+
+
+        //****************************************************************
+        // Do File Search using Glob                                     *
+        //****************************************************************
+        files_glob, glob_err := filepath.Glob(splitString1)
+
+        if glob_err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
+            ConsLogSys(ConsOut, 1, 1)
+            return
+        }
+
+        for _, file_found := range files_glob {
+            //****************************************************************
+            //* Ignore Directories - Only Process Files                      *
+            //****************************************************************
+            file_stat, _ := os.Stat(file_found)
+            if file_stat.IsDir() {
+                continue
+            }
+
+
+            //****************************************************************
+            //* Get Just the File Name                   *
+            //****************************************************************
+            ForSlash = strings.LastIndexByte(file_found, slashDelim)
+
+            if (ForSlash == -1) {
+                MCpFName = file_found
+                MCpShard = ""
+                MCpPath = ""
+            } else if iShard == 0 {
+                MCpFName = file_found[ForSlash+1:]
+                MCpShard = ""
+                MCpPath = file_found[:ForSlash] 
+            } else if len(file_found[ForSlash+1:]) < 2 {
+                MCpFName = file_found
+                MCpShard = file_found[iShard:len(file_found)]
+                MCpPath = file_found[:ForSlash] 
+            } else {
+                MCpFName = file_found[ForSlash+1:]
+                MCpShard = file_found[iShard:len(file_found)-len(MCpFName)]
+                MCpPath = file_found[:ForSlash] 
+            }
+
+            //****************************************************************
+            //* Copy to Output File Name                 *
+            //*  Note: a Shard is any expanded WildCard Directory - Shards   *
+            //*        can be used to logically group duplicate file names   *
+            //****************************************************************
+            if setCPath == 0 {
+                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+            } else if setCPath == 1 && len(MCpShard) < 1 {
+                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+            } else if setCPath == 1 {
+                MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
+            } else if setCPath == 2 {
+                MCpPath = strings.Replace(MCpPath, ":", "", -1)
+                MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpPath, MCpFName)
+            }
+
+            ConsOut = fmt.Sprintf("[+] Multi-Copy File: %s\n    To: %s\n", file_found, MCprcO)
+            ConsLogSys(ConsOut, 1, 1)
+
+            nBytes, copy_err := binCopy(file_found, MCprcO)
+
+            if copy_err != nil {
+                ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
+                ConsLogSys(ConsOut, 1, 1)
+
+                if nBytes < 1 {
+                    ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                    ConsLogSys(ConsOut, 1, 1)
+                }
+            }
+        }
+
+        if (iNative == 0) {
+            //****************************************************************
+            //* Replace System32 with Sysnative if we are non-native         *
+            //****************************************************************
+            if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
+                TempDir = splitString1
+
+                repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
+                TempDir = repl_sys.Replace(TempDir)
+
+                ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
+                ConsLogSys(ConsOut, 1, 1)
+
+                files_glob, glob_err := filepath.Glob(TempDir)
+
+                if glob_err != nil {
+                    ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
+                    ConsLogSys(ConsOut, 1, 1)
+                    return
+                }
+
+                for _, file_found := range files_glob {
+                    //****************************************************************
+                    //* Ignore Directories - Only Process Files                      *
+                    //****************************************************************
+                    file_stat, _ := os.Stat(file_found)
+                    if file_stat.IsDir() {
+                        continue
+                    }
+
+                    //****************************************************************
+                    //* Get Just the File Name                   *
+                    //****************************************************************
+                    ForSlash = strings.LastIndexByte(file_found, slashDelim)
+                    if (ForSlash == -1) {
+                        MCpFName = file_found
+                    } else if len(file_found[ForSlash+1:]) < 2 {
+                        MCpFName = file_found
+                    } else {
+                        MCpFName = file_found[ForSlash+1:]
+                    }
+
+                    //****************************************************************
+                    //* Copy to Output File Name                 *
+                    //****************************************************************
+                    if setCPath == 0 || len(MCpShard) < 1 {
+                        MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+                    } else { 
+                        MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
+                    }
+
+                    ConsOut = fmt.Sprintf("[+] Multi-Copy Redir File: %s\n    To: %s\n", file_found, MCprcO)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    nBytes, copy_err := binCopy(file_found, MCprcO)
+
+                    if copy_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        if nBytes < 1 {
+                            ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    }
+                }
+            }
+        }
+    } else {
+        //****************************************************************
+        //* Get Just the File Name                   *
+        //****************************************************************
+        ForSlash = strings.LastIndexByte(splitString1, slashDelim)
+        if (ForSlash == -1) {
+            MCpFName = splitString1
+        } else if len(splitString1[ForSlash+1:]) < 2 {
+            MCpFName = splitString1
+        } else {
+            MCpFName = splitString1[ForSlash+1:]
+        }
+
+        //****************************************************************
+        //* Copy to Output File Name                 *
+        //****************************************************************
+        MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+
+        ConsOut = fmt.Sprintf("[+] Singl-Copy File: %s\n    To: %s\n", splitString1, MCprcO)
+        ConsLogSys(ConsOut, 1, 1)
+
+        nBytes, copy_err := binCopy(splitString1, MCprcO)
+
+        if copy_err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
+            ConsLogSys(ConsOut, 1, 1)
+
+            if nBytes < 1 {
+                ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                ConsLogSys(ConsOut, 1, 1)
+            }
+        }
+
+
+        if (iNative == 0) {
+            //****************************************************************
+            //* Replace System32 with Sysnative if we are non-native         *
+            //****************************************************************
+            if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
+                TempDir = splitString1
+
+                repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
+                TempDir = repl_sys.Replace(TempDir)
+
+                ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
+                ConsLogSys(ConsOut, 1, 1)
+
+                //****************************************************************
+                //* Get Just the File Name                                       *
+                //****************************************************************
+                ForSlash = strings.LastIndexByte(splitString1, slashDelim)
+                if (ForSlash == -1) {
+                    MCpFName = splitString1
+                } else if len(splitString1[ForSlash+1:]) < 2 {
+                    MCpFName = splitString1
+                } else {
+                    MCpFName = splitString1[ForSlash+1:]
+                }
+
+                //****************************************************************
+                //* Copy to Output File Name                                     *
+                //****************************************************************
+                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+
+                ConsOut = fmt.Sprintf("[+] Singl-Copy Redir File: %s\n    To: %s\n", splitString1, MCprcO)
+                ConsLogSys(ConsOut, 1, 1)
+
+                nBytes, copy_err := binCopy(splitString1, MCprcO)
+
+                if copy_err != nil {
+                    ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    if nBytes < 1 {
+                        ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+func WalkCopyGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) error {
+    //****************************************************************
+    //* Walk the filepath looking for DIRECTORIES ONLY. Then Glob    *
+    //*  them with the wilcards...  This Approximates ** Globbing    *
+    //****************************************************************
+    file_stat, stat_err := os.Stat(Walkfilepath)
+
+    if stat_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Identifying File: %s\n", stat_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return stat_err
+    }
+
+    if file_stat.IsDir() {
+        WalkfileFull := fmt.Sprintf("%s%c*%s", Walkfilepath, slashDelim, WalkfileWild)
+        CopyParser(WalkfileFull, WalkfileToo)
+    }
+
+    return nil
+
+}
+
+
+func WalkForGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) error {
+    //****************************************************************
+    //* Walk the filepath looking for DIRECTORIES ONLY. Then Glob    *
+    //*  them with the wilcards...  This Approximates ** Globbing    *
+    //****************************************************************
+    file_stat, stat_err := os.Stat(Walkfilepath)
+
+    if stat_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Identifying File: %s\n", stat_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return stat_err
+    }
+
+    if file_stat.IsDir() {
+        WalkfileFull := fmt.Sprintf("%s%c*%s", Walkfilepath, slashDelim, WalkfileWild)
+        ForParser(WalkfileFull)
+    }
+
+    return nil
+
+}
+
+
+//***************************************************************************
+// ForParser: Parses out the FOR: Parameters                                *
+//***************************************************************************
+func ForParser(ForDir string) {
+
+    files_glob, glob_err := filepath.Glob(ForDir)
+
+    if glob_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return
+    }
+
+    for _, file_found := range files_glob {
+    //****************************************************************
+    //* Ignore Directories - Only Process Files                      *
+    //****************************************************************
+        file_stat, _ := os.Stat(file_found)
+        if file_stat.IsDir() {
+            continue
+        } else {
+            ForHndl.WriteString(file_found + "\n")
+        }
+    }
+
+    if (iNative == 0) {
+        //****************************************************************
+        //* Replace System32 with Sysnative if we are non-native         *
+        //****************************************************************
+        if CaseInsensitiveContains(TempDir, "\\System32\\") || CaseInsensitiveContains(TempDir, "/System32/") {
+
+            repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
+            TempDir = repl_sys.Replace(TempDir)
+
+            ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
+            ConsLogSys(ConsOut, 1, 1)
+
+            files_glob, glob_err := filepath.Glob(TempDir)
+
+            if glob_err != nil {
+                ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
+                ConsLogSys(ConsOut, 1, 1)
+                return
+            }
+
+            for _, file_found := range files_glob {
+            //****************************************************************
+            //* Ignore Directories - Only Process Files                      *
+            //****************************************************************
+                file_stat, _ := os.Stat(file_found)
+                if file_stat.IsDir() {
+                continue
+                } else {
+                    ForHndl.WriteString(file_found + "\n")
+                }
+            }
+        }
+    }
+}
+
+
+
 
