@@ -10,11 +10,13 @@
 //
 // AChoirX v10.00.01 - Convert from C to Go for Xplatform capability
 // AChoirX v10.00.20 - Alpha 2 - Mostly Feature Complete
+// AChoirX v10.00.21 - Add Native S3 File upload capability
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
 //  w32:    go get github.com/gonutz/w32
+//  S3:     go get github.com/aws/aws-sdk-go/...
 // Changes from AChoir:
 //  Environment Variable Expansion now uses GoLang $Var or ${Var} 
 //
@@ -50,12 +52,17 @@ import (
     "bufio"
     "crypto/tls"
     "crypto/md5"
-    syslog "github.com/NextronSystems/simplesyslog"
-)
+
+    "github.com/aws/aws-sdk-go/aws"
+    "github.com/aws/aws-sdk-go/aws/credentials"
+    "github.com/aws/aws-sdk-go/aws/session"
+    "github.com/aws/aws-sdk-go/service/s3"
+
+    syslog "github.com/NextronSystems/simplesyslog")
 
 
 // Global Variable Settings
-var Version = "v10.00.20"                       // AChoir Version
+var Version = "v10.00.21"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var iRunMode = 0                                // Int Runmode Flag (0, 1, 2)
@@ -161,6 +168,16 @@ var iSyslogp = 514                              // Syslog Port Int
 var SyslogTMSG = "AChoir Syslog Started."       // Initialize Syslog Messages 
 var SyslogServer = "127.0.0.1:514"              // Syslog Server:Port
 var tlsConfig *tls.Config                       // TLS Config
+
+// AWS S3 Variables
+var S3_REGION = "none"                          // AWS Region
+var S3_BUCKET = "none"                          // AWS Bucket
+var S3_AWSId = "000000"                         // AWS ID
+var S3_AWSKey = "000000"                        // AWS Secret Key
+var S3_Session *session.Session                 // AWS Session
+var S3_AWS_SplitRC = 0                          // AWS Split Return Code
+var S3_err error                                // S3 Errors
+var iS3Login = 0                                // Default is NOT logged in
 
 // Message and Log Levels
 var iLogOpen = 0                                // Is the LogFile Open Yet
@@ -1878,6 +1895,15 @@ func main() {
                     ConsLogSys(ConsOut, 1, 1)
 
                     iSyslogLvl = 2
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3REGION=") {
+                    S3_REGION = Inrec[13:]
+                    ConsOut = fmt.Sprintf("[*] S3 Region Set: %s\n", S3_REGION)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3BUCKET=") {
+                    S3_BUCKET = Inrec[13:]
+                    ConsOut = fmt.Sprintf("[*] S3 Bucket Set: %s\n", S3_BUCKET)
+                    ConsLogSys(ConsOut, 1, 1)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "XIT:") && len(Inrec) > 4 {
                     iXitCmd = 1
 
@@ -1939,6 +1965,62 @@ func main() {
                             ConsOut = fmt.Sprintf("[*] Unzipped File: %s\n", Unzfiles[iUnz])
                             ConsLogSys(ConsOut, 1, 1)
                         }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "S3S:") {
+                    //****************************************************************
+                    //* Have we set the Region and Bucket Name?                      *
+                    //****************************************************************
+                    if S3_REGION == "none" {
+                        ConsOut = fmt.Sprintf("[!] Please Set the AWS S3 Bucket REGION Before Starting an AWS Session.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else if S3_BUCKET == "none" {
+                        ConsOut = fmt.Sprintf("[!] Please Set the AWS S3 BUCKET Name Before Starting an AWS Session.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        //****************************************************************
+                        //* AWS S3 Bucket Login Parm1:UserID  Parm2: Secret Key          *
+                        //****************************************************************
+                        ConsOut = fmt.Sprintf("[+] Starting Session with AWS Key and Secret...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        AWSrec := Inrec[4:]
+                        S3_AWSId, S3_AWSKey, AWS_SplitRC := twoSplit(AWSrec)
+
+                        if AWS_SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] AWS Session Requires Both an ID and a Key\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            S3_Session, S3_err = session.NewSession(&aws.Config {
+                                Region: aws.String(S3_REGION),
+                                Credentials: credentials.NewStaticCredentials(
+                                S3_AWSId, S3_AWSKey, ""),
+                            })
+
+                            if S3_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", S3_err)
+                                ConsLogSys(ConsOut, 1, 1)
+                                iS3Login = 0
+                            } else {
+                                ConsOut = fmt.Sprintf("[*] AWS S3 Session Started...\n")
+                                ConsLogSys(ConsOut, 1, 1)
+                                iS3Login = 1
+                            }
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "S3U:") {
+                    //****************************************************************
+                    //* Upload File to S3                                            *
+                    //****************************************************************
+                    if iS3Login == 1 {
+                        S3_err = uploadFileToS3(S3_Session, Inrec[4:])
+
+                        if S3_err != nil {
+                            ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", Inrec[4:], S3_err)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] Please Start an AWS Session (Using S3S:) Before Attempting S3 Uploads\n")
+                        ConsLogSys(ConsOut, 1, 1)
                     }
                 }
             }
@@ -3347,3 +3429,45 @@ func ForParser(ForDir string) {
     }
 }
 
+
+//***************************************************************************
+// Upload a File to S3 - Assumes we are logged in and have a Session        *
+//  https://paulbradley.org/gos3/                                           *
+//  https://golangcode.com/uploading-a-file-to-s3/                          *
+//***************************************************************************
+func uploadFileToS3(S3Session *session.Session, S3FileName string) error {
+    
+    // Open the file
+    S3UpFile, S3Up_err := os.Open(S3FileName)
+    if S3Up_err != nil {
+        return S3Up_err
+    }
+    defer S3UpFile.Close()
+
+    // get file size and read the file content into a buffer
+    S3FileInfo, _ := S3UpFile.Stat()
+    var S3FileSize = S3FileInfo.Size()
+
+    //S3Buffer := make([]byte, size)
+    //S3UpFile.Read(S3Buffer)
+
+    // Config settings: this is where you choose the bucket, filename, content-type and 
+    //  storage class of the file being uploaded
+    _, s3err := s3.New(S3Session).PutObject(&s3.PutObjectInput{
+        Bucket:               aws.String(S3_BUCKET),
+        Key:                  aws.String(S3FileName),
+        ACL:                  aws.String("private"),
+
+        // Body:              bytes.NewReader(S3Buffer),
+        // *os.File is an io.Reader
+        Body:                 S3UpFile,
+
+        ContentDisposition:   aws.String("attachment"),
+        ContentLength:        aws.Int64(S3FileSize),
+        //ContentType:          aws.String(http.DetectContentType(S3Buffer)),
+        ServerSideEncryption: aws.String("AES256"),
+        StorageClass:         aws.String("INTELLIGENT_TIERING"),
+    })
+
+    return s3err
+}
