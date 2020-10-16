@@ -11,6 +11,7 @@
 // AChoirX v10.00.01 - Convert from C to Go for Xplatform capability
 // AChoirX v10.00.20 - Alpha 2 - Mostly Feature Complete
 // AChoirX v10.00.21 - Add Native S3 File upload capability
+// AChoirX v10.00.22 - Multi-Upload S3 File upload capability
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -62,7 +63,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.21"                       // AChoir Version
+var Version = "v10.00.22"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var iRunMode = 0                                // Int Runmode Flag (0, 1, 2)
@@ -145,6 +146,7 @@ var Inrec = "File Input Record"                 // File Input Record
 var Conrec = "Console Record"                   // Console Output Record
 var Tmprec = "Formatted Console Record"         // Console Formatting Record
 var Cpyrec = "Copy Record"                      // Used by Copy Routine
+var S3Urec = "Copy Record"                      // Used by S3 Upload Routine
 var Cmprec = "Compare Record"                   // Used by Compare Routines
 var Ziprec = "Zip Record"                       // Used by Unzip Routines
 var Getrec = "Get Record"                       // Used by HTTP Get: Routines
@@ -2012,11 +2014,64 @@ func main() {
                     //* Upload File to S3                                            *
                     //****************************************************************
                     if iS3Login == 1 {
-                        S3_err = uploadFileToS3(S3_Session, Inrec[4:])
+                        ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
+                        ConsLogSys(ConsOut, 1, 1)
 
-                        if S3_err != nil {
-                            ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", Inrec[4:], S3_err)
+                        S3Urec = Inrec[4:]
+
+                        splitString1, splitString2, SplitRC := twoSplit(S3Urec)
+
+                        // Remove any duplicate Delimiters - This is necessary to prevent indexing errors when
+                        //  The found file does not match the search string (OS ignore duplicated delimiters)
+                        oneDelim := fmt.Sprintf("%c", slashDelim)
+                        twoDelim := fmt.Sprintf("%c%c", slashDelim, slashDelim)
+
+                        iOldLen = 1
+                        iNewLen = 0
+                        for iOldLen != iNewLen {
+                            iOldLen = len(splitString1)
+                            splitString1 = strings.Replace(splitString1, twoDelim, oneDelim, -1)
+                            iNewLen = len(splitString1)
+                        }
+
+                        iOldLen = 1
+                        iNewLen = 0
+                        for iOldLen != iNewLen {
+                            iOldLen = len(splitString2)
+                            splitString2 = strings.Replace(splitString2, twoDelim, oneDelim, -1)
+                            iNewLen = len(splitString2)
+                        }
+
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] S3 Upload Requires both a FROM File and a TO Directory\n")
                             ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("S3U: %s to %s\n", splitString1, splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            //*****************************************************************
+                            //* Golang does not support ** - So this code approximates it     *
+                            //*  using filepath.Walk.  The limitation is that the string cant *
+                            //*  contain another * BEFORE the ** because filepath.Walk does   *
+                            //*  not support wildcards. This code is a decent compromise.     *
+                            //*****************************************************************
+                            DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
+                            if strings.Contains(splitString1, DubGlob) {
+                                iDblShard = strings.Index(splitString1, DubGlob)
+                                if iDblShard > 0 {
+                                    WalkDir := splitString1[:iDblShard]
+                                    WalkfileWild = splitString1[iDblShard+3:]
+                                    WalkfileToo = splitString2
+
+                                    BasicS3Up := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
+                                    S3UpParser(BasicS3Up, splitString2)
+
+                                    filepath.Walk(WalkDir, WalkS3UpGlob)
+                                
+                                }
+                            } else {
+                                S3UpParser(splitString1, splitString2)
+                            }
                         }
                     } else {
                         ConsOut = fmt.Sprintf("[!] Please Start an AWS Session (Using S3S:) Before Attempting S3 Uploads\n")
@@ -3369,6 +3424,29 @@ func WalkForGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) erro
 }
 
 
+func WalkS3UpGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) error {
+    //****************************************************************
+    //* Walk the filepath looking for DIRECTORIES ONLY. Then Glob    *
+    //*  them with the wilcards...  This Approximates ** Globbing    *
+    //****************************************************************
+    file_stat, stat_err := os.Stat(Walkfilepath)
+
+    if stat_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Identifying File: %s\n", stat_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return stat_err
+    }
+
+    if file_stat.IsDir() {
+        WalkfileFull := fmt.Sprintf("%s%c*%s", Walkfilepath, slashDelim, WalkfileWild)
+        S3UpParser(WalkfileFull, WalkfileToo)
+    }
+
+    return nil
+
+}
+
+
 //***************************************************************************
 // ForParser: Parses out the FOR: Parameters                                *
 //***************************************************************************
@@ -3435,7 +3513,7 @@ func ForParser(ForDir string) {
 //  https://paulbradley.org/gos3/                                           *
 //  https://golangcode.com/uploading-a-file-to-s3/                          *
 //***************************************************************************
-func uploadFileToS3(S3Session *session.Session, S3FileName string) error {
+func uploadFileToS3(S3Session *session.Session, S3FileName string, S3UpldName string) error {
     
     // Open the file
     S3UpFile, S3Up_err := os.Open(S3FileName)
@@ -3455,7 +3533,7 @@ func uploadFileToS3(S3Session *session.Session, S3FileName string) error {
     //  storage class of the file being uploaded
     _, s3err := s3.New(S3Session).PutObject(&s3.PutObjectInput{
         Bucket:               aws.String(S3_BUCKET),
-        Key:                  aws.String(S3FileName),
+        Key:                  aws.String(S3UpldName),
         ACL:                  aws.String("private"),
 
         // Body:              bytes.NewReader(S3Buffer),
@@ -3471,3 +3549,271 @@ func uploadFileToS3(S3Session *session.Session, S3FileName string) error {
 
     return s3err
 }
+
+
+//***************************************************************************
+// S3UpParser: Parses out the Copy Parameters for Multi or Single Copy      *
+//***************************************************************************
+func S3UpParser(splitString1 string, splitString2 string) {
+    //****************************************************************
+    //* If we see any wildcards, do search for multiple occurances   *
+    //****************************************************************
+    if strings.Contains(splitString1, "*") || strings.Contains(splitString1, "?") {
+
+        //****************************************************************
+        // Parse out the Expanded Directory Shard (pre-wildcard)         *
+        //****************************************************************
+        iAShard = strings.IndexByte(splitString1, '*')
+        iQShard = strings.IndexByte(splitString1, '?')
+
+        if iAShard < 0 {
+            iShard = strings.LastIndexByte(splitString1[:iQShard], slashDelim) + 1
+        } else if iQShard < 0 {
+            iShard = strings.LastIndexByte(splitString1[:iAShard], slashDelim) + 1
+        } else if iAShard < iQShard {
+            iShard = strings.LastIndexByte(splitString1[:iAShard], slashDelim) + 1
+        } else if iQShard < iAShard {
+            iShard = strings.LastIndexByte(splitString1[:iQShard], slashDelim) + 1
+        } else {
+            iShard = 0
+        }
+
+        if iShard > 1 {
+            MCpRoot = splitString1[:iShard]
+        } else {
+            MCpRoot = ""
+        }
+
+
+        //****************************************************************
+        // Do File Search using Glob                                     *
+        //****************************************************************
+        files_glob, glob_err := filepath.Glob(splitString1)
+
+        if glob_err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
+            ConsLogSys(ConsOut, 1, 1)
+            return
+        }
+
+        for _, file_found := range files_glob {
+            //****************************************************************
+            //* Ignore Directories - Only Process Files                      *
+            //****************************************************************
+            file_stat, _ := os.Stat(file_found)
+            if file_stat.IsDir() {
+                continue
+            }
+
+
+            //****************************************************************
+            //* Get Just the File Name                                       *
+            //****************************************************************
+            ForSlash = strings.LastIndexByte(file_found, slashDelim)
+
+            if (ForSlash == -1) {
+                MCpFName = file_found
+                MCpShard = ""
+                MCpPath = ""
+            } else if iShard == 0 {
+                MCpFName = file_found[ForSlash+1:]
+                MCpShard = ""
+                MCpPath = file_found[:ForSlash] 
+            } else if len(file_found[ForSlash+1:]) < 2 {
+                MCpFName = file_found
+                MCpShard = file_found[iShard:len(file_found)]
+                MCpPath = file_found[:ForSlash] 
+            } else {
+                MCpFName = file_found[ForSlash+1:]
+                MCpShard = file_found[iShard:len(file_found)-len(MCpFName)]
+                MCpPath = file_found[:ForSlash] 
+            }
+
+            //****************************************************************
+            //* Upload to Output File Name                                    *
+            //*  Note: a Shard is any expanded WildCard Directory - Shards   *
+            //*        can be used to logically group duplicate file names   *
+            //****************************************************************
+            if setCPath == 0 {
+                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+            } else if setCPath == 1 && len(MCpShard) < 1 {
+                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+            } else if setCPath == 1 {
+                MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
+            } else if setCPath == 2 {
+                MCpPath = strings.Replace(MCpPath, ":", "", -1)
+                MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpPath, MCpFName)
+            }
+
+
+            //****************************************************************
+            //* For S3 we will want to change all \ to a /                   *
+            //****************************************************************
+            MCpShard  = strings.Replace(MCpShard , "\\", "/", -1) 
+            MCpPath  = strings.Replace(MCpPath , "\\", "/", -1) 
+            MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
+
+            ConsOut = fmt.Sprintf("[+] S3 Multi-Upload File: %s\n    To: %s\n", file_found, MCprcO)
+            ConsLogSys(ConsOut, 1, 1)
+
+            S3_err = uploadFileToS3(S3_Session, Inrec[4:], MCprcO)
+            if S3_err != nil {
+                ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", Inrec[4:], S3_err)
+                ConsLogSys(ConsOut, 1, 1)
+            }
+        }
+
+        if (iNative == 0) {
+            //****************************************************************
+            //* Replace System32 with Sysnative if we are non-native         *
+            //****************************************************************
+            if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
+                TempDir = splitString1
+
+                repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
+                TempDir = repl_sys.Replace(TempDir)
+
+                ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
+                ConsLogSys(ConsOut, 1, 1)
+
+                files_glob, glob_err := filepath.Glob(TempDir)
+
+                if glob_err != nil {
+                    ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
+                    ConsLogSys(ConsOut, 1, 1)
+                    return
+                }
+
+                for _, file_found := range files_glob {
+                    //****************************************************************
+                    //* Ignore Directories - Only Process Files                      *
+                    //****************************************************************
+                    file_stat, _ := os.Stat(file_found)
+                    if file_stat.IsDir() {
+                        continue
+                    }
+
+                    //****************************************************************
+                    //* Get Just the File Name                                       *
+                    //****************************************************************
+                    ForSlash = strings.LastIndexByte(file_found, slashDelim)
+                    if (ForSlash == -1) {
+                        MCpFName = file_found
+                    } else if len(file_found[ForSlash+1:]) < 2 {
+                        MCpFName = file_found
+                    } else {
+                        MCpFName = file_found[ForSlash+1:]
+                    }
+
+                    //****************************************************************
+                    //* Upload to Output File Name                                   *
+                    //****************************************************************
+                    if setCPath == 0 || len(MCpShard) < 1 {
+                        MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+                    } else { 
+                        MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
+                    }
+
+
+                    //****************************************************************
+                    //* For S3 we will want to change all \ to a /                   *
+                    //****************************************************************
+                    MCpShard  = strings.Replace(MCpShard , "\\", "/", -1) 
+                    MCpPath  = strings.Replace(MCpPath , "\\", "/", -1) 
+                    MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
+
+                    ConsOut = fmt.Sprintf("[+] S3 Multi-Upload Redir File: %s\n    To: %s\n", file_found, MCprcO)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    S3_err = uploadFileToS3(S3_Session, Inrec[4:], MCprcO)
+                    if S3_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", Inrec[4:], S3_err)
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+                }
+            }
+        }
+    } else {
+        //****************************************************************
+        //* Get Just the File Name                                       *
+        //****************************************************************
+        ForSlash = strings.LastIndexByte(splitString1, slashDelim)
+        if (ForSlash == -1) {
+            MCpFName = splitString1
+        } else if len(splitString1[ForSlash+1:]) < 2 {
+            MCpFName = splitString1
+        } else {
+            MCpFName = splitString1[ForSlash+1:]
+        }
+
+        //****************************************************************
+        //* Upload to Output File Name                                   *
+        //****************************************************************
+        MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+
+
+        //****************************************************************
+        //* For S3 we will want to change all \ to a /                   *
+        //****************************************************************
+        MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
+
+        ConsOut = fmt.Sprintf("[+] S3 Singl-Upload File: %s\n    To: %s\n", splitString1, MCprcO)
+        ConsLogSys(ConsOut, 1, 1)
+
+        S3_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
+        if S3_err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", splitString1, S3_err)
+            ConsLogSys(ConsOut, 1, 1)
+        }
+
+
+        if (iNative == 0) {
+            //****************************************************************
+            //* Replace System32 with Sysnative if we are non-native         *
+            //****************************************************************
+            if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
+                TempDir = splitString1
+
+                repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
+                TempDir = repl_sys.Replace(TempDir)
+
+                ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
+                ConsLogSys(ConsOut, 1, 1)
+
+                //****************************************************************
+                //* Get Just the File Name                                       *
+                //****************************************************************
+                ForSlash = strings.LastIndexByte(splitString1, slashDelim)
+                if (ForSlash == -1) {
+                    MCpFName = splitString1
+                } else if len(splitString1[ForSlash+1:]) < 2 {
+                    MCpFName = splitString1
+                } else {
+                    MCpFName = splitString1[ForSlash+1:]
+                }
+
+                //****************************************************************
+                //* Copy to Output File Name                                     *
+                //****************************************************************
+                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+
+
+                //****************************************************************
+                //* For S3 we will want to change all \ to a /                   *
+                //****************************************************************
+                MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
+
+                ConsOut = fmt.Sprintf("[+] S3 Singl-Upload Redir File: %s\n    To: %s\n", splitString1, MCprcO)
+                ConsLogSys(ConsOut, 1, 1)
+
+                S3_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
+                if S3_err != nil {
+                    ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", splitString1, S3_err)
+                    ConsLogSys(ConsOut, 1, 1)
+                }
+
+            }
+        }
+    }
+}
+
