@@ -1,0 +1,245 @@
+**********************************************************
+** Live Acquisition Downloading Script (3.0)             *
+** This script uses the AChoirX built-in HTTP and UNZIP  *
+** function to download various utilities used by AChoir *
+** from the owners websites - These are not my utilities *
+** I just use them in the Live Acquisition script.       *
+** - Created by D0n Quix0te/OMENScan (October 2020)      *
+**********************************************************
+SAY:
+SAY: Welcome to AChoirX Builder.
+SAY:
+SAY: AChoirX is a cross platform framework for building and running Forensic 
+SAY: Collection scripts gather telemetry and artifacts from both Live Systems and 
+SAY: Mounted images. AChoirX runs Natively on Windows, Linux, and OSX
+SAY:
+SAY: Along with its buit in functions, AChoirX uses many other FOSS utilities.
+SAY: AChoirX can script these utilities to provide a consistent way of gathering.
+SAY: artifacts and telemetry.
+SAY:
+SAY: This AChoirX script goes out to the Internets and downloads them.
+SAY:
+SAY:  IMPORTANT NOTE: AChoirX now has built-in HTTP and UNZIP so you no longer
+SAY:                  need external HTTP or UNZIP Utils.
+SAY:
+SAY: I encourage you to explore each of these utilities to understand more
+SAY: about them, and their authors.
+SAY:
+SAY: Press enter if you want this script to go get these utilities and
+SAY: Install them on this machine.
+SAY:
+PZZ: Press any key to continue (or q to quit)...
+SAY: 
+SAY: --- Getting WinPMem (from GitHub/Rekall & Velocidex) ---
+SAY:
+DIR:\MEM
+GET:https://github.com/Velocidex/c-aff4/releases/download/v3.3.rc3/winpmem_v3.3.rc3.exe &Dir\winpmem_3.3rc3.exe
+GET:https://github.com/Velocidex/c-aff4/releases/download/3.2/winpmem_3.2.exe &Dir\winpmem_3.2.exe
+GET:https://github.com/google/rekall/releases/download/v1.3.2/winpmem_2.0.1.exe &Dir\winpmem_2.0.1.exe
+GET:https://github.com/google/rekall/releases/download/v1.3.1/winpmem_1.6.2.exe &Dir\winpmem_1.6.2.exe
+SAY:
+SAY: --- Getting RawCopy (From GitHub/JSchicht) ---
+SAY:
+DIR:\DSK
+GET:https://github.com/jschicht/RawCopy/blob/master/RawCopy.exe?raw=true &Dir\RawCopy.exe
+GET:https://github.com/jschicht/RawCopy/blob/master/RawCopy64.exe?raw=true &Dir\RawCopy64.exe
+SAY:
+SAY: --- Getting MFTDump (From The Malware Hunters) ---
+SAY:
+GET:http://malware-hunters.net/wp-content/downloads/MFTDump_V.1.3.0.zip &Dir\MFTDump.zip
+SAY:
+SAY: --- Unzipping MFTDump ---
+SAY:
+UNZ:&Dir\MFTDump.zip &Dir
+SAY:
+SAY: --- Getting ExtractUSNJrnl (From GitHub/JSchicht) ---
+SAY:
+GET:https://github.com/jschicht/ExtractUsnJrnl/blob/master/ExtractUsnJrnl.exe?raw=true &Dir\ExtractUsnJrnl.exe
+GET:https://github.com/jschicht/ExtractUsnJrnl/blob/master/ExtractUsnJrnl64.exe?raw=true &Dir\ExtractUsnJrnl64.exe
+SAY:
+SAY: --- Getting USNJrnl2Csv (From GitHub/JSchicht) ---
+SAY:
+GET:https://github.com/jschicht/UsnJrnl2Csv/blob/master/UsnJrnl2Csv.exe?raw=true &Dir\UsnJrnl2Csv.exe
+GET:https://github.com/jschicht/UsnJrnl2Csv/blob/master/UsnJrnl2Csv64.exe?raw=true &Dir\UsnJrnl2Csv64.exe
+SAY:
+SAY: --- Getting PSTools (from Microsoft SysInternals) ---
+SAY:
+DIR:\SYS
+GET:https://download.sysinternals.com/files/PSTools.zip &Dir\PSTools.zip
+SAY:
+SAY: --- Unzipping PSTools ---
+SAY:
+UNZ:&Dir\PSTools.zip &Dir
+CKN:&Dir\PsLogList.exe
+  SAY:
+  SAY: --- PSTools Did Not Download Correctly  ---
+  SAY:
+END:
+SAY:
+SAY: --- Getting WinPreFetchView - 32bit (From Nirsoft) ---
+SAY:
+GET:http://www.nirsoft.net/utils/winprefetchview.zip &Dir\winprefetchview.zip
+SAY:
+SAY: --- Unzipping WinPreFetchView ---
+SAY:
+UNZ:&Dir\winprefetchview.zip &Dir
+SAY:
+SAY: --- Getting AutoRuns (from Microsoft SysInternals) ---
+SAY:
+GET:http://download.sysinternals.com/files/Autoruns.zip &Dir\Autoruns.zip
+SAY:
+SAY: --- Unzipping AutoRuns ---
+SAY:
+UNZ:&Dir\Autoruns.zip &Dir
+CKN:&Dir\AutoRuns.exe
+  SAY:
+  SAY: --- Autoruns Did Not Download Correctly ---
+  SAY:
+END:
+SAY:
+SAY: --- Getting Handle (from Microsoft SysInternals) ---
+SAY:
+GET:https://download.sysinternals.com/files/Handle.zip &Dir\Handle.zip
+SAY:
+SAY: --- Unzipping Handle ---
+SAY:
+UNZ:&Dir\Handle.zip &Dir
+CKN:&Dir\Handle.exe
+  SAY:
+  SAY: --- Handle Did Not Download Correctly ---
+  SAY:
+END:
+SAY:
+SAY: --- Getting CurrPorts (From NirSoft) ---
+SAY:
+GET:http://www.nirsoft.net/utils/cports.zip &Dir\cports.zip
+SAY:
+SAY: --- Unzipping CurrPorts ---
+SAY:
+UNZ:&Dir\cports.zip &Dir
+SAY:
+SAY: --- Getting LastActivityView (From NirSoft) ---
+SAY:
+GET:http://www.nirsoft.net/utils/lastactivityview.zip &Dir\lastactivityview.zip
+SAY:
+SAY: --- Unzipping LastActivityView ---
+SAY:
+UNZ:&dir\lastactivityview.zip &Dir
+SAY:
+SAY: --- Getting UserAssistView (From NirSoft) ---
+SAY:
+GET:http://www.nirsoft.net/utils/userassistview.zip &Dir\userassistview.zip
+SAY:
+SAY: --- Unzipping UserAssistView ---
+SAY:
+UNZ:&Dir\userassistview.zip &Dir
+SAY:
+SAY: --- Getting RegFileExport (From NirSoft) ---
+SAY:
+GET:http://www.nirsoft.net/utils/regfileexport.zip &Dir\regfileexport.zip
+SAY:
+SAY: --- Unzipping RegFileExport (From NirSoft) ---
+SAY:
+UNZ:&Dir\regfileexport.zip &Dir
+SAY:
+SAY:
+SAY: --- Getting BrowsingHistoryView (From NirSoft) ---
+SAY:
+GET:http://nirsoft.net/utils/browsinghistoryview.zip &Dir\browsinghistoryview.zip
+SAY:
+SAY: --- Unzipping BrowsingHistoryView (32 Bit) ---
+SAY:
+UNZ:&Dir\browsinghistoryview.zip &Dir
+SAY:
+SAY: --- Getting Winaudit (From Parmavex Services) ---
+SAY:
+GET:https://github.com/OMENScan/AChoir/blob/master/Tools/WinAudit.exe?raw=true &Dir\WinAudit.exe
+SAY:
+SAY: --- Getting Recycle Bin artifact (INFO2/$I) parser (From Eric Zimmerman) ---
+SAY:
+GET:https://f001.backblazeb2.com/file/EricZimmermanTools/RBCmd.zip &Dir\RBCmd.zip
+SAY:
+SAY: --- Unzipping RBCmd ---
+SAY:
+UNZ:&Dir\RBCmd.zip &Dir
+SAY:
+DIR:\SYS\64Bit
+SAY:
+SAY: --- Getting CurrPorts (From NirSoft) ---
+SAY:
+GET:http://www.nirsoft.net/utils/cports-x64.zip &Dir\cports-x64.zip
+SAY:
+SAY: --- Unzipping CurrPorts ---
+SAY:
+UNZ:&Dir\cports-x64.zip &Dir
+SAY:
+SAY: --- Getting BrowsingHistoryView (From NirSoft) ---
+SAY:
+GET:http://nirsoft.net/utils/browsinghistoryview-x64.zip &Dir\browsinghistoryview-x64.zip
+SAY:
+SAY: --- Unzipping BrowsingHistoryView (64 Bit) ---
+SAY:
+UNZ:&Dir\browsinghistoryview-x64.zip &Dir
+SAY:
+SAY: --- Getting WinPreFetchView - 64bit (From Nirsoft) ---
+SAY:
+GET:http://www.nirsoft.net/utils/winprefetchview-x64.zip &Dir\winprefetchview-x64.zip
+SAY:
+SAY: --- Unzipping WinPrefetchView (64 Bit) ---
+SAY:
+UNZ:&Dir\winprefetchview-x64.zip &Dir
+SAY:
+DIR:\RRV
+SAY:
+SAY: --- Getting RegRipper 3.0 (from GitHub/Keydet89) ---
+SAY:
+GET:https://github.com/omenscan/RegRipper3.0/archive/master.zip &Dir\master.zip
+SAY:
+SAY: --- Unzipping RegRipper 3.0 ---
+SAY:
+UNZ:&Dir\master.zip &Dir
+SAY:
+SAY: --- Getting OSFMount 32 and 64 Bit (from GitHub/OMENScan) ---
+SAY:
+DIR:\EWF\32Bit
+DIR:\EWF\64Bit
+DIR:\EWF
+GET:https://github.com/OMENScan/AChoir/blob/master/Tools/osfmount32.zip?raw=true &Dir\osfmount32.zip
+GET:https://github.com/OMENScan/AChoir/blob/master/Tools/osfmount64.zip?raw=true &Dir\osfmount64.zip
+SAY:
+SAY: --- Unzipping OSFMount 32 Bit ---
+SAY:
+UNZ:&Dir\osfmount32.zip &Dir\32Bit
+SAY:
+SAY: --- Unzipping OSFMount 64 Bit ---
+SAY:
+UNZ:&Dir\osfmount64.zip &Dir\64Bit
+SAY:
+SAY: --- Getting WinSCP Portable (from WinSCP.net) ---
+SAY:
+DIR:\XFR
+GET:https://cdn.winscp.net/files/WinSCP-5.17.7-Portable.zip?secure=tAz9nV5L7USK1q6j7Bq2dg==,1602012778 &Dir\WinSCP.zip
+***:https://winscp.net/download/WinSCP-5.17.6-Portable.zip &Dir\WinSCP.zip
+SAY:
+SAY: --- Unzipping WinSCP Portable ---
+SAY:
+UNZ:&Dir\WinSCP.zip &Dir
+SAY:
+SAY: --- Getting TSK - The Sleuth Kit (from sleuthkit.org) ---
+SAY:
+DIR:\TSK
+GET:https://github.com/sleuthkit/sleuthkit/releases/download/sleuthkit-4.10.0/sleuthkit-4.10.0-win32.zip &Dir\SleuthKit.zip
+SAY:
+SAY: --- Unzipping The Sleuth Kit ---
+SAY:
+UNZ:&Dir\SleuthKit.zip &Dir
+SAY:
+SAY: Download and Build Complete...
+SAY:
+SAY: Now Hashing The Files...
+SAY:
+HSH:DIR
+SAY:
+SAY: All Done...
+SAY:
+PZZ: Press any key to continue...

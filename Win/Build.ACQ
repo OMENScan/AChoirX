@@ -1,4 +1,4 @@
-********************************************************
+**********************************************************
 ** Live Acquisition Downloading Script (3.0)             *
 ** This script uses the AChoirX built-in HTTP and UNZIP  *
 ** function to download various utilities used by AChoir *
@@ -7,17 +7,17 @@
 ** - Created by D0n Quix0te/OMENScan (October 2020)      *
 **********************************************************
 SAY:
-SAY: Welcome to AChoir Builder.
+SAY: Welcome to AChoirX Builder.
 SAY:
-SAY: AChoir is a framework for building and running Forensic Collection scripts 
-SAY: to gather telemetry and artifacts from both Live Windows Systems and 
-SAY: Mounted images.
+SAY: AChoirX is a cross platform framework for building and running Forensic 
+SAY: Collection scripts gather telemetry and artifacts from both Live Systems and 
+SAY: Mounted images. AChoirX runs Natively on Windows, Linux, and OSX
 SAY:
-SAY: Along with its buit in functions, AChoir uses many other FOSS utilities.
-SAY: AChoir can script these utilities to provide a consistent way of gathering.
+SAY: Along with its buit in functions, AChoirX uses many other FOSS utilities.
+SAY: AChoirX can script these utilities to provide a consistent way of gathering.
 SAY: artifacts and telemetry.
 SAY:
-SAY: This AChoir script goes out to the Internets and downloads them.
+SAY: This AChoirX script goes out to the Internets and downloads them.
 SAY:
 SAY:  IMPORTANT NOTE: AChoirX now has built-in HTTP and UNZIP so you no longer
 SAY:                  need external HTTP or UNZIP Utils.
@@ -33,6 +33,7 @@ SAY:
 SAY: --- Getting WinPMem (from GitHub/Rekall & Velocidex) ---
 SAY:
 DIR:\MEM
+GET:https://github.com/Velocidex/c-aff4/releases/download/v3.3.rc3/winpmem_v3.3.rc3.exe &Dir\winpmem_3.3rc3.exe
 GET:https://github.com/Velocidex/c-aff4/releases/download/3.2/winpmem_3.2.exe &Dir\winpmem_3.2.exe
 GET:https://github.com/google/rekall/releases/download/v1.3.2/winpmem_2.0.1.exe &Dir\winpmem_2.0.1.exe
 GET:https://github.com/google/rekall/releases/download/v1.3.1/winpmem_1.6.2.exe &Dir\winpmem_1.6.2.exe

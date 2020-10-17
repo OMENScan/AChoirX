@@ -12,6 +12,7 @@
 // AChoirX v10.00.20 - Alpha 2 - Mostly Feature Complete
 // AChoirX v10.00.21 - Add Native S3 File upload capability
 // AChoirX v10.00.22 - Multi-Upload S3 File upload capability
+// AChoirX v10.00.23 - Multi-Upload S3 Improvements
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -63,7 +64,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.22"                       // AChoir Version
+var Version = "v10.00.23"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var iRunMode = 0                                // Int Runmode Flag (0, 1, 2)
@@ -174,8 +175,8 @@ var tlsConfig *tls.Config                       // TLS Config
 // AWS S3 Variables
 var S3_REGION = "none"                          // AWS Region
 var S3_BUCKET = "none"                          // AWS Bucket
-var S3_AWSId = "000000"                         // AWS ID
-var S3_AWSKey = "000000"                        // AWS Secret Key
+var S3_AWSId = "none"                           // AWS ID
+var S3_AWSKey = "none"                          // AWS Secret Key
 var S3_Session *session.Session                 // AWS Session
 var S3_AWS_SplitRC = 0                          // AWS Split Return Code
 var S3_err error                                // S3 Errors
@@ -1376,8 +1377,8 @@ func main() {
                         ConsOut = fmt.Sprintf("[!] Copying Requires both a FROM File and a TO Directory\n")
                         ConsLogSys(ConsOut, 1, 1)
                     } else {
-                        ConsOut = fmt.Sprintf("CPY: %s to %s\n", splitString1, splitString2)
-                        ConsLogSys(ConsOut, 1, 1)
+                        //ConsOut = fmt.Sprintf("CPY: %s to %s\n", splitString1, splitString2)
+                        //ConsLogSys(ConsOut, 1, 1)
 
 
                         //*****************************************************************
@@ -1899,12 +1900,28 @@ func main() {
                     iSyslogLvl = 2
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3REGION=") {
                     S3_REGION = Inrec[13:]
+                    iS3Login = 0  // Reset Login to force a New Session with this Region
+
                     ConsOut = fmt.Sprintf("[*] S3 Region Set: %s\n", S3_REGION)
                     ConsLogSys(ConsOut, 1, 1)
 
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3BUCKET=") {
                     S3_BUCKET = Inrec[13:]
+                    iS3Login = 0  // Reset Login to force a New Session with this Bucket
+
                     ConsOut = fmt.Sprintf("[*] S3 Bucket Set: %s\n", S3_BUCKET)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3AWSID=") {
+                    S3_AWSId = Inrec[12:]
+                    iS3Login = 0  // Reset Login to force a New Session with this AWSId
+
+                    ConsOut = fmt.Sprintf("[*] S3 AWS ID Set: %s\n", S3_AWSId)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3AWSKEY=") {
+                    S3_AWSKey = Inrec[13:]
+                    iS3Login = 0  // Reset Login to force a New Session with this Key
+
+                    ConsOut = fmt.Sprintf("[*] S3 AWS Key Set: <Redacted>\n")
                     ConsLogSys(ConsOut, 1, 1)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "XIT:") && len(Inrec) > 4 {
                     iXitCmd = 1
@@ -2011,6 +2028,36 @@ func main() {
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "S3U:") {
                     //****************************************************************
+                    //* See if we have a Sesion.  If not, See if we can start one    *
+                    //****************************************************************
+                    if iS3Login == 0 {
+                        ConsOut = fmt.Sprintf("[+] Checking for AWS Bucket, Region, ID, and Key...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        if S3_AWSId != "none" && S3_AWSKey != "none" && S3_REGION != "none" && S3_BUCKET != "none" {
+                            ConsOut = fmt.Sprintf("[+] Starting Session with AWS Key and Secret...\n")
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            S3_Session, S3_err = session.NewSession(&aws.Config {
+                                Region: aws.String(S3_REGION),
+                                Credentials: credentials.NewStaticCredentials(
+                                S3_AWSId, S3_AWSKey, ""),
+                            })
+
+                            if S3_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", S3_err)
+                                ConsLogSys(ConsOut, 1, 1)
+                                iS3Login = 0
+                            } else {
+                                ConsOut = fmt.Sprintf("[*] AWS S3 Session Started...\n")
+                                ConsLogSys(ConsOut, 1, 1)
+                                iS3Login = 1
+                            }
+                        }
+                    }
+
+
+                    //****************************************************************
                     //* Upload File to S3                                            *
                     //****************************************************************
                     if iS3Login == 1 {
@@ -2046,8 +2093,8 @@ func main() {
                             ConsOut = fmt.Sprintf("[!] S3 Upload Requires both a FROM File and a TO Directory\n")
                             ConsLogSys(ConsOut, 1, 1)
                         } else {
-                            ConsOut = fmt.Sprintf("S3U: %s to %s\n", splitString1, splitString2)
-                            ConsLogSys(ConsOut, 1, 1)
+                            //ConsOut = fmt.Sprintf("S3U: %s to %s\n", splitString1, splitString2)
+                            //ConsLogSys(ConsOut, 1, 1)
 
                             //*****************************************************************
                             //* Golang does not support ** - So this code approximates it     *
@@ -3656,7 +3703,7 @@ func S3UpParser(splitString1 string, splitString2 string) {
             ConsOut = fmt.Sprintf("[+] S3 Multi-Upload File: %s\n    To: %s\n", file_found, MCprcO)
             ConsLogSys(ConsOut, 1, 1)
 
-            S3_err = uploadFileToS3(S3_Session, Inrec[4:], MCprcO)
+            S3_err = uploadFileToS3(S3_Session, file_found, MCprcO)
             if S3_err != nil {
                 ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", Inrec[4:], S3_err)
                 ConsLogSys(ConsOut, 1, 1)
@@ -3725,7 +3772,7 @@ func S3UpParser(splitString1 string, splitString2 string) {
                     ConsOut = fmt.Sprintf("[+] S3 Multi-Upload Redir File: %s\n    To: %s\n", file_found, MCprcO)
                     ConsLogSys(ConsOut, 1, 1)
 
-                    S3_err = uploadFileToS3(S3_Session, Inrec[4:], MCprcO)
+                    S3_err = uploadFileToS3(S3_Session, file_found, MCprcO)
                     if S3_err != nil {
                         ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", Inrec[4:], S3_err)
                         ConsLogSys(ConsOut, 1, 1)
