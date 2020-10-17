@@ -22,6 +22,7 @@ Some of the Functions that will not be in the initial release:
 Some New Additions/Changes:
 ===========================
 * Native HTTP/HTTPS (GoLang has a GREAT HTTP/S library)
+* Native UnZip
 * Use TSK for Raw File Collection
 * Native S3 File upload using the AWS SDK for Golang
 
