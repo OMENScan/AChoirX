@@ -254,6 +254,12 @@ VER:Windows
  SAY: Now Hashing Artifacts...
  HSH:ACQ
  SAY:
+ SAY: 25a. Final Uploading to S3...
+ ACQ:\
+ S3U:&Dir\Logs\&Acn.log \&Acn
+ S3U:&Acq\* \&Acn
+ SAY: 25b. Deleting All Remaining Files...
+ SYS:Cmd /c RmDir &acq /S /Q
  PZZ: All Done!  Press Any Key to Finish.
  BYE:
 END:
