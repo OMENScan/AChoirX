@@ -1,4 +1,4 @@
-Since AChoirX is a complete re-write of AChoir in Go, there are some things 
+Since AChoirX is a cross-platform port of AChoir in Go, there are some things 
 that will not make it into the initial release (and some may not make it at
 all).  This is due to the (un)availability of certain native functions in 
 GoLang, and because the goal of AChoirX is to have parity on Widows, Linux, 
@@ -23,3 +23,13 @@ Some New Additions/Changes:
 ===========================
 * Native HTTP/HTTPS (GoLang has a GREAT HTTP/S library)
 * Use TSK for Raw File Collection
+* Native S3 File upload using the AWS SDK for Golang
+
+
+Some Notes:
+===========
+AChoirX has native support for S3 File Upload.  I HAVE NOT built in native support
+for SFTP, SCP, or other upload protocols because clients for those protocols are 
+readily available for all platforms.  If you want to use other upload protocols, 
+AChoirX can execute those client programs by using EXE: or SYS:
+
