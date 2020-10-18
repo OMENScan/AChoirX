@@ -13,6 +13,8 @@
 // AChoirX v10.00.21 - Add Native S3 File upload capability
 // AChoirX v10.00.22 - Multi-Upload S3 File upload capability
 // AChoirX v10.00.23 - Multi-Upload S3 Improvements
+// AChoirX v10.00.24 - Hash Running Program for non-repudiation
+//                     Add &Myp (My Program) and &Myh (My Hash)
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -64,9 +66,11 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.23"                       // AChoir Version
+var Version = "v10.00.24"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
+var MyProg = "none"                             // My Program Name and Path (os.Args[0])
+var MyHash = "none"                             // My Hash
 var iRunMode = 0                                // Int Runmode Flag (0, 1, 2)
 var inFnam = "AChoir.ACQ"                       // Script Name
 var ACQName = "ACQ-IR-LocalHost-00000000-0000"  // AChoir Unique Collection Name
@@ -270,6 +274,10 @@ var TypTabl [100]string
 
 // Main Line
 func main() {
+    // Get My Name and Path
+    MyProg, _ = os.Executable()
+    MyHash = GetMD5File(MyProg)
+
     // Get Time and Date
     lclTime := time.Now()
     iMonth := int(lclTime.Month())
@@ -496,7 +504,10 @@ func main() {
 
     iLogOpen = 1
   
-    ConsOut = fmt.Sprintf("[+] AChoirX ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, OSVersion, opArchit)
+    ConsOut = fmt.Sprintf("[+] AChoirX Ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, OSVersion, opArchit)
+    ConsLogSys(ConsOut, 1, 1)
+
+    ConsOut = fmt.Sprintf("[+] Path: %s, MD5: %s\n", MyProg, MyHash)
     ConsLogSys(ConsOut, 1, 1)
 
     showTime("Start Acquisition")
@@ -1007,6 +1018,18 @@ func main() {
 
                     repl_Ver := NewCaseInsensitiveReplacer("&Ver", OSVersion)
                     o32VarRec = repl_Ver.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Myp") {
+
+                    repl_Myp := NewCaseInsensitiveReplacer("&Myp", MyProg)
+                    o32VarRec = repl_Myp.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Myh") {
+
+                    repl_Myh := NewCaseInsensitiveReplacer("&Myh", MyHash)
+                    o32VarRec = repl_Myh.Replace(o32VarRec)
                 }
 
                 if CaseInsensitiveContains(o32VarRec, "&Vck") {
