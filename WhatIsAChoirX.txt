@@ -1,4 +1,4 @@
-AChoirX - v10.00.24
+AChoirX - v10.00.25
 
 AChoirX
 =======
@@ -359,6 +359,8 @@ Here are the Command Line Options:
          Note: The FileName will be set to the URL FileName (after last "/").
                The File will be placed in the Root Directory of AChoir
                ANY PRIOR VERSION OF THE FILE WILL BE DELETED
+/GXR:<URL> - Gets a Zip File, Extracts it, and runs the script.  This can be 
+             used to download and run The Toolkit from a central URL
 /INI:Console - Run In Interactive Mode (Console Input)
 /INI:<File Name>  - Run the <File Name> script instead of AChoir.ACQ
         This Option WILL NOT Create a Base Acquisition Directory

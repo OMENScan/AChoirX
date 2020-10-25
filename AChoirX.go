@@ -15,6 +15,8 @@
 // AChoirX v10.00.23 - Multi-Upload S3 Improvements
 // AChoirX v10.00.24 - Hash Running Program for non-repudiation
 //                     Add &Myp (My Program) and &Myh (My Hash)
+// AChoirX v10.00.25 - Add /GXR: - Gets a Zip File, Extracts it, and
+//                     runs the script.
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -66,7 +68,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.24"                       // AChoir Version
+var Version = "v10.00.25"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -364,6 +366,7 @@ func main() {
             fmt.Printf(" /PWD:<Password> - Password to Map to Remote Server\n")
             fmt.Printf(" /MAP:<Server\\Share> - Map to a Remote Server\n")
             fmt.Printf(" /GET:<URL/File> - Get a File using HTTP.\n")
+            fmt.Printf(" /GXR:<URL/File> - Get a Zip File using HTTP, Extract the Files, and Run the Script.\n")
             fmt.Printf(" /INI:<File Name> - Run the <File Name> script instead of AChoir.ACQ\n")
             fmt.Printf(" /CSE - Ask For Case, Evidence, and Examiner Information\n")
             fmt.Printf(" /CON- Run with Interactive Console Input (Same as /Ini:Console)\n")
@@ -430,6 +433,28 @@ func main() {
                 fmt.Println("[!] Downloaded Failed: " + WGetURL)        
             } else {
                 fmt.Println("[+] Downloaded Success: " + WGetURL)        
+            }
+        } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/GXR:") {
+            WGetURL = os.Args[i][5:]
+            CurrFil = fmt.Sprintf("%s%cGXR.Zip", CurrWorkDir, slashDelim)
+
+            fmt.Println("[+] HTTP GXR GetFile: ", WGetURL, CurrFil)
+
+            http_err := DownloadFile(CurrFil, WGetURL)
+            if http_err != nil {
+                fmt.Println("[!] GXR Downloaded Failed: " + WGetURL)        
+            } else {
+                fmt.Println("[+] GXR Downloaded Success: " + WGetURL)        
+                fmt.Println("[+] Now Expanding GXR Zip File...")        
+
+                Unzfiles, unz_err := Unzip(CurrFil, CurrWorkDir)
+                if unz_err != nil {
+                    fmt.Printf("[!] GXR Unzip Error: %s\n", unz_err)
+                }
+
+                for iUnz := 0; iUnz < len(Unzfiles); iUnz++ {
+                    fmt.Printf("[*] Unzipped File: %s\n", Unzfiles[iUnz])
+                }
             }
 	} else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/USR:") {
             if (os.Args[i][5] =='?') {
