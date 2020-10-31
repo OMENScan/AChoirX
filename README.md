@@ -14,4 +14,7 @@ I hope that eventually this idea will help forensicators move across multiple pl
 
 # Change Log:
 10/16/2020 - Alpha 23. Windows, Linux, OSX supported. The default script runs on all three platforms and gathers platform specific Artifacts and Telemetry. Has built in S3 Bucket uploading (using the AWS SDK).
+10/17/2020 - Alpha 24. Hash Running Program for non-repudiation. Add &Myp (My Program) and &Myh (My Hash)
+10/25/2020 - Alpha 25. Add /GXR: - Gets a Zip File, Extracts it, and runs the script.
+10/30/2020 - Alpha 26. Copy Running Program to \Progs for non-repudiation
   

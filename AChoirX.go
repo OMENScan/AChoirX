@@ -17,6 +17,7 @@
 //                     Add &Myp (My Program) and &Myh (My Hash)
 // AChoirX v10.00.25 - Add /GXR: - Gets a Zip File, Extracts it, and
 //                     runs the script.
+// AChoirX v10.00.26 - Copy Running Program to \Progs for non-repudiation
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -68,7 +69,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.25"                       // AChoir Version
+var Version = "v10.00.26"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -3004,6 +3005,8 @@ func MD5FileOut(MD5filepath string, MD5Info os.FileInfo, MD5_err error) error {
 
 func RunCommand(Commandstring string, Commandtype int) error {
     var Fullpath = BaseDir
+    var FullCopyCommand = "none"
+    var execMD5 = "00000000000000000000000000000000"
     var cmdSplit []string = nil
     var tmpSTDRedir = 0
 
@@ -3055,7 +3058,8 @@ func RunCommand(Commandstring string, Commandtype int) error {
             }
 
             if FileExists(Fullpath) {
-                ConsOut = fmt.Sprintf("[+] Command: %s\n    Command MD5: %s\n", Commandstring, GetMD5File(Fullpath))
+                execMD5 = GetMD5File(Fullpath)
+                ConsOut = fmt.Sprintf("[+] Command: %s\n    Command MD5: %s\n", Commandstring, execMD5)
                 ConsLogSys(ConsOut, 1, 1)
             } else {
                 ConsOut = fmt.Sprintf("[!] Command could not be Located: %s\n", Commandstring)
@@ -3080,9 +3084,24 @@ func RunCommand(Commandstring string, Commandtype int) error {
 
             return path_err
         } else {
-            ConsOut = fmt.Sprintf("[+] Command: %s\n    Command MD5: %s\n", Commandstring, GetMD5File(Fullpath))
+            execMD5 = GetMD5File(Fullpath)
+            ConsOut = fmt.Sprintf("[+] Command: %s\n    Command MD5: %s\n", Commandstring, execMD5)
             ConsLogSys(ConsOut, 1, 1)
         }
+    }
+
+
+    //****************************************************************
+    //* Copy the Command to the ACQ Collection for non-repudiation   *
+    //****************************************************************
+    TempCopyCommand := strings.Replace(Fullpath, slashDelimS, "-", -1)
+    TempCopyCommand = strings.Replace(TempCopyCommand, ":", "", -1)
+    FullCopyCommand = fmt.Sprintf("%s%cRanProg%c%s-%s", BACQDir, slashDelim, slashDelim, TempCopyCommand, execMD5)
+
+    if !FileExists(FullCopyCommand) {
+        ConsOut = fmt.Sprintf("[+] Saving Called Program As: %s\n", FullCopyCommand)
+        ConsLogSys(ConsOut, 1, 1)
+        _, _ = binCopy(Fullpath, FullCopyCommand)
     }
 
 
@@ -3137,7 +3156,7 @@ func RunCommand(Commandstring string, Commandtype int) error {
         // Non-Blocked/Asynchronous (EXA:)
         strt_err := run_cmd.Start()
         if strt_err != nil {
-            ConsOut = fmt.Sprintf("[!] Error Startng Command: %s\n    %s\n", Commandstring, strt_err)
+            ConsOut = fmt.Sprintf("[!] Error Starting Command: %s\n    %s\n", Commandstring, strt_err)
             ConsLogSys(ConsOut, 1, 1)
 
             return strt_err
