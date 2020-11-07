@@ -20,3 +20,6 @@ I hope that eventually this idea will help forensicators move across multiple pl
 10/25/2020 - Alpha 25. Add /GXR: - Gets a Zip File, Extracts it, and runs the script.
 
 10/30/2020 - Alpha 26. Copy Running Program to \Progs for non-repudiation
+
+11/07/2020 - Beta 27. Upgraded Status to Beta.  Change CPY: Target File Atime and MTime to match Source. Change FileExists to accept File or Directory & Improve Error handling. Add Quoted Parsing to EXE: and SYS: processing.
+

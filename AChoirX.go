@@ -19,6 +19,11 @@
 //                     runs the script.
 // AChoirX v10.00.26 - Copy Running Program to \Progs for non-repudiation
 //
+// 11/06/2020 - Move to Beta Status:
+// AChoirX v10.00.27 - Change CPY: Target File Atime and MTime to match Source
+//                     Change FileExists to accept File or Directory & Improve Error handling
+//                     Add Quoted Parsing to EXE: and SYS:
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -69,7 +74,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.26"                       // AChoir Version
+var Version = "v10.00.27"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -2782,6 +2787,8 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     //* If Copy worked, Collect Output file Meta Data                       *
     //***********************************************************************
     if copy_err == nil {
+        os.Chtimes(TooFile, FrmATime, FrmMTime)
+
         TooMD5 = GetMD5File(TooFile)
 
         TooFileStat, stat_err := os.Stat(TooFile)
@@ -2820,19 +2827,20 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
 
 
 //***********************************************************************
-// FileExists checks if a file exists and is not a directory before we  *
-//  try using it to prevent further errors.                             *
+// FileExists checks if a file/directory exists before we try using it  *
+//  to prevent further errors.                                          *
 //***********************************************************************
 func FileExists(CheckFilename string) bool {
     // See if the File is already there
     fexst_info, fexst_err := os.Stat(CheckFilename)
 
-    if os.IsNotExist(fexst_err) {
-        return false
-    }
+    if fexst_err != nil { return false }
+    if os.IsNotExist(fexst_err) { return false }
+    if fexst_info.Mode().IsRegular() { return true }
+    if fexst_info.Mode().IsDir() { return true }
 
-    return !fexst_info.IsDir()
-
+    // Fell Through - This is not a File or Directory
+    return false
 }
 
 
@@ -3013,7 +3021,21 @@ func RunCommand(Commandstring string, Commandtype int) error {
     //****************************************************************
     //* Run an External Command, either blocked or unblocked         *
     //****************************************************************
-    tmpSplit := strings.Split(Commandstring, " ")
+    //tmpSplit := strings.Split(Commandstring, " ")
+
+    // Support Quotes - as of v10.00.27 
+    CmdTokRdr := csv.NewReader(strings.NewReader(Commandstring))
+    CmdTokRdr.Comma = ' '
+    CmdTokRdr.FieldsPerRecord = -1
+    CmdTokRdr.TrimLeadingSpace = true
+    tmpSplit, CmdTok_err := CmdTokRdr.Read()
+
+    if CmdTok_err != nil {
+        ConsOut = fmt.Sprintf("[!] Parsing Error for Command: %s    \n%s\n", Commandstring, CmdTok_err)
+        ConsLogSys(ConsOut, 1, 2)
+        return CmdTok_err
+    }
+
 
     //****************************************************************
     //* Look for AChoirX Command Enhancements. Process them, and     *

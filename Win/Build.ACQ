@@ -218,7 +218,8 @@ SAY:
 SAY: --- Getting WinSCP Portable (from WinSCP.net) ---
 SAY:
 DIR:\XFR
-GET:https://cdn.winscp.net/files/WinSCP-5.17.7-Portable.zip?secure=tAz9nV5L7USK1q6j7Bq2dg==,1602012778 &Dir\WinSCP.zip
+GET:https://cdn.winscp.net/files/WinSCP-5.17.8-Portable.zip?secure=0uJCosGH0PKqOQK8QdCwOQ==,1603080680 &Dir\WinSCP.zip
+***:https://cdn.winscp.net/files/WinSCP-5.17.7-Portable.zip?secure=tAz9nV5L7USK1q6j7Bq2dg==,1602012778 &Dir\WinSCP.zip
 ***:https://winscp.net/download/WinSCP-5.17.6-Portable.zip &Dir\WinSCP.zip
 SAY:
 SAY: --- Unzipping WinSCP Portable ---
