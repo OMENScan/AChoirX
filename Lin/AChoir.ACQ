@@ -31,11 +31,11 @@ VER:Windows
  SAY:
  DSK:Fixed
  ACQ:\RawData
- EXE:\TSK\fcat.exe $MFT \\.\&dsk: --exestdout=&acn\RawData\MFT-&Dsk
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe $MFT \\.\&dsk: --exestdout=&acn\RawData\MFT-&Dsk
  SAY:
  SAY: 3b. Copy Raw $LogFile...
  SAY:
- EXE:\TSK\fcat.exe $LogFile \\.\&dsk: --exestdout=&acn\RawData\LogFile-&Dsk
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe $LogFile \\.\&dsk: --exestdout=&acn\RawData\LogFile-&Dsk
  SAY:
  SAY: 3c. Now Extracting USNJrnl...
  SAY:
@@ -62,10 +62,10 @@ VER:Windows
  SAY: 5. Raw Copy Registry Hives...
  SAY:
  ACQ:\Reg
- EXE:\TSK\fcat.exe /Windows/System32/Config/SECURITY \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SECURITY
- EXE:\TSK\fcat.exe /Windows/System32/Config/SOFTWARE \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SOFTWARE
- EXE:\TSK\fcat.exe /Windows/System32/Config/SAM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SAM
- EXE:\TSK\fcat.exe /Windows/System32/Config/SYSTEM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SYSTEM
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SECURITY \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SECURITY
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SOFTWARE \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SOFTWARE
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SAM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SAM
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SYSTEM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SYSTEM
  CPY:"&Win\AppCompat\Programs\Amcache.hve" "&Acq"
  SAY:
  SAY: 6. Copying (System32) EventViewer Logs...
@@ -174,7 +174,7 @@ VER:Windows
  SAY:
  FOR:C:\Users\*\ntuser.dat
  ACQ:\Reg\&FO2
- EXE:\TSK\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
  SAY:
  SAY: 23. Now Extracting Browser History...
  SAY:
