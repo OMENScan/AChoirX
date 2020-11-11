@@ -23,6 +23,7 @@
 // AChoirX v10.00.27 - Change CPY: Target File Atime and MTime to match Source
 //                     Change FileExists to accept File or Directory & Improve Error handling
 //                     Add Quoted Parsing to EXE: and SYS:
+// AChoirX v10.00.28 - Add &USR and &PWD - To enable UserID and Password on Command Line
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -74,7 +75,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.27"                       // AChoir Version
+var Version = "v10.00.28"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -96,8 +97,8 @@ var WGetDir = "c:\\Achoir"                      // Directory For HTTP Get (Downl
 var RootSlash = 0                               // Last Occurance of Slash to find Root URL
 var ForSlash = 0                                // Last Occurance of Slash to find File in Path
 var CurrFil = "Current.fil"                     // Current File Name
-var inUser = "Joe"                              // UserId
-var inPass = "Pa$$w0rd"                         // Password
+var inUser = "none"                             // UserId
+var inPass = "none"                             // Password
 var Numberz = "0123456789"                      // String to convert from Char to Int
 var VarArray[10][256] string                    // Variables Array VR0-VR9
 var iVar = -1                                   // Index of the Variable Array
@@ -1067,6 +1068,18 @@ func main() {
                     
                     repl_Vck := NewCaseInsensitiveReplacer("&Vck", volType)
                     o32VarRec = repl_Vck.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Usr") {
+                    
+                    repl_Usr := NewCaseInsensitiveReplacer("&Usr", inUser)
+                    o32VarRec = repl_Usr.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Pwd") {
+                    
+                    repl_Pwd := NewCaseInsensitiveReplacer("&Pwd", inPass)
+                    o32VarRec = repl_Pwd.Replace(o32VarRec)
                 }
 
                 if CaseInsensitiveContains(o32VarRec, "&Dsa") {

@@ -1,4 +1,4 @@
-AChoirX - v10.00.27
+AChoirX - v10.00.28
 
 AChoirX
 =======
@@ -309,6 +309,8 @@ XIT:<Exit Command>
 
 Objects:
 ========
+&Usr     Set with the /USR: command line option
+&Pwd     Set with the /PWD: command line option
 &Myp     The Executing Program Full Path
 &Myh     The Executing Program Hash
 &Ver     Which OS is running
