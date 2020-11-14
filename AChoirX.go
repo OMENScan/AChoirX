@@ -24,6 +24,10 @@
 //                     Change FileExists to accept File or Directory & Improve Error handling
 //                     Add Quoted Parsing to EXE: and SYS:
 // AChoirX v10.00.28 - Add &USR and &PWD - To enable UserID and Password on Command Line
+// AChoirX v10.00.29 - Add File Encryption/Decryption - Credit goes to:
+//                      https://www.thepolyglotdeveloper.com/2018/02/
+//                      encrypt-decrypt-data-golang-application-crypto-packages/
+//                     Note: It will use &PWD to Encrypt
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -62,9 +66,13 @@ import (
     "net/http"
     "path/filepath"
     "io"
+    "io/ioutil"
     "bufio"
     "crypto/tls"
     "crypto/md5"
+    "crypto/aes"
+    "crypto/cipher"
+    "crypto/rand"
 
     "github.com/aws/aws-sdk-go/aws"
     "github.com/aws/aws-sdk-go/aws/credentials"
@@ -75,13 +83,14 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.28"                       // AChoir Version
+var Version = "v10.00.29"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
 var MyHash = "none"                             // My Hash
 var iRunMode = 0                                // Int Runmode Flag (0, 1, 2)
 var inFnam = "AChoir.ACQ"                       // Script Name
+var inEncFile = "AChoir.ECR"                    // Input Encrypted File Name
 var ACQName = "ACQ-IR-LocalHost-00000000-0000"  // AChoir Unique Collection Name
 var DiskDrive = "C:"                            // Disk Drive (/DRV)
 var iCase = 0                                   // Case Information Processing Mode
@@ -160,6 +169,7 @@ var Inrec = "File Input Record"                 // File Input Record
 var Conrec = "Console Record"                   // Console Output Record
 var Tmprec = "Formatted Console Record"         // Console Formatting Record
 var Cpyrec = "Copy Record"                      // Used by Copy Routine
+var Encrec = "Encrypt Record"                   // Used by Encrypt Routine
 var S3Urec = "Copy Record"                      // Used by S3 Upload Routine
 var Cmprec = "Compare Record"                   // Used by Compare Routines
 var Ziprec = "Zip Record"                       // Used by Unzip Routines
@@ -375,6 +385,7 @@ func main() {
             fmt.Printf(" /GET:<URL/File> - Get a File using HTTP.\n")
             fmt.Printf(" /GXR:<URL/File> - Get a Zip File using HTTP, Extract the Files, and Run the Script.\n")
             fmt.Printf(" /INI:<File Name> - Run the <File Name> script instead of AChoir.ACQ\n")
+            fmt.Printf(" /DEC:<File Name> - Decrypt File using &PWD - Output File Name: Decrypted.dat\n")
             fmt.Printf(" /CSE - Ask For Case, Evidence, and Examiner Information\n")
             fmt.Printf(" /CON- Run with Interactive Console Input (Same as /Ini:Console)\n")
 
@@ -421,6 +432,19 @@ func main() {
                 iRunMode = 2
             } else {
                 fmt.Println("[!] /INI: Too Long - Greater than 254 chars")
+            }
+        } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/DEC:") {
+            inEncFile = os.Args[i][5:]
+
+            if FileExists(inEncFile) {
+                plaindata := decryptFile(inEncFile, inPass)
+
+                decFileName, _ := os.Create("Decrypted.dat")
+                defer decFileName.Close()
+                decFileName.Write(plaindata)
+            } else {
+                ConsOut = fmt.Sprintf("[!] File to Decrypt Not Found: %s\n", inEncFile)
+                ConsLogSys(ConsOut, 1, 1)
             }
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/GET:") {
             WGetURL = os.Args[i][5:]
@@ -1401,6 +1425,81 @@ func main() {
                     // This should only work in Windows - Linux and OSX will be UNKNOWN
                     if volType == "NTFS" {
                         isNTFS = 1
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "USR:") {
+                    inUser = Inrec[4:]
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "PWD:") {
+                    inPass = Inrec[4:]
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "ENC:") {
+                    //****************************************************************
+                    //* Encrypt File From => To                                      *
+                    //****************************************************************
+                    ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    Encrec = Inrec[4:]
+
+                    splitString1, splitString2, SplitRC := twoSplit(Encrec)
+
+                    if len(splitString1) < 1 {
+                        ConsOut = fmt.Sprintf("[!] No File Specified to Encrypt\n")
+                        ConsLogSys(ConsOut, 1, 2)
+                    } else {
+                        if SplitRC == 1 {
+                            // Set Output file by appending .ECR to it if no output specified
+                            splitString2 = fmt.Sprintf("%s.ECR", splitString1)
+
+                            ConsOut = fmt.Sprintf("[*] Generating Encryption File Name: %s\n", splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } 
+
+                        if FileExists(splitString1) {
+                            plaindata, _ := ioutil.ReadFile(splitString1)
+                            encryptFile(splitString2, plaindata, inPass)
+
+                            if inPass == "none" {
+                                ConsOut = fmt.Sprintf("[*] Warning: You are Encrypting with the DEFAULT PASSWORD. This is not recommended.\n")
+                                ConsLogSys(ConsOut, 1, 1)
+                            }
+                        } else {
+                            ConsOut = fmt.Sprintf("[!] File to Encrypt Not Found: %s\n", splitString1)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "DEC:") {
+                    //****************************************************************
+                    //* Decrypt File From => To                                      *
+                    //****************************************************************
+                    ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    Encrec = Inrec[4:]
+
+                    splitString1, splitString2, SplitRC := twoSplit(Encrec)
+
+                    if len(splitString1) < 1 {
+                        ConsOut = fmt.Sprintf("[!] No File Specified to Decrypt\n")
+                        ConsLogSys(ConsOut, 1, 2)
+                    } else {
+
+                        if SplitRC == 1 {
+                            // Set Output file by appending .DCR to it if no output specified
+                            splitString2 = fmt.Sprintf("%s.DCR", splitString1)
+
+                            ConsOut = fmt.Sprintf("[*] Generating Decryption File Name: %s\n", splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } 
+
+                        if FileExists(splitString1) {
+                            plaindata := decryptFile(splitString1, inPass)
+
+                            decFileName, _ := os.Create(splitString2)
+                            defer decFileName.Close()
+                            decFileName.Write(plaindata)
+                        } else {
+                            ConsOut = fmt.Sprintf("[!] File to Decrypt Not Found: %s\n", splitString1)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "CPY:") || strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
                     //****************************************************************
@@ -3964,5 +4063,90 @@ func S3UpParser(splitString1 string, splitString2 string) {
             }
         }
     }
+}
+
+
+//***************************************************************************
+// Encryption Routines: Turn a Password into a 32-bit Key                   *
+//***************************************************************************
+func createHash(key string) string {
+    hasher := md5.New()
+    hasher.Write([]byte(key))
+    return hex.EncodeToString(hasher.Sum(nil))
+}
+
+
+//***************************************************************************
+// Encryption Routines: Encrypt a stream of bytes                           *
+//***************************************************************************
+func encrypt(data []byte, passphrase string) []byte {
+    block, _ := aes.NewCipher([]byte(createHash(passphrase)))
+    gcm, enc_err := cipher.NewGCM(block)
+    if enc_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Encrypting Data: %s\n", enc_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return []byte(ConsOut)
+    }
+
+    nonce := make([]byte, gcm.NonceSize())
+    if _, enc_err = io.ReadFull(rand.Reader, nonce); enc_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Encrypting Data: %s\n", enc_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return []byte(ConsOut)
+    }
+
+    ciphertext := gcm.Seal(nonce, nonce, data, nil)
+    return ciphertext
+}
+
+
+//***************************************************************************
+// Encryption Routines: Decrypt a stream of bytes                           *
+//***************************************************************************
+func decrypt(data []byte, passphrase string) []byte {
+    key := []byte(createHash(passphrase))
+    block, ciph_err := aes.NewCipher(key)
+    if ciph_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Decrypting Data (Cipher): %s\n", ciph_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return []byte(ConsOut)
+    }
+
+    gcm, gcm_err := cipher.NewGCM(block)
+    if gcm_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Decrypting Data (GCM): %s\n", gcm_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return []byte(ConsOut)
+    }
+
+    nonceSize := gcm.NonceSize()
+    nonce, ciphertext := data[:nonceSize], data[nonceSize:]
+    plaintext, dec_err := gcm.Open(nil, nonce, ciphertext, nil)
+    if dec_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Decrypting Data: %s\n", dec_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return []byte(ConsOut)
+    }
+
+    return plaintext
+}
+
+
+//***************************************************************************
+// Encryption Routines: Encrypt a File                                      *
+//***************************************************************************
+func encryptFile(encFileName string, plainData []byte, passphrase string) {
+    encFile, _ := os.Create(encFileName)
+    defer encFile.Close()
+    encFile.Write(encrypt(plainData, passphrase))
+}
+
+
+//***************************************************************************
+// Encryption Routines: Decrypt a File                                      *
+//***************************************************************************
+func decryptFile(encFileName string, passphrase string) []byte {
+    encData, _ := ioutil.ReadFile(encFileName)
+    return decrypt(encData, passphrase)
 }
 

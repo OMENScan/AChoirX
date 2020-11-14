@@ -25,7 +25,7 @@ Some New Additions/Changes:
 * Native UnZip
 * Use TSK for Raw File Collection
 * Native S3 File upload using the AWS SDK for Golang
-
+* Native Encryption
 
 Some Notes:
 ===========

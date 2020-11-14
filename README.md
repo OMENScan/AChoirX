@@ -23,3 +23,7 @@ I hope that eventually this idea will help forensicators move across multiple pl
 
 11/07/2020 - Beta 27. Upgraded Status to Beta.  Change CPY: Target File Atime and MTime to match Source. Change FileExists to accept File or Directory & Improve Error handling. Add Quoted Parsing to EXE: and SYS: processing.
 
+11/10/2020 - Beta 28. Add &USR and &PWD - To enable UserID and Password on Command Line
+
+11/13/2020 - Beta 29. Implement Encryption (/DEC:, ENC:, DEC:).
+

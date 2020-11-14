@@ -1,4 +1,4 @@
-AChoirX - v10.00.28
+AChoirX - v10.00.29
 
 AChoirX
 =======
@@ -302,6 +302,13 @@ LBL:<LabelName>
 JMP:<LabelName>
          Jump to a defined Label (LBL:<LabelName>)
 BYE:     Exit AChoirX (usually used in Console Mode or Conditional section 
+USR:     Set the &USR variable
+PWD:     Set the &PWD variable - Also used by many AChoirX internal functions 
+         that require a password or secret.
+ENC:<Infile> <Outfile>
+         Encrypts an Input File with the &PWD and writes it to the Output File 
+DEC:<Infile> <Outfile>
+         Decrypts an Input File with the &PWD and writes it to the Output File 
 XIT:<Exit Command> 
          Run Command or Program on Exit
 
@@ -367,6 +374,8 @@ Here are the Command Line Options:
 /INI:<File Name>  - Run the <File Name> script instead of AChoir.ACQ
         This Option WILL NOT Create a Base Acquisition Directory
         Use the ACQ: action to create the Base Acquisition Directory if you want one. 
+/PWD:<password> - Sets the &PWD variable
+/DEC:<FileName> - Decrypts a file and writes it to: Decrypted.Dat
 /DRV:<x:> - Set the &DRV parameter
         This option is designed to allow you to build dead-box scripts,
         and specify a drive variable (the drive letter that has been mounted).
@@ -436,6 +445,23 @@ simple: If we are running AChoirX on an endpoint, we may be interested in BOTH t
 32Bit artifacts AND the 64Bit artifacts.  Since BOTH can be present, and BOTH may 
 be relevant to an investigation, AChoirX will always try to get both artifacts if 
 it can.
+
+
+A note about Encryption (/DEC:, ENC: and DEC:):
+------------------------------------------------
+As of Beta v10.00.29 - AChoirX has it's own built-in Encryption.  The Password used to
+encrypt or decrypt files is set via the /PWD: or PWD: options.
+
+Important Note: The /DEC: option the output file will always decrypt to a file called 
+                "Decrypted.Dat".  However, when using the DEC: or ENC: commands in AChoirX 
+                scripts, both the input file name and output file name can be specified.
+
+Encryption adds a powerful new set of capabilities when coupled with other AChoirX options.
+For instance, the /GET: command line option can be used with /PWD: and /DEC: to download an
+encrypted Script, and then decrypt it and run it.  This especially important if you are 
+using UserIds, Passwords, Tokens, or other Access Keys in your scripts.  This allows the 
+scripts and/or supporting files to be encrypted to help limit the risk of accidental 
+disclosure.
 
 
 A note about /GET:
