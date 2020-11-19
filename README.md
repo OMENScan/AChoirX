@@ -27,3 +27,4 @@ I hope that eventually this idea will help forensicators move across multiple pl
 
 11/13/2020 - Beta 29. Implement Encryption (/DEC:, ENC:, DEC:).
 
+11/18/2020 - Beta 30. Minor Fixes.  Added PlasoX.ACQ Script for cross platform Plaso (Targeted TimeLine) processing

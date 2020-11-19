@@ -78,7 +78,7 @@ func timespecToTime(ts syscall.Timespec) time.Time {
 }
 
 
-// Gets the Modified, Create and Access time of a file
+// Platform Specific - Return OS (Version)
 func GetOSVer() string {
     return "OSX"
 }

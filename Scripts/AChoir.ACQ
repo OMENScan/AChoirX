@@ -3,6 +3,7 @@
 * - Pulls Forensic artifacts & telemetry for analysis *
 * - Created by D0n Quix0te/OMENScan (May 2015)        *
 * - Inspired by many other tools                      *
+* - Recognize:Windows, Linux, or OSX                  *
 *******************************************************
 SET:CopyPath=Part
 SAY:
@@ -21,6 +22,8 @@ SAY:
 VER:Windows
  ACQ:\MemDump
  EXE:\MEM\winpmem_3.3rc3.exe --output &Acq\WinPmemDump.Raw --logfile &Acq\WinPmemDump.Log --volume_format raw -dd -t
+ ***:Use AFF format with --split for creating smaller files for more reliable Transfer if needed
+ ***:EXE:\MEM\WinPmem_3.3rc3.exe --output &Acq\WinPmemDump.Aff --split 2000m --logfile &Acq\WinPmemDump.Log -dd -t
  SAY:
  SAY: 2. Extracting Prefetch Directory...
  SAY:
@@ -306,7 +309,7 @@ Ver:Linux
  PZZ: All Done!  Press Any Key to Finish.
  BYE:
 END:
-Ver:Darwin
+Ver:OSX
  SAY:OSX Acquisition (A Work In Progress)...
  SAY:
  SAY: 3. Gathering Disk Information...

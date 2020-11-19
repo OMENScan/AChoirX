@@ -3,6 +3,7 @@
 * - Pulls Forensic artifacts & telemetry for analysis *
 * - Created by D0n Quix0te/OMENScan (May 2015)        *
 * - Inspired by many other tools                      *
+* - Recognize:Windows, Linux, or OSX                  *
 *******************************************************
 SET:CopyPath=Part
 SAY:

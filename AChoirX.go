@@ -28,6 +28,7 @@
 //                      https://www.thepolyglotdeveloper.com/2018/02/
 //                      encrypt-decrypt-data-golang-application-crypto-packages/
 //                     Note: It will use &PWD to Encrypt
+// AChoirX v10.00.30 - Fix minor message wording
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -37,15 +38,15 @@
 // Changes from AChoir:
 //  Environment Variable Expansion now uses GoLang $Var or ${Var} 
 //
-// Not Implemented AChoir:
-//  Raw NTFS
-//  NTP
-//  Console Colors
-//  Check for Windows Escalated Privs
-//  Check for Memory Size
-//  Native SMB/CIFS
-//  USB Protection (Registry Key)
-//  Transfer File MetaData on Copy (Dates, Perms, Owner, etc) 
+// Not Implemented from AChoir (Yet):
+//  Raw NTFS - Windows Unique - Use TSK
+//  NTP - Not used enough
+//  Console Colors - No native cross-platform way to do this
+//  Check for Windows Escalated Privs - Windows unique
+//  Check for Memory Size - Possibly implement later
+//  Native SMB/CIFS - Windows Unique
+//  USB Protection (Registry Key) - Windows Unique
+//  Transfer File MetaData on Copy (CTime, Perms, Owner, etc) - Not cross-platform 
 // ****************************************************************
 
 package main
@@ -83,7 +84,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.29"                       // AChoir Version
+var Version = "v10.00.30"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -1835,7 +1836,7 @@ func main() {
                         ConsOut = fmt.Sprintf("[*] [!] Required File Found: %s\n", Inrec[4:])
                         ConsLogSys(ConsOut, 1, 1)
                     } else {
-                        ConsOut = fmt.Sprintf("[*] [!] Required File Not Found: %s - Exiting!\n", Inrec[4:])
+                        ConsOut = fmt.Sprintf("[*] [*] Required File Not Found: %s - Exiting!\n", Inrec[4:])
                         ConsLogSys(ConsOut, 1, 1)
 
                         cleanUp_Exit(3)
