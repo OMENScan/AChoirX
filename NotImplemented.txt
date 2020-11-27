@@ -13,9 +13,12 @@ Some of the Functions that will not be in the initial release:
 * Raw NTFS
 * NTP
 * Console Colors
-* Check for Windows Escalated Privs
 * Check for Memory Size
 * Native SMB/CIFS
+
+   Note:  Some of the original excluded functions have been added 
+   back into AChoirX.  Please check for the latest version to get
+   the most recent and complete functionality.
 
 
 
@@ -26,6 +29,8 @@ Some New Additions/Changes:
 * Use TSK for Raw File Collection
 * Native S3 File upload using the AWS SDK for Golang
 * Native Encryption
+
+
 
 Some Notes:
 ===========

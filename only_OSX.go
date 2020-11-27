@@ -83,3 +83,13 @@ func GetOSVer() string {
     return "OSX"
 }
 
+//****************************************************************
+// Check for OSX Root by checking Effective UserId               *
+//****************************************************************
+func IsUserAdmin() bool {
+    if os.Geteuid() != 0 {
+        return false
+    } 
+    return true
+}
+

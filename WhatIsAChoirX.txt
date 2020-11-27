@@ -1,4 +1,4 @@
-AChoirX - v10.00.29
+AChoirX - v10.00.31
 
 AChoirX
 =======
@@ -349,6 +349,7 @@ Objects:
 &VCK     Results of last Volume Check (VCK:<x:\>
 &DSA     Disk Space Available
 &HST     Local Host Name (set to "localhost" on error)
+&ADM     Running as Admin?  (Yes | No)
 
 ${<variable>} - AChoirX can also expand the native OS Environment Variables
 

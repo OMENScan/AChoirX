@@ -74,3 +74,14 @@ func GetOSVer() string {
     return "Linux"
 }
 
+
+//****************************************************************
+// Check for Linux Root by checking Effective UserId             *
+//****************************************************************
+func IsUserAdmin() bool {
+    if os.Geteuid() != 0 {
+        return false
+    } 
+    return true
+}
+

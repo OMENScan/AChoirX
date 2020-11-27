@@ -29,6 +29,8 @@
 //                      encrypt-decrypt-data-golang-application-crypto-packages/
 //                     Note: It will use &PWD to Encrypt
 // AChoirX v10.00.30 - Fix minor message wording
+// AChoirX v10.00.31 - Add Admin/Root Checks - Move subroutine to Platform Specific Files
+//                   - Add &Adm Variable = Yes or No  (Running as Admin/Root)
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -84,7 +86,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.30"                       // AChoir Version
+var Version = "v10.00.31"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -126,6 +128,7 @@ var iNative = 0                                 // Are we Native 64Bit on 64Bit 
 var sNative = ""                                // Native String (blank or Non-) 
 var iIsAdmin = 0                                // Are we an Admin 
 var sIsAdmin = ""                               // Are we an Admin String (blank or Non-) 
+var yIsAdmin = "No"                             // Are we an Admin (Yes | No)
 var iFor = 0                                    // Loop Counter FOR, FO0 - FOP
 var iLst = 0                                    // Loop Counter LST, LS0 - LSP
 var ifFor = 0                                   // Flag contains FOR, FO0 - FOP
@@ -574,6 +577,20 @@ func main() {
 
 
     //****************************************************************
+    //* Check If We are an Admin/Root                                *
+    //****************************************************************
+    if (IsUserAdmin()) {
+        iIsAdmin = 1
+        sIsAdmin = ""
+        yIsAdmin = "Yes"
+    } else {
+        iIsAdmin = 0
+        sIsAdmin = "NON-"
+        yIsAdmin = "No"
+    }
+
+
+    //****************************************************************
     //* Are we running Non-Native (Sysnative vs. System32)           *
     //****************************************************************
     if iopSystem == 0 {
@@ -587,22 +604,12 @@ func main() {
             iNative = 0
         }
 
-
-        //****************************************************************
-        //* Check If We are an Admin                                     *
-        //****************************************************************
-        if (IsUserAdmin()) {
-            iIsAdmin = 1
-            sIsAdmin = ""
-        } else {
-            iIsAdmin = 0
-            sIsAdmin = "NON-"
-        }
-
         ConsOut = fmt.Sprintf("[+] Running as Windows %sNative (%sAdmin)\n", sNative, sIsAdmin)
         ConsLogSys(ConsOut, 1, 1)
+    } else {
+        ConsOut = fmt.Sprintf("[+] Running as %sRoot\n", sIsAdmin)
+        ConsLogSys(ConsOut, 1, 1)
     }
-
 
     //****************************************************************
     // If iRunMode=1 Create the BACQDir - Base Acquisition Dir       *
@@ -1095,6 +1102,12 @@ func main() {
                     o32VarRec = repl_Vck.Replace(o32VarRec)
                 }
 
+                if CaseInsensitiveContains(o32VarRec, "&Adm") {
+                    
+                    repl_Adm := NewCaseInsensitiveReplacer("&Adm", yIsAdmin)
+                    o32VarRec = repl_Adm.Replace(o32VarRec)
+                }
+
                 if CaseInsensitiveContains(o32VarRec, "&Usr") {
                     
                     repl_Usr := NewCaseInsensitiveReplacer("&Usr", inUser)
@@ -1377,20 +1390,15 @@ func main() {
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "ADM:CHECK") {
-                    if iIsAdmin == 1 {
-                        ConsOut = fmt.Sprintf("[+] Running as Admin\n")
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else {
-                        ConsOut = fmt.Sprintf("[+] Running as NON-Admin\n")
-                        ConsLogSys(ConsOut, 1, 1)
-                    }
+                    ConsOut = fmt.Sprintf("[+] Running as %sAdmin/Root\n", sIsAdmin)
+                    ConsLogSys(ConsOut, 1, 1)
 
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "ADM:FORCE") {
                     if iIsAdmin == 1 {
-                        ConsOut = fmt.Sprintf("[+] Running as Admin - Continuing...\n")
+                        ConsOut = fmt.Sprintf("[+] Running as Admin/Root - Continuing...\n")
                         ConsLogSys(ConsOut, 1, 1)
                     } else {
-                        ConsOut = fmt.Sprintf("[+] NOT Running as Admin - Exiting...\n")
+                        ConsOut = fmt.Sprintf("[+] NOT Running as Admin/Root - Exiting...\n")
                         ConsLogSys(ConsOut, 1, 1)
 
                         cleanUp_Exit(3)
@@ -2625,17 +2633,6 @@ func (cir *CaseInsensitiveReplacer) Replace(str string) string {
     return cir.toReplace.ReplaceAllString(str, cir.replaceWith)
 }
 
-
-//****************************************************************
-// Check for Windows Admin Privs by opening Physical Drive0      *
-//****************************************************************
-func IsUserAdmin() bool {
-    _, err := os.Open("\\\\.\\PHYSICALDRIVE0")
-    if err != nil {
-        return false
-    }
-    return true
-}
 
 
 //***********************************************************************

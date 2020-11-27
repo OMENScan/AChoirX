@@ -97,3 +97,14 @@ func GetOSVer() string {
     return str_osVersion
 }
 
+
+//****************************************************************
+// Check for Windows Admin Privs by opening Physical Drive0      *
+//****************************************************************
+func IsUserAdmin() bool {
+    _, err := os.Open("\\\\.\\PHYSICALDRIVE0")
+    if err != nil {
+        return false
+    } 
+    return true
+}
