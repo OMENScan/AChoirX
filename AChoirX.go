@@ -31,6 +31,8 @@
 // AChoirX v10.00.30 - Fix minor message wording
 // AChoirX v10.00.31 - Add Admin/Root Checks - Move subroutine to Platform Specific Files
 //                   - Add &Adm Variable = Yes or No  (Running as Admin/Root)
+// AChoirX v10.00.32 - Add &Mem (Total Memory) - Copied from: https://github.com/pbnjay/memory
+//                      BSD 3-Clause License - Thanks to Jeremy Jay
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -44,8 +46,6 @@
 //  Raw NTFS - Windows Unique - Use TSK
 //  NTP - Not used enough
 //  Console Colors - No native cross-platform way to do this
-//  Check for Windows Escalated Privs - Windows unique
-//  Check for Memory Size - Possibly implement later
 //  Native SMB/CIFS - Windows Unique
 //  USB Protection (Registry Key) - Windows Unique
 //  Transfer File MetaData on Copy (CTime, Perms, Owner, etc) - Not cross-platform 
@@ -86,7 +86,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.31"                       // AChoir Version
+var Version = "v10.00.32"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -1131,6 +1131,20 @@ func main() {
                     // Even if we got 0 FreeBytes, replace it.
                     repl_Dsa := NewCaseInsensitiveReplacer("&Dsa", strconv.FormatUint(FreeBytes, 10))
                     o32VarRec = repl_Dsa.Replace(o32VarRec)
+                }
+
+
+                if CaseInsensitiveContains(o32VarRec, "&Mem") {
+
+                    TotMemry := sysTotalMemory()
+                    if TotMemry == 0 {
+                        ConsOut = fmt.Sprintf("[!] Error retrieving Memory stats, or not yet implemented (%s).\n", opSystem)
+                        ConsLogSys(ConsOut, 1, 2)
+                    }
+
+                    // Even if we got 0 MemoryBytes, replace it.
+                    repl_Mem := NewCaseInsensitiveReplacer("&Mem", strconv.FormatUint(TotMemry, 10))
+                    o32VarRec = repl_Mem.Replace(o32VarRec)
                 }
 
                 // Look for Replacements &VR0 - VR9

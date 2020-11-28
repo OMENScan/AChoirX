@@ -28,3 +28,7 @@ I hope that eventually this idea will help forensicators move across multiple pl
 11/13/2020 - Beta 29. Implement Encryption (/DEC:, ENC:, DEC:).
 
 11/18/2020 - Beta 30. Minor Fixes.  Added PlasoX.ACQ Script for cross platform Plaso (Targeted TimeLine) processing
+
+11/26/2020 - Beta 31. Add Admin/Root Checks - Move subroutine to Platform Specific Files.  Add &Adm Variable = Yes or No  (Running as Admin/Root)
+
+11/27/2020 - Beta 32. Add &Mem Variable (Total System Memory)

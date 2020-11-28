@@ -7,6 +7,7 @@ package main
 import (
     "fmt"
     "syscall"
+    "unsafe"
     "os"
     "time"
     "golang.org/x/sys/windows"
@@ -14,6 +15,9 @@ import (
 )
 
 
+// ****************************************************************
+// * List All Windows Drive Letters                               *
+// ****************************************************************
 func GetDriveType(DriveLetter string) (uint32) {
     //var drvRoot []uint16
     var uinRoot *uint16
@@ -25,7 +29,9 @@ func GetDriveType(DriveLetter string) (uint32) {
 }
 
 
-// Check the Disk Space and return Total and Free Space
+// ****************************************************************
+// Check the Disk Space and return Total and Free Space           *
+// ****************************************************************
 func winFreeDisk() (uint64, uint64) {
 
     var uinRoot *uint16
@@ -38,7 +44,9 @@ func winFreeDisk() (uint64, uint64) {
 }
 
 
-// Windows Console Hide and Show
+// ****************************************************************
+// Windows Console Hide and Show                                  *
+// ****************************************************************
 func winConHideShow(HideOrShow int) {
     console := w32.GetConsoleWindow()
     if console != 0 {
@@ -54,7 +62,9 @@ func winConHideShow(HideOrShow int) {
 }
 
 
-// Windows Get Volume Information
+// ****************************************************************
+// Windows Get Volume Information                                 *
+// ****************************************************************
 func winGetVolInfo(rootDrive string) (string) {
     var vol_err error
 
@@ -71,7 +81,9 @@ func winGetVolInfo(rootDrive string) (string) {
 }
 
 
-// Gets the Modified, Create and Access time of a file
+// ****************************************************************
+// Gets the Modified, Create and Access time of a file            *
+// ****************************************************************
 func FTime(FileName string) (time.Time, time.Time, time.Time) {
     var atime, mtime, ctime time.Time
 
@@ -89,7 +101,9 @@ func FTime(FileName string) (time.Time, time.Time, time.Time) {
 }
 
 
-// Gets the Windows Version: Major, Minor, and BuildNumber
+// ****************************************************************
+// Gets the Windows Version: Major, Minor, and BuildNumber        *
+// ****************************************************************
 func GetOSVer() string {
     osVersion := w32.RtlGetVersion()
     str_osVersion := fmt.Sprintf("Windows %d.%d.%d", osVersion.MajorVersion, osVersion.MinorVersion, osVersion.BuildNumber)
@@ -102,9 +116,51 @@ func GetOSVer() string {
 // Check for Windows Admin Privs by opening Physical Drive0      *
 //****************************************************************
 func IsUserAdmin() bool {
-    _, err := os.Open("\\\\.\\PHYSICALDRIVE0")
-    if err != nil {
+    _, adm_err := os.Open("\\\\.\\PHYSICALDRIVE0")
+    if adm_err != nil {
         return false
     } 
     return true
 }
+
+
+//******************************************************************
+// Get Memory Size: Windows Version                                *
+//  Copied from:                                                   *
+//  https://github.com/pbnjay/memory/blob/master/memory_windows.go *
+//******************************************************************
+// omitting a few fields for brevity...
+// https://msdn.microsoft.com/en-us/library/windows/desktop/aa366589(v=vs.85).aspx
+
+func sysTotalMemory() uint64 {
+    type memStatusEx struct {
+        dwLength     uint32
+        dwMemoryLoad uint32
+        ullTotalPhys uint64
+        unused       [6]uint64
+    }
+
+    kernel32, load_err := syscall.LoadDLL("kernel32.dll")
+    if load_err != nil {
+        return 0
+    }
+
+    // GetPhysicallyInstalledSystemMemory is simpler, but broken on
+    // older versions of windows (and uses this under the hood anyway).
+    globalMemoryStatusEx, find_err := kernel32.FindProc("GlobalMemoryStatusEx")
+    if find_err != nil {
+        return 0
+    }
+
+    ptr_msx := &memStatusEx{
+        dwLength: 64,
+    }
+
+    mems_msx, _, _ := globalMemoryStatusEx.Call(uintptr(unsafe.Pointer(ptr_msx)))
+    if mems_msx == 0 {
+        return 0
+    }
+
+    return ptr_msx.ullTotalPhys
+}
+

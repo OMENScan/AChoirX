@@ -7,17 +7,25 @@ package main
 import (
     "fmt"
     "syscall"
+    "unsafe"
     "os"
     "time"
 )
 
 
+// ****************************************************************
+// * Windows Drive Letters - Not relevant for OSX                 *
+// ****************************************************************
 func GetDriveType(DriveLetter string) (uint32) {
     fmt.Printf("[!] Drive Listing not relevant to OSX\n")
 
     return 0
 }
 
+
+// ****************************************************************
+// Check the Disk Space and return Total and Free Space           *
+// ****************************************************************
 func winFreeDisk() (uint64, uint64) {
     var diskAll, diskFree uint64
 
@@ -38,20 +46,26 @@ func winFreeDisk() (uint64, uint64) {
 }
 
 
-// Windows Console Hide and Show
+// ****************************************************************
+// Windows Console Hide and Show                                  *
+// ****************************************************************
 func winConHideShow(HideOrShow int) {
     fmt.Printf("[+] Console Hide/Show not Implemented for OSX\n")
 }
 
 
-// Windows Get Volume Information
+// ****************************************************************
+// Windows Get Volume Information                                 *
+// ****************************************************************
 func winGetVolInfo(rootDrive string) (string) {
     fmt.Printf("[!] Drive Listing not Implemeted for OSX\n")
     return "UNKNOWN"
 }
 
 
-// Gets the Modified, Create and Access time of a file
+// ****************************************************************
+// Gets the Modified, Create and Access time of a file            *
+// ****************************************************************
 func FTime(FileName string) (time.Time, time.Time, time.Time) {
      var atime, mtime, ctime time.Time
 
@@ -72,16 +86,21 @@ func FTime(FileName string) (time.Time, time.Time, time.Time) {
 }
 
 
-// Convert Timespec to time.Time
+// ****************************************************************
+// Convert Timespec to time.Time                                  *
+// ****************************************************************
 func timespecToTime(ts syscall.Timespec) time.Time {
 	return time.Unix(int64(ts.Sec), int64(ts.Nsec))
 }
 
 
-// Platform Specific - Return OS (Version)
+// ****************************************************************
+// Platform Specific - Return OS (Version)                        *
+// ****************************************************************
 func GetOSVer() string {
     return "OSX"
 }
+
 
 //****************************************************************
 // Check for OSX Root by checking Effective UserId               *
@@ -91,5 +110,37 @@ func IsUserAdmin() bool {
         return false
     } 
     return true
+}
+
+
+
+//******************************************************************
+// Get Memory Size: OSX Version                                    *
+//  Copied from:                                                   *
+//  https://github.com/pbnjay/memory/blob/master/memory_windows.go *
+//******************************************************************
+func sysTotalMemory() uint64 {
+    sysmem, mem_err := sysctlUint64("hw.memsize")
+    if mem_err != nil {
+        return 0
+    }
+    return sysmem
+}
+
+
+func sysctlUint64(ctlname string) (uint64, error) {
+    ctl_data, ctl_err := syscall.Sysctl(ctlname)
+    if ctl_err != nil {
+        return 0, ctl_err
+    }
+
+    // hack because the string conversion above drops a \0
+    byt_data := []byte(ctl_data)
+    if len(byt_data) < 8 {
+        byt_data = append(byt_data, 0)
+    }
+
+    return *(*uint64)(unsafe.Pointer(&byt_data[0])), nil
+
 }
 

@@ -12,12 +12,19 @@ import (
 )
 
 
+// ****************************************************************
+// * Windows Drive Letters - Not relevant for Linux               *
+// ****************************************************************
 func GetDriveType(DriveLetter string) (uint32) {
     fmt.Printf("[!] Drive Listing not relevant to Linux\n")
 
     return 0
 }
 
+
+// ****************************************************************
+// Check the Disk Space and return Total and Free Space           *
+// ****************************************************************
 func winFreeDisk() (uint64, uint64) {
     var diskAll, diskFree uint64
 
@@ -38,20 +45,26 @@ func winFreeDisk() (uint64, uint64) {
 }
 
 
-// Windows Console Hide and Show
+// ****************************************************************
+// Windows Console Hide and Show                                  *
+// ****************************************************************
 func winConHideShow(HideOrShow int) {
     fmt.Printf("[+] Console Hide/Show not Implemented for Linux\n")
 }
 
 
-// Windows Get Volume Information
+// ****************************************************************
+// Windows Get Volume Information                                 *
+// ****************************************************************
 func winGetVolInfo(rootDrive string) (string) {
     fmt.Printf("[!] Drive Listing not Implemeted for Linux\n")
     return "UNKNOWN"
 }
 
 
-// Gets the Modified, Create and Access time of a file
+// ****************************************************************
+// Gets the Modified, Create and Access time of a file            *
+// ****************************************************************
 func FTime(FileName string) (time.Time, time.Time, time.Time) {
      var atime, mtime, ctime time.Time
 
@@ -69,7 +82,9 @@ func FTime(FileName string) (time.Time, time.Time, time.Time) {
 }
 
 
-// Platform Specific - Return OS (Version)
+// ****************************************************************
+// Platform Specific - Return OS (Version)                        *
+// ****************************************************************
 func GetOSVer() string {
     return "Linux"
 }
@@ -83,5 +98,24 @@ func IsUserAdmin() bool {
         return false
     } 
     return true
+}
+
+
+//******************************************************************
+// Get Memory Size: Linux Version                                  *
+//  Copied from:                                                   *
+//  https://github.com/pbnjay/memory/blob/master/memory_windows.go *
+//******************************************************************
+func sysTotalMemory() uint64 {
+    sysin := &syscall.Sysinfo_t{}
+    sys_err := syscall.Sysinfo(sysin)
+    if sys_err != nil {
+        return 0
+    }
+
+    // If this is a 32-bit system, then these fields are
+    // uint32 instead of uint64.
+    // So we always convert to uint64 to match signature.
+    return uint64(sysin.Totalram) * uint64(sysin.Unit)
 }
 
