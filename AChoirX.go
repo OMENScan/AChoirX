@@ -33,6 +33,8 @@
 //                   - Add &Adm Variable = Yes or No  (Running as Admin/Root)
 // AChoirX v10.00.32 - Add &Mem (Total Memory) - Copied from: https://github.com/pbnjay/memory
 //                      BSD 3-Clause License - Thanks to Jeremy Jay
+// AChoirX v10.00.33 - Add support for unzipping an embedded []byte stream
+//                   - Embed Platform specific Default Scripts (Win, Lin, OSX)
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -86,7 +88,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.32"                       // AChoir Version
+var Version = "v10.00.33"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -422,7 +424,7 @@ func main() {
             iRunMode = 1
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INI:") {
             // Check if Input is Console
-            if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INI:Console") {
+            if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INI:CONSOLE") {
                 consOrFile = 1
                 RunMode = "Con"
                 inFnam = os.Args[i][5:]
@@ -482,13 +484,20 @@ func main() {
                 fmt.Println("[+] GXR Downloaded Success: " + WGetURL)        
                 fmt.Println("[+] Now Expanding GXR Zip File...")        
 
-                Unzfiles, unz_err := Unzip(CurrFil, CurrWorkDir)
-                if unz_err != nil {
-                    fmt.Printf("[!] GXR Unzip Error: %s\n", unz_err)
-                }
+                ZipRdr, zip_err := zip.OpenReader(CurrFil)
+                if zip_err != nil {
+                    fmt.Println("[!] GXR Unzip File Open Error: " + CurrFil)        
+                } else {
+                    defer ZipRdr.Close()
 
-                for iUnz := 0; iUnz < len(Unzfiles); iUnz++ {
-                    fmt.Printf("[*] Unzipped File: %s\n", Unzfiles[iUnz])
+                    Unzfiles, unz_err := Unzip(ZipRdr.File, CurrWorkDir)
+                    if unz_err != nil {
+                        fmt.Printf("[!] GXR Unzip Error: %s\n", unz_err)
+                    }
+
+                    for iUnz := 0; iUnz < len(Unzfiles); iUnz++ {
+                        fmt.Printf("[*] Unzipped File: %s\n", Unzfiles[iUnz])
+                    }
                 }
             }
 	} else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/USR:") {
@@ -641,6 +650,13 @@ func main() {
         IniScan = bufio.NewScanner(os.Stdin)
 
     } else {
+        // If the Default IniFile does not exist, let's extract the Default one
+        if !FileExists(IniFile) && strings.HasSuffix(strings.ToUpper(IniFile), "ACHOIR.ACQ") {
+            ConsOut = fmt.Sprintf("[*] Ini File Does Not Exist UnEmbedding the Default one: %s\n", IniFile)
+            ConsLogSys(ConsOut, 1, 2)
+            UnEmbed()
+        }
+
         IniHndl, ini_err = os.Open(IniFile)
         if ini_err != nil {
             ConsOut = fmt.Sprintf("[!] Error Opening Ini File: %s\n", IniFile)
@@ -2163,15 +2179,23 @@ func main() {
                         ConsOut = fmt.Sprintf("[!] Unzip Requires both a Zip File Name and Destination Directory\n")
                         ConsLogSys(ConsOut, 1, 1)
                     } else {
-                        Unzfiles, unz_err := Unzip(splitString1, splitString2)
-                        if unz_err != nil {
-                            ConsOut = fmt.Sprintf("[!] Unzip Error: %s\n", unz_err)
+                        ZipRdr, zip_err := zip.OpenReader(splitString1)
+                        if zip_err != nil {
+                            ConsOut = fmt.Sprintf("[!] Cannot Open Zip File: %s\n", splitString1)
                             ConsLogSys(ConsOut, 1, 1)
-                        }
+                        } else {
+                            defer ZipRdr.Close()
 
-                        for iUnz := 0; iUnz < len(Unzfiles); iUnz++ {
-                            ConsOut = fmt.Sprintf("[*] Unzipped File: %s\n", Unzfiles[iUnz])
-                            ConsLogSys(ConsOut, 1, 1)
+                            Unzfiles, unz_err := Unzip(ZipRdr.File, splitString2)
+                            if unz_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Unzip Error: %s\n", unz_err)
+                                ConsLogSys(ConsOut, 1, 1)
+                            }
+
+                            for iUnz := 0; iUnz < len(Unzfiles); iUnz++ {
+                                ConsOut = fmt.Sprintf("[*] Unzipped File: %s\n", Unzfiles[iUnz])
+                                ConsLogSys(ConsOut, 1, 1)
+                            }
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "S3S:") {
@@ -3319,17 +3343,11 @@ func RunCommand(Commandstring string, Commandtype int) error {
 // within the zip file (parameter 1) to an output directory (parameter 2).  *
 //   https://golangcode.com/unzip-files-in-go/                              *
 //***************************************************************************
-func Unzip(ZipSrc string, ZipDest string) ([]string, error) {
+func Unzip(ZipRdrFile []*zip.File, ZipDest string) ([]string, error) {
 
     var ZipFNames []string
 
-    ZipRdr, zip_err := zip.OpenReader(ZipSrc)
-    if zip_err != nil {
-        return ZipFNames, zip_err
-    }
-    defer ZipRdr.Close()
-
-    for _, ZipFile := range ZipRdr.File {
+    for _, ZipFile := range ZipRdrFile {
 
         // Store filename/path for returning and using later on
         ZipFpath := filepath.Join(ZipDest, ZipFile.Name)
@@ -3348,7 +3366,7 @@ func Unzip(ZipSrc string, ZipDest string) ([]string, error) {
         }
 
         // Make File
-        if zip_err = os.MkdirAll(filepath.Dir(ZipFpath), os.ModePerm); zip_err != nil {
+        if zip_err := os.MkdirAll(filepath.Dir(ZipFpath), os.ModePerm); zip_err != nil {
             return ZipFNames, zip_err
         }
 

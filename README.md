@@ -32,3 +32,6 @@ I hope that eventually this idea will help forensicators move across multiple pl
 11/26/2020 - Beta 31. Add Admin/Root Checks - Move subroutine to Platform Specific Files.  Add &Adm Variable = Yes or No  (Running as Admin/Root)
 
 11/27/2020 - Beta 32. Add &Mem Variable (Total System Memory)
+
+11/29/2020 - Beta 33. Add support for unzipping an embedded []byte stream. Embed Platform specific Default Scripts (Win, Lin, OSX)
+
