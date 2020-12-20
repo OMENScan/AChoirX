@@ -1,0 +1,96 @@
+@Echo Off
+Echo.
+Echo ACHGen 1.0 - Regenerates all AChoir Versions
+Echo Ctl-C to Exit or
+Pause
+Echo.
+Echo Would you like to regenerate the Windows, Linux, and OSX Embedded Zip Files?
+Choice /C YN /M "Press Y for Yes, N for No"
+If ERRORLEVEL == 2 GOTO Compile
+IF ERRORLEVEL == 1 GOTO Embed
+:Embed
+REM *********************************************************************
+REM * This Section Runs Embedder which converts Windows, Linux, and OSX *
+REM *  zip files to embbeded byte stream .go files that will be         *
+REM *  compiled into AChoirX                                            *
+REM *********************************************************************
+Echo.
+CD AChEmbed
+Embedder.exe
+CD ..
+Copy .\AChEmbed\WinEmbed.go /y
+Copy .\AChEmbed\LinEmbed.go /y
+Copy .\AChEmbed\OSXEmbed.go /y
+:Compile
+REM *********************************************************************
+REM * AChoir 32Bit Compile both regular and elevated (manifest)         *
+REM *********************************************************************
+Echo.
+Echo Compiling AChoirX for Windows - 32Bit ...
+set CGO_ENABLED=0
+set GOARCH=386
+set GOOS=windows
+go build AChoirX.go only_windows.go WinEmbed.go
+copy AChoirX.exe AChoirX32.exe /y
+REM *********************************************************************
+REM * Embedding a Manifest requires the Microsoft manifest utility      *
+REM *********************************************************************
+Echo.
+Echo Checking for Manifest Utility...
+if exist mt-master\x86\mt.exe GOTO Manif32
+GOTO NoManif32
+:Manif32
+Echo.
+Echo Now Embedding Manifest...
+copy AChoirX.exe A-AChoirX32.exe /y
+Del  AChoirX.exe
+mt-master\x86\mt.exe /nologo /manifest "mt-master\x86\AChoirX.exe.manifest" /outputresource:"A-AChoirX32.exe;#1"
+GOTO Ach64
+:NoManif32
+Echo.
+Echo Manifest Utility not found, Manifest bypassed... 
+REM *********************************************************************
+REM * AChoir 64Bit Compile both regular and elevated (manifest)         *
+REM *********************************************************************
+Del  AChoirX.exe
+:Ach64
+Echo.
+Echo Compiling AChoirX for Windows - 64Bit...
+set CGO_ENABLED=0
+set GOARCH=amd64
+set GOOS=windows
+go build AChoirX.go only_windows.go WinEmbed.go
+copy AChoirX.exe A-AChoirX.exe /y
+Echo.
+Echo Checking for Manifest Utility...
+if exist mt-master\x86\mt.exe GOTO Manif64
+GOTO NoManif64
+:Manif64
+Echo.
+Echo Now Embedding Manifest...
+mt-master\X64\mt.exe /nologo /manifest "mt-master\x64\AChoirX.exe.manifest" /outputresource:"A-AChoirX.exe;#1"
+GOTO AchOSX
+:NoManif64
+Echo.
+Echo Manifest Utility not found, Manifest bypassed... 
+REM *********************************************************************
+REM * AChoir OSX Compile                                                *
+REM *********************************************************************
+:AchOSX
+Echo.
+Echo Compiling AChoirX for OSX...
+set CGO_ENABLED=0
+set GOARCH=amd64
+set GOOS=darwin
+go build AChoirX.go only_OSX.go OSXEmbed.go
+Copy AChoirX AChoirX-OSX /y
+REM *********************************************************************
+REM * AChoir Linux Compile                                              *
+REM *********************************************************************
+:AchOSX
+Echo.
+Echo Compiling AChoirX for Linux...
+set CGO_ENABLED=0
+set GOARCH=amd64
+set GOOS=linux
+go build AChoirX.go only_linux.go LinEmbed.go

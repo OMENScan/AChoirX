@@ -35,3 +35,4 @@ I hope that eventually this idea will help forensicators move across multiple pl
 
 11/29/2020 - Beta 33. Add support for unzipping an embedded []byte stream. Embed Platform specific Default Scripts (Win, Lin, OSX)
 
+12/20/2020 - Beta 34. Add Embedder to ToolChain.  Include WinPmem (Memory Dumper) in Embedded Zip. Add TSK Fcat into (Raw NTFS Copy) into Embedded Zip

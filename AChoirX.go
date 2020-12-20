@@ -35,6 +35,8 @@
 //                      BSD 3-Clause License - Thanks to Jeremy Jay
 // AChoirX v10.00.33 - Add support for unzipping an embedded []byte stream
 //                   - Embed Platform specific Default Scripts (Win, Lin, OSX)
+// AChoirX v10.00.34 - Add Embedder to ToolChain.  Include WinPmem (Memory Dumper) in Embedded Zip
+//                     Add TSK Fcat into (Raw NTFS Copy) into Embedded Zip
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -88,7 +90,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.33"                       // AChoir Version
+var Version = "v10.00.34"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -654,7 +656,7 @@ func main() {
         if !FileExists(IniFile) && strings.HasSuffix(strings.ToUpper(IniFile), "ACHOIR.ACQ") {
             ConsOut = fmt.Sprintf("[*] Ini File Does Not Exist UnEmbedding the Default one: %s\n", IniFile)
             ConsLogSys(ConsOut, 1, 2)
-            UnEmbed()
+            UnEmbed(embdata)
         }
 
         IniHndl, ini_err = os.Open(IniFile)

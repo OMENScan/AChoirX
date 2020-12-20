@@ -1,4 +1,4 @@
-AChoirX - v10.00.31
+AChoirX - v10.00.34
 
 AChoirX
 =======
@@ -348,6 +348,7 @@ Objects:
 &CNR     AFTER using the &FOR or &LST variable the number of records counted is stored here
 &VCK     Results of last Volume Check (VCK:<x:\>
 &DSA     Disk Space Available
+&MEM     Total Memory
 &HST     Local Host Name (set to "localhost" on error)
 &ADM     Running as Admin?  (Yes | No)
 
@@ -509,6 +510,12 @@ I have come up with the following nomenclature (Note: this is a change from ACho
   all subdirectories regardless of depth.
 
 
+A note about Embedded Files
+---------------------------
+AChoirX for Windows, Linux, and OSX now have embedded zip files.  If a Toolkit is not present, 
+AChoirX will unzip these files to create a very basic Toolkit.  This allows a basic version of
+AChoirX to run with only the single AChoirX executable file.
+
 
 A note about UniCode
 --------------------
@@ -523,6 +530,12 @@ Artifacts that AChoirX itself generates:
 ----------------------------------------
 AchoirX itself will generate a few files.  These are meant to increase non-repudiation
 and make the artifacts easier to use.
+
+Embedded ToolKit Files
+-----------------------
+AChoirX for Windows, Linux, and OSX now have embedded zip files.  If a Toolkit is not present, 
+AChoirX will unzip these files to create a very basic Toolkit.  This allows a basic version of
+AChoirX to run with only the single AChoirX executable file.
 
 Logfile (ACQ-IR-<name>-<date>-<time>.txt
 ----------------------------------------
@@ -546,7 +559,6 @@ AchoirX will generate an Index.htm file for every acquisition.  This file can be
 your favorite web browser to browse and open the acquired artifacts.  This is an incredibly 
 simple but useful feature.  
 
-
 ForFiles
 ---------
 AChoirX will create a temporary file in the Acquisition Cache Directory called "ForFiles"
@@ -558,6 +570,7 @@ ForDisks
 AChoirX will create a temporary file in the Acquisition Cache Directory called "ForDisks"
 every time the DSK: Action is used.  ForDisks contains the results and is used when the 
 &DSK Looping object (variable) is used. Note: This function is only relevant for Windows.
+
 
 
 Last Thoughts:
