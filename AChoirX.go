@@ -37,6 +37,7 @@
 //                   - Embed Platform specific Default Scripts (Win, Lin, OSX)
 // AChoirX v10.00.34 - Add Embedder to ToolChain.  Include WinPmem (Memory Dumper) in Embedded Zip
 //                     Add TSK Fcat into (Raw NTFS Copy) into Embedded Zip
+// AChoirX v10.00.35 - Fix &CNR for FOR: and LST:
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -90,7 +91,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.34"                       // AChoir Version
+var Version = "v10.00.35"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -747,6 +748,7 @@ func main() {
                     Looper = 0
                 }
 
+                iMaxCnt = 0
                 ForScan = bufio.NewScanner(ForHndl)
             } else {
                 ForMe = 0
@@ -780,6 +782,7 @@ func main() {
                     Looper = 0
                 }
 
+                iMaxCnt = 0
                 LstScan = bufio.NewScanner(LstHndl)
             } else {
                 LstMe = 0
@@ -825,6 +828,7 @@ func main() {
 
                         Looper = 1
                         LoopNum++
+                        iMaxCnt++
 
                         //****************************************************************
                         //* Get Just the File Name                                       *
@@ -857,6 +861,7 @@ func main() {
 
                         Looper = 1
                         LoopNum++
+                        iMaxCnt++
                     } else {
                         break
                     }
