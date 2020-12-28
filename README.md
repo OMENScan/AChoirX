@@ -38,3 +38,8 @@ I hope that eventually this idea will help forensicators move across multiple pl
 12/20/2020 - Beta 34. Add Embedder to ToolChain.  Include WinPmem (Memory Dumper) in Embedded Zip. Add TSK Fcat into (Raw NTFS Copy) into Embedded Zip
 
 12/20/2020 - Beta 35. Fix &CNR Counter
+
+12/27/2020 - Beta 36. Change Conditional Logic to only count a single occurance of &FOR and &LST comparisons. This prevents the need for multiple END: statements.
+Multiple comparisons only get a single hit if ANY match is found. THIS IS IMPORTANT!! Wherever &FOR and &LST are used in CONDITIONAL LOGIC - A SINGLE HIT WILL BE 
+TRUE.  To Test for INDIVIDUAL cases use a specific check and NOT a Check Against a list (&LST, &FOR). Expand &FOR and &LST Support to more Actions. Add 
+HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a single File for now). Trim quotes for CKN: and CKY:

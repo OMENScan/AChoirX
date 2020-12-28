@@ -39,6 +39,17 @@
 //                     Add TSK Fcat into (Raw NTFS Copy) into Embedded Zip
 // AChoirX v10.00.35 - Fix &CNR for FOR: and LST:
 //
+// AChoirX v10.00.36 - Change Conditional Logic to only count a single occurance of &FOR and &LST comparisons
+//                     This prevents the need for multiple END: statements  - Multiple comparisons only get 
+//                     a single hit if ANY match is found.
+//                       THIS IS IMPORTANT!! Wherever &FOR and &LST are used in CONDITIONAL LOGIC - 
+//                        A SINGLE HIT WILL BE TRUE.  To Test for INDIVIDUAL cases use a specific check and 
+//                        NOT a Check Against a list (&LST, &FOR).
+//                   - Expand &FOR and &LST Support to more Actions.
+//                   - Add HSH:<Filename> Will put the File hash in the &HSH Variable
+//                     (Only supports a single File for now)
+//                   - Trim quotes for CKN: and CKY:
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -91,7 +102,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.35"                       // AChoir Version
+var Version = "v10.00.36"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -153,6 +164,9 @@ var iXitCmd = 0                                 // Are we runnning an Exit Comma
 var XitCmd = "Exit"                             // Exit Command (AChoirX Post Processing)
 var iOPNisOpen = 0                              // Is the User Defined File Open?
 var setCDepth = 10                              // Set Copy Depth
+var LastHash = "none"                           // Last Single File Hash
+var NotFound = 0                                // Flag for ensuring that only one Found Rec Increments RunMe
+var YesFound = 0                                // Flag for ensuring that only one Found Rec Increments RunMe
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -815,6 +829,9 @@ func main() {
             //* Loop (FOR: and LST:) until Looper = 1                        *
             //****************************************************************
             LoopNum = 0
+            NotFound = 0
+            YesFound = 0
+
             for Looper > 0 {
                 if ForMe == 0 && LstMe == 0 && DskMe == 0 {
                     Looper = 0
@@ -843,6 +860,8 @@ func main() {
                         }
 
                     } else {
+                        ConsOut = fmt.Sprintf("[+] For Records Processed: %d\n", LoopNum)
+                        ConsLogSys(ConsOut, 3, 2)
                         break
                     }
                 } else if ForMe == 0 && LstMe == 1 && DskMe == 0 {
@@ -863,6 +882,8 @@ func main() {
                         LoopNum++
                         iMaxCnt++
                     } else {
+                        ConsOut = fmt.Sprintf("[+] Lst Records Processed: %d\n", LoopNum)
+                        ConsLogSys(ConsOut, 3, 2)
                         break
                     }
                 } else if ForMe == 0 && LstMe == 0 && DskMe == 1 {
@@ -921,6 +942,12 @@ func main() {
 
                     repl_Fil := NewCaseInsensitiveReplacer("&Fil", CurrFil)
                     o32VarRec = repl_Fil.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Hsh") {
+
+                    repl_Hsh := NewCaseInsensitiveReplacer("&Hsh", LastHash)
+                    o32VarRec = repl_Hsh.Replace(o32VarRec)
                 }
 
                 if CaseInsensitiveContains(o32VarRec, "&Tim") {
@@ -1659,8 +1686,26 @@ func main() {
                                 ConsLogSys(ConsOut, 1, 1)
                             }
                         } else {
-                            if splitString1 != splitString2 {
-                                RunMe++
+                            if splitString1 == splitString2 {
+                               // Yes on First Match Only
+                                if YesFound == 0 {
+                                    YesFound = 1
+                                }
+                            } else {
+                                // No On First Not Match Only
+                                if NotFound == 0 {
+                                    NotFound = 1
+                                }
+                            }
+
+                            if NotFound == 1 && YesFound == 0 {
+                                // Not Found, Increment Just Once
+                                 RunMe++
+                                 NotFound = 2
+                            } else if YesFound == 1 && NotFound == 2 {
+                                // undo the Previous Runme++ and make sure we dont do it again.
+                                RunMe--
+                                YesFound = 2
                             }
                         }
                     }
@@ -1680,41 +1725,103 @@ func main() {
                                 if(consOrFile == 1) {
                                     ConsOut = fmt.Sprintf("[*] %d Is Greater Than %d\n", longString1, longString2)
                                     ConsLogSys(ConsOut, 1, 1)
+                                } else {
+                                    // Yes on First Match Only
+                                    if YesFound == 0 {
+                                        YesFound = 1
+                                    }
                                 }
                             } else {
                                 if(consOrFile == 1) {
                                     ConsOut = fmt.Sprintf("[*] %d Is NOT Greater Than %d\n", longString1, longString2)
                                     ConsLogSys(ConsOut, 1, 1)
                                 } else {
-                                    RunMe++
+                                    // No On First Not Match Only
+                                    if NotFound == 0 {
+                                        NotFound = 1
+                                    }
                                 }
                             }
+
+                            if(consOrFile != 1) {
+                                if NotFound == 1 && YesFound == 0 {
+                                     // Not Found, Increment Just Once
+                                     RunMe++
+                                     NotFound = 2
+                                } else if YesFound == 1 && NotFound == 2 {
+                                    // undo the Previous Runme++ and make sure we dont do it again.
+                                    RunMe--
+                                    YesFound = 2
+                                }
+                            }
+
                         } else if strings.HasPrefix(strings.ToUpper(Inrec), "N<<:") {
                             if longString1 < longString2 {
                                 if(consOrFile == 1) {
                                     ConsOut = fmt.Sprintf("[*] %d Is Less Than %d\n", longString1, longString2)
                                     ConsLogSys(ConsOut, 1, 1)
+                                } else {
+                                    // Yes on First Match Only
+                                    if YesFound == 0 {
+                                        YesFound = 1
+                                    }
                                 }
                             } else {
                                 if(consOrFile == 1) {
                                     ConsOut = fmt.Sprintf("[*] %d Is NOT Less Than %d\n", longString1, longString2)
                                     ConsLogSys(ConsOut, 1, 1)
                                 } else {
-                                    RunMe++
+                                    // No On First Not Match Only
+                                    if NotFound == 0 {
+                                        NotFound = 1
+                                    }
                                 }
                             }
+
+                            if(consOrFile != 1) {
+                                if NotFound == 1 && YesFound == 0 {
+                                     // Not Found, Increment Just Once
+                                     RunMe++
+                                     NotFound = 2
+                                } else if YesFound == 1 && NotFound == 2 {
+                                    // undo the Previous Runme++ and make sure we dont do it again.
+                                    RunMe--
+                                    YesFound = 2
+                                }
+                            }
+
                         } else if strings.HasPrefix(strings.ToUpper(Inrec), "N==:") {
                             if longString1 == longString2 {
                                 if(consOrFile == 1) {
                                     ConsOut = fmt.Sprintf("[*] %d Is Equal To %d\n", longString1, longString2)
                                     ConsLogSys(ConsOut, 1, 1)
+                                } else {
+                                    // Yes on First Match Only
+                                    if YesFound == 0 {
+                                        YesFound = 1
+                                    }
                                 }
                             } else {
                                 if(consOrFile == 1) {
                                     ConsOut = fmt.Sprintf("[*] %d Is NOT Equal To %d\n", longString1, longString2)
                                     ConsLogSys(ConsOut, 1, 1)
                                 } else {
-                                    RunMe++
+                                    // No On First Not Match Only
+                                    if NotFound == 0 {
+                                        NotFound = 1
+                                    }
+                                }
+                            }
+
+                            if(consOrFile != 1) {
+                                if NotFound == 1 && YesFound == 0 {
+                                     // Not Found, Increment Just Once
+                                     RunMe++
+                                     NotFound = 2
+                                } else if YesFound == 1 && NotFound == 2 {
+                                    // undo the Previous Runme++ and make sure we dont do it again.
+                                    RunMe--
+                                    YesFound = 2
                                 }
                             }
                         }
@@ -1739,14 +1846,32 @@ func main() {
                                 ConsLogSys(ConsOut, 1, 1)
                             }
                         } else {
-                            if splitString1 == splitString2 {
-                                RunMe++
+                            if splitString1 != splitString2 {
+                               // Yes on First Match Only
+                                if YesFound == 0 {
+                                    YesFound = 1
+                                }
+                            } else {
+                                // No On First Not Match Only
+                                if NotFound == 0 {
+                                    NotFound = 1
+                                }
+                            }
+
+                            if NotFound == 1 && YesFound == 0 {
+                                // Not Found, Increment Just Once
+                                 RunMe++
+                                 NotFound = 2
+                            } else if YesFound == 1 && NotFound == 2 {
+                                // undo the Previous Runme++ and make sure we dont do it again.
+                                RunMe--
+                                YesFound = 2
                             }
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "VER:") {
                     //****************************************************************
-                    //* Check the Input String vor Version.  This can be Partial.    *
+                    //* Check the Input String for Version.  This can be Partial.    *
                     //*  For Example: Windows 10.0.18362 will get a TRUE for         *
                     //*  Ver:Win, Ver:Windows 10, Ver:Windows 10.0.183, etc...       *
                     //****************************************************************
@@ -1754,8 +1879,26 @@ func main() {
                         ConsOut = fmt.Sprintf("[*] OS Version Detected: %s\n", OSVersion)
                         ConsLogSys(ConsOut, 1, 1)
                     } else {
-                        if !strings.HasPrefix(strings.ToUpper(OSVersion), strings.ToUpper(Inrec[4:])) {
-                            RunMe++
+                        if strings.HasPrefix(strings.ToUpper(OSVersion), strings.ToUpper(Inrec[4:])) {
+                            // Yes on First Match Only
+                            if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC=:") {
@@ -1769,8 +1912,26 @@ func main() {
                             ConsLogSys(ConsOut, 1, 1)
                         }
                     } else {
-                        if LastRC != ChkRC {
-                            RunMe++
+                        if LastRC == ChkRC {
+                           // Yes on First Match Only
+                           if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC!:") {
@@ -1784,8 +1945,26 @@ func main() {
                             ConsLogSys(ConsOut, 1, 1)
                         }
                     } else {
-                        if LastRC == ChkRC {
-                            RunMe++
+                        if LastRC != ChkRC {
+                           // Yes on First Match Only
+                           if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC<:") {
@@ -1799,8 +1978,26 @@ func main() {
                             ConsLogSys(ConsOut, 1, 1)
                         }
                     } else {
-                        if LastRC >= ChkRC {
-                            RunMe++
+                        if LastRC < ChkRC {
+                           // Yes on First Match Only
+                           if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC>:") {
@@ -1814,12 +2011,31 @@ func main() {
                             ConsLogSys(ConsOut, 1, 1)
                         }
                     } else {
-                        if LastRC <= ChkRC {
-                            RunMe++
+                        if LastRC > ChkRC {
+                           // Yes on First Match Only
+                           if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "CKY:") {
-                    ChkFile = Inrec[4:]
+                    ChkFile = strings.Trim(Inrec[4:], "\"")
+
                     if consOrFile == 1 {
                         if !FileExists(ChkFile) {
                             ConsOut = fmt.Sprintf("[*] File Does Not Exist: %s\n", ChkFile)
@@ -1829,12 +2045,30 @@ func main() {
                             ConsLogSys(ConsOut, 1, 1)
                         }
                     } else {
-                        if !FileExists(ChkFile) {
-                            RunMe++
+                        if FileExists(ChkFile) {
+                           // Yes on First Match Only
+                           if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "CKN:") {
-                    ChkFile = Inrec[4:]
+                    ChkFile = strings.Trim(Inrec[4:], "\"")
                     if consOrFile == 1 {
                         if FileExists(ChkFile) {
                             ConsOut = fmt.Sprintf("[*] File Does (NOT NOT) Exist: %s\n", ChkFile)
@@ -1844,8 +2078,26 @@ func main() {
                             ConsLogSys(ConsOut, 1, 1)
                         }
                     } else {
-                        if FileExists(ChkFile) {
-                            RunMe++
+                        if !FileExists(ChkFile) {
+                           // Yes on First Match Only
+                           if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "64B:") {
@@ -1939,22 +2191,26 @@ func main() {
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "HSH:") {
-                    ConsOut = fmt.Sprintf("[+] Now Hashing  Acquisition Files.\n")
-                    ConsLogSys(ConsOut, 1, 1)
-
-
-                    if strings.ToUpper(Inrec[4:]) == "ACQ" {
-                        MD5File = fmt.Sprintf("%s%cACQHash.txt", BACQDir, slashDelim)
-                        TempDir = BACQDir
-                    } else if strings.ToUpper(Inrec[4:]) == "DIR" {
-                        MD5File = fmt.Sprintf("%s%cDirHash.txt", BaseDir, slashDelim)
-                        TempDir = BaseDir
+                    if len(Inrec) > 4 {
+                        if strings.ToUpper(Inrec[4:]) == "ACQ" {
+                            ConsOut = fmt.Sprintf("[+] Now Hashing  Acquisition Files.\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                            MD5File = fmt.Sprintf("%s%cACQHash.txt", BACQDir, slashDelim)
+                            TempDir = BACQDir
+                        } else if strings.ToUpper(Inrec[4:]) == "DIR" {
+                            ConsOut = fmt.Sprintf("[+] Now Hashing  Entire AChoirX Directory.\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                            MD5File = fmt.Sprintf("%s%cDirHash.txt", BaseDir, slashDelim)
+                            TempDir = BaseDir
+                        } else {
+                            LastHash = GetMD5File(strings.Trim(Inrec[4:], "\""))
+                            break
+                        }
                     } else {
-                        ConsOut = fmt.Sprintf("[+] Invalid Hash Directory Parameter.\n")
+                        ConsOut = fmt.Sprintf("[!] No Hashing Parameter Specified.\n")
                         ConsLogSys(ConsOut, 1, 1)
                         break
                     }
-
                     //****************************************************************
                     // Do File Search using Walk because Glob does not support **    *
                     //****************************************************************
