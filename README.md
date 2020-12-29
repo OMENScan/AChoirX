@@ -43,3 +43,5 @@ I hope that eventually this idea will help forensicators move across multiple pl
 Multiple comparisons only get a single hit if ANY match is found. THIS IS IMPORTANT!! Wherever &FOR and &LST are used in CONDITIONAL LOGIC - A SINGLE HIT WILL BE 
 TRUE.  To Test for INDIVIDUAL cases use a specific check and NOT a Check Against a list (&LST, &FOR). Expand &FOR and &LST Support to more Actions. Add 
 HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a single File for now). Trim quotes for CKN: and CKY:
+
+12/28/2020 - Beta 37 - Implement CopyPath= for Single File Copy
