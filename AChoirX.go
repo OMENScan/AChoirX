@@ -50,6 +50,8 @@
 //                     (Only supports a single File for now)
 //                   - Trim quotes for CKN: and CKY:
 //
+// AChoirX v10.00.37 - Implement CopyPath= for Single File Copy
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -3842,16 +3844,34 @@ func CopyParser(splitString1 string, splitString2 string) {
         ForSlash = strings.LastIndexByte(splitString1, slashDelim)
         if (ForSlash == -1) {
             MCpFName = splitString1
+            MCpShard = ""
+            MCpPath = ""
         } else if len(splitString1[ForSlash+1:]) < 2 {
             MCpFName = splitString1
+            MCpShard = ""
+            MCpPath = ""
         } else {
             MCpFName = splitString1[ForSlash+1:]
+            MCpPath = filepath.Dir(splitString1)
+            MCpShard = filepath.Base(MCpPath)
         }
+
 
         //****************************************************************
         //* Copy to Output File Name                                     *
+        //*  Note: a Shard is the last sub-deirectory in the File Path   *
         //****************************************************************
-        MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+        //MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+        if setCPath == 0 {
+          MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+        } else if setCPath == 1 && len(MCpShard) < 1 {
+            MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+        } else if setCPath == 1 {
+            MCprcO = fmt.Sprintf("%s%c%s%c%s", splitString2, slashDelim, MCpShard, slashDelim, MCpFName)
+        } else if setCPath == 2 {
+            MCpPath = strings.Replace(MCpPath, ":", "", -1)
+            MCprcO = fmt.Sprintf("%s%c%s%c%s", splitString2, slashDelim, MCpPath, slashDelim, MCpFName)
+        }
 
         ConsOut = fmt.Sprintf("[+] Singl-Copy File: %s\n    To: %s\n", splitString1, MCprcO)
         ConsLogSys(ConsOut, 1, 1)
