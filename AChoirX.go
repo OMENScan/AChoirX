@@ -52,6 +52,8 @@
 //
 // AChoirX v10.00.37 - Implement CopyPath= for Single File Copy
 //
+// AChoirX v10.00.38 - Implement END:Reset to clear any Dangling ENDs.  Use Judiciously.
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -104,7 +106,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.36"                       // AChoir Version
+var Version = "v10.00.38"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -2145,8 +2147,21 @@ func main() {
                     ConsOut = fmt.Sprintf("%s\n", Inrec[4:])
                     ConsLogSys(ConsOut, 1, 1)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "END:") {
-                    if RunMe > 0 {
+                    if len(Inrec) > 4 {
+                        // Is there a parameter after the END: Statement
+                        if strings.ToUpper(Inrec[4:]) == "RESET" {
+                            // The Parameter is RESET
+                            ConsOut = fmt.Sprintf("[+] Resetting Internal Conditional Execution Flag...\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                            RunMe = 0
+                        }
+                    } else if RunMe > 0 {
                         RunMe--
+                    } else if RunMe < 0 {
+                        //* Something went wrong and our logic created a negative RunMe - Reset to 0
+                        ConsOut = fmt.Sprintf("[!] Internal Error, Resetting Internal Conditional Execution Flag...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        RunMe = 0
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "OPN:") {
                     // If we already had a file open, close it now.
@@ -2311,8 +2326,6 @@ func main() {
 
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "LST:") {
                     LstFile = fmt.Sprintf("%s%c%s", BaseDir,slashDelim, Inrec[4:])
-                } else if strings.HasPrefix(strings.ToUpper(Inrec), "END:") {
-                    RunMe--
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "BYE:") {
                     cleanUp_Exit(LastRC);
                     os.Exit(LastRC);

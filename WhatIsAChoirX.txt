@@ -244,6 +244,7 @@ CN0: - CN9: <Number to Set> or ++ or --
          Increment/Decrement with CNx:++ and CNx:-- 
 HSH:ACQ  Hash everything in the &ACQ directory and subdirectories
 HSH:Dir  Hash everything in the &DIR directory and subdirectories
+HSH:<FileName> MD5 Hash The file and store it in &HSH
 FOR:     Set the &FOR object.  This is a Looping object based on 
          Files - For instance "FOR:C:\Users\*.DAT" will define
          All *.DAT Files under C:\Users. In this way a single 
@@ -297,6 +298,7 @@ VER:<verkeyword>
                 get a TRUE for Ver:Win, Ver:Windows 10, Ver:Windows 10.0.183, etc...
          Note: other valid <verkeyword> keywords are: Linux and Darwin
 END:     End Conditional Statement execution.
+END:RESET End ALL Conditional Statement execution (Resets the conditional Flag).
 LBL:<LabelName>
          Define a Label that can be Jumped to (JMP:<LabelName>)
 JMP:<LabelName>
@@ -351,6 +353,7 @@ Objects:
 &MEM     Total Memory
 &HST     Local Host Name (set to "localhost" on error)
 &ADM     Running as Admin?  (Yes | No)
+&HSH     MD5 of the last file Hashed with HSH:
 
 ${<variable>} - AChoirX can also expand the native OS Environment Variables
 

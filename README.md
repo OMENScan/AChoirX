@@ -45,3 +45,5 @@ TRUE.  To Test for INDIVIDUAL cases use a specific check and NOT a Check Against
 HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a single File for now). Trim quotes for CKN: and CKY:
 
 12/28/2020 - Beta 37 - Implement CopyPath= for Single File Copy
+
+01/01/2021 - Beta 38 - Implement END:Reset to clear any Dangling ENDs.  Use Judiciously.
