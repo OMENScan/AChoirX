@@ -248,6 +248,7 @@ var S3_err error                                // S3 Errors
 var iS3Login = 0                                // Default is NOT logged in
 
 // SFTP Server Variables
+var SF_mutex = &sync.Mutex{}                    // SFTP Mutex (One At A Time)
 var SF_Server = "none"                          // SFTP Server
 var SF_Port = 22                                // SFTP Default Port
 var SF_UserId = "none"                          // SFTP UserId
@@ -2743,6 +2744,18 @@ func main() {
 
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SFU:") {
                     //****************************************************************
+                    //* See if we are already/still Logged In or Not by attempting   *
+                    //*  to read the current remote directory                        *
+                    //****************************************************************
+                    if iSFLogin == 1 {
+                        _, curdir_err := SF_Client.Getwd()
+                        if curdir_err != nil {
+                            iSFLogin = 0 
+                        }
+                    }
+
+
+                    //****************************************************************
                     //* See if we have SFTP Login.  If not, See if we can start one  *
                     //****************************************************************
                     if iSFLogin == 0 {
@@ -4411,9 +4424,6 @@ func uploadFileToS3(S3Session *session.Session, S3FileName string, S3UpldName st
 // S3UpParser: Parses out the Copy Parameters for Multi or Single Copy      *
 //***************************************************************************
 func S3UpParser(splitString1 string, splitString2 string) {
-
-    var S3_mutex = &sync.Mutex{}
-
     //****************************************************************
     //* If we see any wildcards, do search for multiple occurances   *
     //****************************************************************
@@ -4515,9 +4525,7 @@ func S3UpParser(splitString1 string, splitString2 string) {
             ConsOut = fmt.Sprintf("[+] S3 Multi-Upload File: %s\n    To: %s\n", file_found, MCprcO)
             ConsLogSys(ConsOut, 1, 1)
 
-            S3_mutex.Lock()
             S3_err = uploadFileToS3(S3_Session, file_found, MCprcO)
-            S3_mutex.Unlock()
 
             if S3_err != nil {
                 ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", Inrec[4:], S3_err)
@@ -4587,9 +4595,7 @@ func S3UpParser(splitString1 string, splitString2 string) {
                     ConsOut = fmt.Sprintf("[+] S3 Multi-Upload Redir File: %s\n    To: %s\n", file_found, MCprcO)
                     ConsLogSys(ConsOut, 1, 1)
 
-                    S3_mutex.Lock()
                     S3_err = uploadFileToS3(S3_Session, file_found, MCprcO)
-                    S3_mutex.Unlock()
 
                     if S3_err != nil {
                         ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", Inrec[4:], S3_err)
@@ -4625,9 +4631,7 @@ func S3UpParser(splitString1 string, splitString2 string) {
         ConsOut = fmt.Sprintf("[+] S3 Singl-Upload File: %s\n    To: %s\n", splitString1, MCprcO)
         ConsLogSys(ConsOut, 1, 1)
 
-        S3_mutex.Lock()
         S3_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
-        S3_mutex.Unlock()
 
         if S3_err != nil {
             ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", splitString1, S3_err)
@@ -4674,9 +4678,7 @@ func S3UpParser(splitString1 string, splitString2 string) {
                 ConsOut = fmt.Sprintf("[+] S3 Singl-Upload Redir File: %s\n    To: %s\n", splitString1, MCprcO)
                 ConsLogSys(ConsOut, 1, 1)
 
-                S3_mutex.Lock()
                 S3_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
-                S3_mutex.Unlock()
 
                 if S3_err != nil {
                     ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", splitString1, S3_err)
@@ -4693,9 +4695,6 @@ func S3UpParser(splitString1 string, splitString2 string) {
 // SFUpParser: Parses out the Copy Parameters for Multi or Single Copy      *
 //***************************************************************************
 func SFUpParser(splitString1 string, splitString2 string) {
-
-    var SF_mutex = &sync.Mutex{}
-
     //****************************************************************
     //* If we see any wildcards, do search for multiple occurances   *
     //****************************************************************
@@ -4797,9 +4796,7 @@ func SFUpParser(splitString1 string, splitString2 string) {
             ConsOut = fmt.Sprintf("[+] SFTP Multi-Upload File: %s\n    To: %s\n", file_found, MCprcO)
             ConsLogSys(ConsOut, 1, 1)
 
-            SF_mutex.Lock()
             SF_err = uploadFileToSF(*SF_Client, file_found, MCprcO)
-            SF_mutex.Unlock()
 
             if SF_err != nil {
                 ConsOut = fmt.Sprintf("[!] Error Uploading File to SFTP: %s\n    %s\n", Inrec[4:], SF_err)
@@ -4869,9 +4866,7 @@ func SFUpParser(splitString1 string, splitString2 string) {
                     ConsOut = fmt.Sprintf("[+] SFTP Multi-Upload Redir File: %s\n    To: %s\n", file_found, MCprcO)
                     ConsLogSys(ConsOut, 1, 1)
 
-                    SF_mutex.Lock()
                     SF_err = uploadFileToSF(*SF_Client, file_found, MCprcO)
-                    SF_mutex.Unlock()
 
                     if SF_err != nil {
                         ConsOut = fmt.Sprintf("[!] Error Uploading File to SFTP: %s\n    %s\n", Inrec[4:], SF_err)
@@ -4907,9 +4902,7 @@ func SFUpParser(splitString1 string, splitString2 string) {
         ConsOut = fmt.Sprintf("[+] SFTP Singl-Upload File: %s\n    To: %s\n", splitString1, MCprcO)
         ConsLogSys(ConsOut, 1, 1)
 
-        SF_mutex.Lock()
         SF_err = uploadFileToSF(*SF_Client, splitString1, MCprcO)
-        SF_mutex.Unlock()
 
         if SF_err != nil {
             ConsOut = fmt.Sprintf("[!] Error Uploading File to SFTP: %s\n    %s\n", splitString1, SF_err)
@@ -4956,9 +4949,7 @@ func SFUpParser(splitString1 string, splitString2 string) {
                 ConsOut = fmt.Sprintf("[+] SFTP Singl-Upload Redir File: %s\n    To: %s\n", splitString1, MCprcO)
                 ConsLogSys(ConsOut, 1, 1)
 
-                SF_mutex.Lock()
                 SF_err = uploadFileToSF(*SF_Client, splitString1, MCprcO)
-                SF_mutex.Unlock()
 
                 if SF_err != nil {
                     ConsOut = fmt.Sprintf("[!] Error Uploading File to SFTP: %s\n    %s\n", splitString1, S3_err)
@@ -5060,6 +5051,9 @@ func decryptFile(encFileName string, passphrase string) []byte {
 // Upload file to sftp server                                               *
 //***************************************************************************
 func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err error) {
+
+    var iWritecount = 0
+
     ConsOut = fmt.Sprintf("[+] Uploading [%s] to [%s] ...\n", localFile, remoteFile)
     ConsLogSys(ConsOut, 1, 1)
 
@@ -5097,14 +5091,52 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
     defer dstFile.Close()
 
 
-    scopy_bytes, scopy_err := io.Copy(dstFile, srcFile)
-    if scopy_err != nil {
-        ConsOut = fmt.Sprintf("[!] Unable to upload local file: %v\n", scopy_err)
-        ConsLogSys(ConsOut, 1, 1)
-    } else {
-        ConsOut = fmt.Sprintf("[+] Upload Completed: %d bytes copied\n", scopy_bytes)
-        ConsLogSys(ConsOut, 1, 1)
+    // Various Experiments to prevent Race Conditions in the SSH/SFTP Library
+    // Requires transfering data slowly to prevent DATA RACE in GO
+    SF_mutex.Lock()
+
+    // io.CopyBuffer Version - Fails with DATA RACE
+    //SF_buffr := make([]byte, 1000000000)
+    //scopy_bytes, scopy_err := io.CopyBuffer(dstFile, srcFile, SF_buffr)
+     
+    //io.copy Version - Fails with DATA RACE
+    //scopy_bytes, scopy_err := io.Copy(dstFile, srcFile)
+
+
+    iWritecount = 0
+    scopy_bytes := 0
+    SF_buffr := make([]byte, 4096)
+    for {
+        SF_ReadByteCount, scopy_err := srcFile.Read(SF_buffr)
+        if scopy_err != nil && scopy_err != io.EOF {
+            ConsOut = fmt.Sprintf("[!] Unable to read local file: %v\n", scopy_err)
+            ConsLogSys(ConsOut, 1, 1)
+            break
+        }
+
+        if SF_ReadByteCount == 0 {
+            break
+        }
+
+        if _, scopy_err := dstFile.Write(SF_buffr[:SF_ReadByteCount]); scopy_err != nil {
+            break
+        }
+
+        iWritecount++
+        scopy_bytes += SF_ReadByteCount
+        fmt.Sprintf("Bytes: %d\r", scopy_bytes)
+
     }
+
+    defer SF_mutex.Unlock()
+
+    //if scopy_err != nil {
+    //    ConsOut = fmt.Sprintf("[!] Unable to upload local file: %v\n", scopy_err)
+    //    ConsLogSys(ConsOut, 1, 1)
+    //} else {
+    //    ConsOut = fmt.Sprintf("[+] Upload Completed: %d bytes copied\n", scopy_bytes)
+    //    ConsLogSys(ConsOut, 1, 1)
+    //}
     
     return
 }
