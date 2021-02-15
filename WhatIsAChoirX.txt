@@ -1,4 +1,4 @@
-AChoirX - v10.00.37
+AChoirX - v10.00.39
 
 AChoirX
 =======
@@ -145,6 +145,7 @@ Actions:
 AChoirX uses most of the original Actions that AChoir uses.  However, some Actions have been 
 removed and some have been added.  Here is the current list of all the AChoirX Actions and Objects:
 
+SET:SFTPServ=<SFTPServer> SFTP Server To Upload Artifact
 SET:S3Region=<AWS Region> The region that the AWS S3 Bucket is in
 SET:S3Bucket=<AWS Bucket> The AWS Bucket Name
 SET:S3AWSId=<AWS ID> The AWS ID
@@ -223,6 +224,9 @@ GET:     Get a file using HTTP into &Fil
 UNZ:<Zip File> <Dest Dir> - Unzip a Zip File into the Destination Dir
 S3S: <ID> <Key> - Start an AWS Session using an AWS ID and Key
 S3U: <Local Fname> <Remote FName> - Uploads file(s) to an S3 Bucket
+         Wilcards are Supported.
+SFS: <UserId> <Password> - Start an SFTP Session using a UserId and Password
+SFU: <Local Fname> <Remote FName> - Uploads file(s) to an SFTP Server
          Wilcards are Supported.
 EXE:     Run a Program and wait for completion
 EXA:     Run a Program and DON'T wait for completion
@@ -500,9 +504,23 @@ reason you want to control the creation of the AWS Session, you can start a sess
 using the S3S: action.  Either method works equally well.
 
 
+A note about SFTP Upload (SFS:, SFU:)
+-------------------------------------
+AChoirX supports direct upload to an SFTP Server.  This can be extremely beneficial when 
+creating a way to collect artifacts and telemetry from remote machines, or to do a 
+large number of collections from many machines into one central place.
 
-A note about Wildcards (FOR:, CPY:, S3U:)
------------------------------------------
+The functions and variables for doing SFTP Uploads are:
+* SET:SFTPServ=<SFTPServer>
+* SFS: <UserId> <Password>
+* SFU: <Local Fname> <Remote FName>
+
+The recommended way to do SFTP Uploads is to set the SFTPServ parameter, call the SFS:
+action, and then call the SFU: action.
+
+
+A note about Wildcards (FOR:, CPY:, S3U:, SFU:)
+-----------------------------------------------
 In order to allow both current directory searches and current+subdirectory searches
 I have come up with the following nomenclature (Note: this is a change from AChoir):
 

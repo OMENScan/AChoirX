@@ -52,7 +52,7 @@ VER:Windows
  SAY:
  SAY: 4c. Gathering Group Policy Information...
  SAY:
- CMD:GPResult /R /Z --exestdout=&acn\GPResult.txt
+ SYS:GPResult /R /Z --exestdout=&acn\GPResult.txt
  SAY:
  SAY: 5. Raw Copy Registry Hives...
  SAY:

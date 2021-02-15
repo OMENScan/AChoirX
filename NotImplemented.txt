@@ -13,7 +13,6 @@ Some of the Functions that will not be in the initial release:
 * Raw NTFS
 * NTP
 * Console Colors
-* Check for Memory Size
 * Native SMB/CIFS
 
    Note:  Some of the original excluded functions have been added 
@@ -28,14 +27,14 @@ Some New Additions/Changes:
 * Native UnZip
 * Use TSK for Raw File Collection
 * Native S3 File upload using the AWS SDK for Golang
+* Native SFTP File upload 
 * Native Encryption
 
 
 
 Some Notes:
 ===========
-AChoirX has native support for S3 File Upload.  I HAVE NOT built in native support
-for SFTP, SCP, or other upload protocols because clients for those protocols are 
+AChoirX has native support for S3 and SFTP File Upload.  I HAVE NOT built in native 
+support for SCP, or other upload protocols because clients for those protocols are 
 readily available for all platforms.  If you want to use other upload protocols, 
 AChoirX can execute those client programs by using EXE: or SYS:
-

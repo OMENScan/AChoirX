@@ -72,7 +72,7 @@ VER:Windows
  SAY:
  SAY: 4c. Gathering Group Policy Information...
  SAY:
- CMD:GPResult /R /Z --exestdout=&acn\GPResult.txt
+ SYS:GPResult /R /Z --exestdout=&acn\GPResult.txt
  SAY: 4d. Uploading to S3...
  SAY:
  S3U:&Acq\Info.dat \&Acn
@@ -206,7 +206,7 @@ VER:Windows
  CPY:"&LS8" "&ACQ"
  SAY:
  SAY: 21a. Uploading to S3...
- S3U:&Acq\* \&Acn\Arn
+ S3U:&Acq\**\* \&Acn\Arn
  SAY: 21b. Deleting Local Copy...
  SYS:Cmd /c RmDir &acq /S /Q
  SAY:

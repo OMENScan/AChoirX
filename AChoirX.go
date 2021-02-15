@@ -54,11 +54,16 @@
 //
 // AChoirX v10.00.38 - Implement END:Reset to clear any Dangling ENDs.  Use Judiciously.
 //
+// AChoirX v10.00.39 - Implement Internal SFTP Client - Adapted from: https://sftptogo.com/blog/go-sftp/
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
 //  w32:    go get github.com/gonutz/w32
 //  S3:     go get github.com/aws/aws-sdk-go/...
+//  SFTP:   go get github.com/pkg/sftp
+//  SFTP:   go get golang.org/x/crypto/ssh
+//
 // Changes from AChoir:
 //  Environment Variable Expansion now uses GoLang $Var or ${Var} 
 //
@@ -86,6 +91,8 @@ import (
     "archive/zip"
     "regexp"
     "runtime"
+//    "net"
+//    "net/url"
     "net/http"
     "path/filepath"
     "io"
@@ -96,6 +103,12 @@ import (
     "crypto/aes"
     "crypto/cipher"
     "crypto/rand"
+//    "sync"
+
+    "golang.org/x/crypto/ssh"
+//    "golang.org/x/crypto/ssh/agent"
+
+    "github.com/pkg/sftp"
 
     "github.com/aws/aws-sdk-go/aws"
     "github.com/aws/aws-sdk-go/aws/credentials"
@@ -105,8 +118,9 @@ import (
     syslog "github.com/NextronSystems/simplesyslog")
 
 
+
 // Global Variable Settings
-var Version = "v10.00.38"                       // AChoir Version
+var Version = "v10.00.39"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -198,6 +212,7 @@ var Tmprec = "Formatted Console Record"         // Console Formatting Record
 var Cpyrec = "Copy Record"                      // Used by Copy Routine
 var Encrec = "Encrypt Record"                   // Used by Encrypt Routine
 var S3Urec = "Copy Record"                      // Used by S3 Upload Routine
+var SFUrec = "Copy Record"                      // Used by SFTP Upload Routine
 var Cmprec = "Compare Record"                   // Used by Compare Routines
 var Ziprec = "Zip Record"                       // Used by Unzip Routines
 var Getrec = "Get Record"                       // Used by HTTP Get: Routines
@@ -231,6 +246,18 @@ var S3_Session *session.Session                 // AWS Session
 var S3_AWS_SplitRC = 0                          // AWS Split Return Code
 var S3_err error                                // S3 Errors
 var iS3Login = 0                                // Default is NOT logged in
+
+// SFTP Server Variables
+var SF_Server = "none"                          // SFTP Server
+var SF_Port = 22                                // SFTP Default Port
+var SF_UserId = "none"                          // SFTP UserId
+var SF_Password = "none"                        // SFTP Password
+var SF_SSHConn *ssh.Client                      // SSH Connection for SFTP Client
+var SF_Client *sftp.Client                      // SFTP Client
+var SF_SFTP_SplitRC = 0                         // SFTP Split Return Code
+var SF_SSH_err error                            // SFTP SSH Errors
+var SF_err error                                // SFTP Errors
+var iSFLogin = 0                                // Default is NOT logged in
 
 // Message and Log Levels
 var iLogOpen = 0                                // Is the LogFile Open Yet
@@ -2406,6 +2433,24 @@ func main() {
 
                     ConsOut = fmt.Sprintf("[*] S3 AWS Key Set: <Redacted>\n")
                     ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SFTPSERV=") {
+                    SF_Server = Inrec[13:]
+                    iSFLogin = 0  // Reset Login to force a New SFTP Session with this Server
+
+                    ConsOut = fmt.Sprintf("[*] SFTP Server Set: %s\n", SF_Server)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SFTPUSER=") {
+                    SF_UserId = Inrec[13:]
+                    iSFLogin = 0  // Reset Login to force a New Session with this SFTP Server
+
+                    ConsOut = fmt.Sprintf("[*] SFTP User ID Set: %s\n", SF_UserId)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SFTPPASS=") {
+                    SF_Password = Inrec[13:]
+                    iSFLogin = 0  // Reset Login to force a New Session with this Key
+
+                    ConsOut = fmt.Sprintf("[*] SFTP Password Set: <Redacted>\n")
+                    ConsLogSys(ConsOut, 1, 1)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "XIT:") && len(Inrec) > 4 {
                     iXitCmd = 1
 
@@ -2494,9 +2539,9 @@ func main() {
                         ConsLogSys(ConsOut, 1, 1)
 
                         AWSrec := Inrec[4:]
-                        S3_AWSId, S3_AWSKey, AWS_SplitRC := twoSplit(AWSrec)
+                        S3_AWSId, S3_AWSKey, S3_AWS_SplitRC = twoSplit(AWSrec)
 
-                        if AWS_SplitRC == 1 {
+                        if S3_AWS_SplitRC == 1 {
                             ConsOut = fmt.Sprintf("[!] AWS Session Requires Both an ID and a Key\n")
                             ConsLogSys(ConsOut, 1, 1)
                         } else {
@@ -2615,7 +2660,233 @@ func main() {
                         ConsOut = fmt.Sprintf("[!] Please Start an AWS Session (Using S3S:) Before Attempting S3 Uploads\n")
                         ConsLogSys(ConsOut, 1, 1)
                     }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SFS:") {
+                    //****************************************************************
+                    //* Have we set the Server?                                      *
+                    //****************************************************************
+                    if SF_Server == "none" {
+                        ConsOut = fmt.Sprintf("[!] Please Set the SFTP Server before Starting an SFTP Session.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        //****************************************************************
+                        //* SFTP Server Login Parm1:UserID  Parm2: Password              *
+                        //****************************************************************
+                        ConsOut = fmt.Sprintf("[+] Starting Session with SFTP UserId and Password...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        SFTPrec := Inrec[4:]
+                        SF_UserId, SF_Password, SF_SFTP_SplitRC = twoSplit(SFTPrec)
+
+                        if SF_SFTP_SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] SFTP Login Requires Both an ID and a Password\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[+] Connecting to: %s ...\n", SF_Server)
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            //****************************************************************
+                            //* Initialize client configuration                              *
+                            //****************************************************************
+                            SF_config := &ssh.ClientConfig {
+                                User: SF_UserId,
+                                Auth: []ssh.AuthMethod {ssh.Password(SF_Password)},
+                                Timeout: 30 * time.Second,
+                                HostKeyCallback : ssh.InsecureIgnoreHostKey(),
+                            }
+
+
+                            //****************************************************************
+                            //* Connect to server                                            *
+                            //****************************************************************
+                            SF_Addr := fmt.Sprintf("%s:%d", SF_Server, SF_Port)
+                            SF_SSHConn, SF_SSH_err = ssh.Dial("tcp", SF_Addr, SF_config)
+
+                            if SF_SSH_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Failed to connecto to [%s]: %v\n", SF_Addr, SF_SSH_err)
+                                ConsLogSys(ConsOut, 1, 1)
+                                iSFLogin = 0
+                            } else {
+                                //defer SF_SSHConn.Close()
+                                //****************************************************************
+                                //* Create new SFTP client                                       *
+                                //****************************************************************
+                                SF_Client, SF_err = sftp.NewClient(SF_SSHConn)
+                                if SF_err != nil {
+                                    ConsOut = fmt.Sprintf("[!] Unable to start SFTP subsystem: %v\n", SF_err)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                    iSFLogin = 0
+                                } else {
+                                    ConsOut = fmt.Sprintf("[*] SFTP Session Started...\n")
+                                    ConsLogSys(ConsOut, 1, 1)
+                                    iSFLogin = 1
+                                    //defer SF_Client.Close()
+                                }
+                            }
+                        }
+                    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SFU:") {
+                    //****************************************************************
+                    //* See if we are already/still Logged In or Not by attempting   *
+                    //*  to read the current remote directory                        *
+                    //****************************************************************
+                    if iSFLogin == 1 {
+                        _, curdir_err := SF_Client.Getwd()
+                        if curdir_err != nil {
+                            iSFLogin = 0 
+                        }
+                    }
+
+
+                    //****************************************************************
+                    //* See if we have SFTP Login.  If not, See if we can start one  *
+                    //****************************************************************
+                    if iSFLogin == 0 {
+                        ConsOut = fmt.Sprintf("[+] Checking for SFTP Server, Login ID and Password...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        if SF_Server != "none" && SF_UserId != "none" && SF_Password != "none" {
+                            ConsOut = fmt.Sprintf("[+] Starting SFTP Session with UserId and Password...\n")
+                            ConsLogSys(ConsOut, 1, 1)
+
+
+                            //****************************************************************
+                            //* Initialize client configuration                              *
+                            //****************************************************************
+                            SF_config := &ssh.ClientConfig {
+                                User: SF_UserId,
+                                Auth: []ssh.AuthMethod {ssh.Password(SF_Password)},
+                                Timeout: 30 * time.Second,
+                                HostKeyCallback : ssh.InsecureIgnoreHostKey(),
+                            }
+
+
+                            //****************************************************************
+                            //* Connect to server                                            *
+                            //****************************************************************
+                            SF_Addr := fmt.Sprintf("%s:%d", SF_Server, SF_Port)
+                            SF_SSHConn, SF_SSH_err = ssh.Dial("tcp", SF_Addr, SF_config)
+
+                            if SF_SSH_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Failed to connecto to [%s]: %v\n", SF_Addr, SF_SSH_err)
+                                ConsLogSys(ConsOut, 1, 1)
+                                iSFLogin = 0
+                            } else {
+                                //defer SF_SSHConn.Close()
+                                //****************************************************************
+                                //* Create new SFTP client                                       *
+                                //****************************************************************
+                                SF_Client, SF_err = sftp.NewClient(SF_SSHConn)
+                                if SF_err != nil {
+                                    ConsOut = fmt.Sprintf("[!] Unable to start SFTP subsystem: %v\n", SF_err)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                    iSFLogin = 0
+                                } else {
+                                    ConsOut = fmt.Sprintf("[*] SFTP Session Started...\n")
+                                    ConsLogSys(ConsOut, 1, 1)
+                                    iSFLogin = 1
+                                    //defer SF_Client.Close()
+                                }
+                            }
+                        }
+                    }
+
+
+                    //****************************************************************
+                    //* Upload File to SFTP                                          *
+                    //****************************************************************
+                    if iSFLogin == 1 {
+                        ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        SFUrec = Inrec[4:]
+
+                        splitString1, splitString2, SplitRC := twoSplit(SFUrec)
+
+                        // Remove any duplicate Delimiters - This is necessary to prevent indexing errors when
+                        //  The found file does not match the search string (OS ignore duplicated delimiters)
+                        oneDelim := fmt.Sprintf("%c", slashDelim)
+                        twoDelim := fmt.Sprintf("%c%c", slashDelim, slashDelim)
+
+                        iOldLen = 1
+                        iNewLen = 0
+                        for iOldLen != iNewLen {
+                            iOldLen = len(splitString1)
+                            splitString1 = strings.Replace(splitString1, twoDelim, oneDelim, -1)
+                            iNewLen = len(splitString1)
+                        }
+
+                        iOldLen = 1
+                        iNewLen = 0
+                        for iOldLen != iNewLen {
+                            iOldLen = len(splitString2)
+                            splitString2 = strings.Replace(splitString2, twoDelim, oneDelim, -1)
+                            iNewLen = len(splitString2)
+                        }
+
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] SFTP Upload Requires both a FROM File and a TO Directory\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            //ConsOut = fmt.Sprintf("SFU: %s to %s\n", splitString1, splitString2)
+                            //ConsLogSys(ConsOut, 1, 1)
+
+                            //*****************************************************************
+                            //* Golang does not support ** - So this code approximates it     *
+                            //*  using filepath.Walk.  The limitation is that the string cant *
+                            //*  contain another * BEFORE the ** because filepath.Walk does   *
+                            //*  not support wildcards. This code is a decent compromise.     *
+                            //*****************************************************************
+                            DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
+                            if strings.Contains(splitString1, DubGlob) {
+                                iDblShard = strings.Index(splitString1, DubGlob)
+                                if iDblShard > 0 {
+                                    WalkDir := splitString1[:iDblShard]
+                                    WalkfileWild = splitString1[iDblShard+3:]
+                                    WalkfileToo = splitString2
+
+                                    BasicSFUp := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
+                                    SFUpParser(BasicSFUp, splitString2)
+
+                                    filepath.Walk(WalkDir, WalkSFUpGlob)
+                                
+                                }
+                            } else {
+                                SFUpParser(splitString1, splitString2)
+                            }
+                        }
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] Please Start an AWS Session (Using S3S:) Before Attempting S3 Uploads\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
                 }
+
+
+
+
+
+
+
+
+
+
+
             }
         }
 
@@ -4021,6 +4292,29 @@ func WalkS3UpGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) err
 }
 
 
+func WalkSFUpGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) error {
+    //****************************************************************
+    //* Walk the filepath looking for DIRECTORIES ONLY. Then Glob    *
+    //*  them with the wilcards...  This Approximates ** Globbing    *
+    //****************************************************************
+    file_stat, stat_err := os.Stat(Walkfilepath)
+
+    if stat_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Identifying File: %s\n", stat_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return stat_err
+    }
+
+    if file_stat.IsDir() {
+        WalkfileFull := fmt.Sprintf("%s%c*%s", Walkfilepath, slashDelim, WalkfileWild)
+        SFUpParser(WalkfileFull, WalkfileToo)
+    }
+
+    return nil
+
+}
+
+
 //***************************************************************************
 // ForParser: Parses out the FOR: Parameters                                *
 //***************************************************************************
@@ -4231,6 +4525,7 @@ func S3UpParser(splitString1 string, splitString2 string) {
             ConsLogSys(ConsOut, 1, 1)
 
             S3_err = uploadFileToS3(S3_Session, file_found, MCprcO)
+
             if S3_err != nil {
                 ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", Inrec[4:], S3_err)
                 ConsLogSys(ConsOut, 1, 1)
@@ -4300,6 +4595,7 @@ func S3UpParser(splitString1 string, splitString2 string) {
                     ConsLogSys(ConsOut, 1, 1)
 
                     S3_err = uploadFileToS3(S3_Session, file_found, MCprcO)
+
                     if S3_err != nil {
                         ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", Inrec[4:], S3_err)
                         ConsLogSys(ConsOut, 1, 1)
@@ -4335,6 +4631,7 @@ func S3UpParser(splitString1 string, splitString2 string) {
         ConsLogSys(ConsOut, 1, 1)
 
         S3_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
+
         if S3_err != nil {
             ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", splitString1, S3_err)
             ConsLogSys(ConsOut, 1, 1)
@@ -4381,8 +4678,280 @@ func S3UpParser(splitString1 string, splitString2 string) {
                 ConsLogSys(ConsOut, 1, 1)
 
                 S3_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
+
                 if S3_err != nil {
                     ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", splitString1, S3_err)
+                    ConsLogSys(ConsOut, 1, 1)
+                }
+
+            }
+        }
+    }
+}
+
+
+//***************************************************************************
+// SFUpParser: Parses out the Copy Parameters for Multi or Single Copy      *
+//***************************************************************************
+func SFUpParser(splitString1 string, splitString2 string) {
+    //****************************************************************
+    //* If we see any wildcards, do search for multiple occurances   *
+    //****************************************************************
+    if strings.Contains(splitString1, "*") || strings.Contains(splitString1, "?") {
+
+        //****************************************************************
+        // Parse out the Expanded Directory Shard (pre-wildcard)         *
+        //****************************************************************
+        iAShard = strings.IndexByte(splitString1, '*')
+        iQShard = strings.IndexByte(splitString1, '?')
+
+        if iAShard < 0 {
+            iShard = strings.LastIndexByte(splitString1[:iQShard], slashDelim) + 1
+        } else if iQShard < 0 {
+            iShard = strings.LastIndexByte(splitString1[:iAShard], slashDelim) + 1
+        } else if iAShard < iQShard {
+            iShard = strings.LastIndexByte(splitString1[:iAShard], slashDelim) + 1
+        } else if iQShard < iAShard {
+            iShard = strings.LastIndexByte(splitString1[:iQShard], slashDelim) + 1
+        } else {
+            iShard = 0
+        }
+
+        if iShard > 1 {
+            MCpRoot = splitString1[:iShard]
+        } else {
+            MCpRoot = ""
+        }
+
+
+        //****************************************************************
+        // Do File Search using Glob                                     *
+        //****************************************************************
+        files_glob, glob_err := filepath.Glob(splitString1)
+
+        if glob_err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
+            ConsLogSys(ConsOut, 1, 1)
+            return
+        }
+
+        for _, file_found := range files_glob {
+            //****************************************************************
+            //* Ignore Directories - Only Process Files                      *
+            //****************************************************************
+            file_stat, _ := os.Stat(file_found)
+            if file_stat.IsDir() {
+                continue
+            }
+
+
+            //****************************************************************
+            //* Get Just the File Name                                       *
+            //****************************************************************
+            ForSlash = strings.LastIndexByte(file_found, slashDelim)
+
+            if (ForSlash == -1) {
+                MCpFName = file_found
+                MCpShard = ""
+                MCpPath = ""
+            } else if iShard == 0 {
+                MCpFName = file_found[ForSlash+1:]
+                MCpShard = ""
+                MCpPath = file_found[:ForSlash] 
+            } else if len(file_found[ForSlash+1:]) < 2 {
+                MCpFName = file_found
+                MCpShard = file_found[iShard:len(file_found)]
+                MCpPath = file_found[:ForSlash] 
+            } else {
+                MCpFName = file_found[ForSlash+1:]
+                MCpShard = file_found[iShard:len(file_found)-len(MCpFName)]
+                MCpPath = file_found[:ForSlash] 
+            }
+
+            //****************************************************************
+            //* Upload to Output File Name                                    *
+            //*  Note: a Shard is any expanded WildCard Directory - Shards   *
+            //*        can be used to logically group duplicate file names   *
+            //****************************************************************
+            if setCPath == 0 {
+                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+            } else if setCPath == 1 && len(MCpShard) < 1 {
+                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+            } else if setCPath == 1 {
+                MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
+            } else if setCPath == 2 {
+                MCpPath = strings.Replace(MCpPath, ":", "", -1)
+                MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpPath, MCpFName)
+            }
+
+
+            //****************************************************************
+            //* For SFTP we will want to change all \ to a /                 *
+            //****************************************************************
+            MCpShard  = strings.Replace(MCpShard , "\\", "/", -1) 
+            MCpPath  = strings.Replace(MCpPath , "\\", "/", -1) 
+            MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
+
+            ConsOut = fmt.Sprintf("[+] SFTP Multi-Upload File: %s\n    To: %s\n", file_found, MCprcO)
+            ConsLogSys(ConsOut, 1, 1)
+
+            SF_err = uploadFileToSF(*SF_Client, file_found, MCprcO)
+
+            if SF_err != nil {
+                ConsOut = fmt.Sprintf("[!] Error Uploading File to SFTP: %s\n    %s\n", Inrec[4:], SF_err)
+                ConsLogSys(ConsOut, 1, 1)
+            }
+        }
+
+        if (iNative == 0) {
+            //****************************************************************
+            //* Replace System32 with Sysnative if we are non-native         *
+            //****************************************************************
+            if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
+                TempDir = splitString1
+
+                repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
+                TempDir = repl_sys.Replace(TempDir)
+
+                ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
+                ConsLogSys(ConsOut, 1, 1)
+
+                files_glob, glob_err := filepath.Glob(TempDir)
+
+                if glob_err != nil {
+                    ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
+                    ConsLogSys(ConsOut, 1, 1)
+                    return
+                }
+
+                for _, file_found := range files_glob {
+                    //****************************************************************
+                    //* Ignore Directories - Only Process Files                      *
+                    //****************************************************************
+                    file_stat, _ := os.Stat(file_found)
+                    if file_stat.IsDir() {
+                        continue
+                    }
+
+                    //****************************************************************
+                    //* Get Just the File Name                                       *
+                    //****************************************************************
+                    ForSlash = strings.LastIndexByte(file_found, slashDelim)
+                    if (ForSlash == -1) {
+                        MCpFName = file_found
+                    } else if len(file_found[ForSlash+1:]) < 2 {
+                        MCpFName = file_found
+                    } else {
+                        MCpFName = file_found[ForSlash+1:]
+                    }
+
+                    //****************************************************************
+                    //* Upload to Output File Name                                   *
+                    //****************************************************************
+                    if setCPath == 0 || len(MCpShard) < 1 {
+                        MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+                    } else { 
+                        MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
+                    }
+
+
+                    //****************************************************************
+                    //* For SFTP we will want to change all \ to a /                 *
+                    //****************************************************************
+                    MCpShard  = strings.Replace(MCpShard , "\\", "/", -1) 
+                    MCpPath  = strings.Replace(MCpPath , "\\", "/", -1) 
+                    MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
+
+                    ConsOut = fmt.Sprintf("[+] SFTP Multi-Upload Redir File: %s\n    To: %s\n", file_found, MCprcO)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    SF_err = uploadFileToSF(*SF_Client, file_found, MCprcO)
+
+                    if SF_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Uploading File to SFTP: %s\n    %s\n", Inrec[4:], SF_err)
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+                }
+            }
+        }
+    } else {
+        //****************************************************************
+        //* Get Just the File Name                                       *
+        //****************************************************************
+        ForSlash = strings.LastIndexByte(splitString1, slashDelim)
+        if (ForSlash == -1) {
+            MCpFName = splitString1
+        } else if len(splitString1[ForSlash+1:]) < 2 {
+            MCpFName = splitString1
+        } else {
+            MCpFName = splitString1[ForSlash+1:]
+        }
+
+        //****************************************************************
+        //* Upload to Output File Name                                   *
+        //****************************************************************
+        MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+
+
+        //****************************************************************
+        //* For SFTP we will want to change all \ to a /                 *
+        //****************************************************************
+        MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
+
+        ConsOut = fmt.Sprintf("[+] SFTP Singl-Upload File: %s\n    To: %s\n", splitString1, MCprcO)
+        ConsLogSys(ConsOut, 1, 1)
+
+        SF_err = uploadFileToSF(*SF_Client, splitString1, MCprcO)
+
+        if SF_err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Uploading File to SFTP: %s\n    %s\n", splitString1, SF_err)
+            ConsLogSys(ConsOut, 1, 1)
+        }
+
+
+        if (iNative == 0) {
+            //****************************************************************
+            //* Replace System32 with Sysnative if we are non-native         *
+            //****************************************************************
+            if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
+                TempDir = splitString1
+
+                repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
+                TempDir = repl_sys.Replace(TempDir)
+
+                ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
+                ConsLogSys(ConsOut, 1, 1)
+
+                //****************************************************************
+                //* Get Just the File Name                                       *
+                //****************************************************************
+                ForSlash = strings.LastIndexByte(splitString1, slashDelim)
+                if (ForSlash == -1) {
+                    MCpFName = splitString1
+                } else if len(splitString1[ForSlash+1:]) < 2 {
+                    MCpFName = splitString1
+                } else {
+                    MCpFName = splitString1[ForSlash+1:]
+                }
+
+                //****************************************************************
+                //* Copy to Output File Name                                     *
+                //****************************************************************
+                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
+
+
+                //****************************************************************
+                //* For SFTP we will want to change all \ to a /                 *
+                //****************************************************************
+                MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
+
+                ConsOut = fmt.Sprintf("[+] SFTP Singl-Upload Redir File: %s\n    To: %s\n", splitString1, MCprcO)
+                ConsLogSys(ConsOut, 1, 1)
+
+                SF_err = uploadFileToSF(*SF_Client, splitString1, MCprcO)
+
+                if SF_err != nil {
+                    ConsOut = fmt.Sprintf("[!] Error Uploading File to SFTP: %s\n    %s\n", splitString1, S3_err)
                     ConsLogSys(ConsOut, 1, 1)
                 }
 
@@ -4474,5 +5043,88 @@ func encryptFile(encFileName string, plainData []byte, passphrase string) {
 func decryptFile(encFileName string, passphrase string) []byte {
     encData, _ := ioutil.ReadFile(encFileName)
     return decrypt(encData, passphrase)
+}
+
+
+//***************************************************************************
+// Upload file to sftp server                                               *
+//***************************************************************************
+func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err error) {
+
+    var scopy_bytes = 0
+    var SF_ReadByteCount = 0
+    var scopy_err error
+
+
+    ConsOut = fmt.Sprintf("[+] Uploading [%s] to [%s] ...\n", localFile, remoteFile)
+    ConsLogSys(ConsOut, 1, 1)
+
+    srcFile, lopen_err := os.Open(localFile)
+    if lopen_err != nil {
+        ConsOut = fmt.Sprintf("[!] Unable to open local file: %v\n", lopen_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return
+    }
+    defer srcFile.Close()
+
+
+    //***************************************************************************
+    // Make remote directories via File Path Recursion                          *
+    //***************************************************************************
+    parent := filepath.Dir(remoteFile)
+    path := string(filepath.Separator)
+    dirs := strings.Split(parent, path)
+
+    for _, dir := range dirs {
+        path = filepath.Join(path, dir)
+        sftp_client.Mkdir(path)
+    }
+
+
+    //***************************************************************************
+    // Note: SFTP To Go doesn't support O_RDWR mode                             *
+    //***************************************************************************
+    dstFile, ropen_err := sftp_client.OpenFile(remoteFile, (os.O_WRONLY|os.O_CREATE|os.O_TRUNC))
+    if ropen_err != nil {
+        ConsOut = fmt.Sprintf("[!] Unable to open remote file: %v\n", ropen_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return
+    }
+    defer dstFile.Close()
+
+
+    //***************************************************************************
+    // SFTP Using 4K Blocks - This is the best way I have found to prevent      *
+    //  RACE Conditions in the SFTP Library                                     *
+    //***************************************************************************
+    scopy_bytes = 0
+    SF_buffr := make([]byte, 4096)
+    for {
+        SF_ReadByteCount, scopy_err = srcFile.Read(SF_buffr)
+        if scopy_err != nil && scopy_err != io.EOF {
+            ConsOut = fmt.Sprintf("[!] Unable to read local file: %v\n", scopy_err)
+            ConsLogSys(ConsOut, 1, 1)
+            return
+        }
+
+        if SF_ReadByteCount == 0 {
+            break
+        }
+
+        _, scopy_err = dstFile.Write(SF_buffr[:SF_ReadByteCount])
+        if scopy_err != nil {
+            ConsOut = fmt.Sprintf("[!] Unable to write remote file: %v\n", scopy_err)
+            ConsLogSys(ConsOut, 1, 1)
+            return
+        } else {
+            scopy_bytes += SF_ReadByteCount
+            fmt.Printf("[*] Uploading Bytes: %d\r", scopy_bytes)
+        }
+    }
+
+    ConsOut = fmt.Sprintf("[+] Upload Completed: %d bytes copied\n", scopy_bytes)
+    ConsLogSys(ConsOut, 1, 1)
+    
+    return
 }
 
