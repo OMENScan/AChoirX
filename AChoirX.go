@@ -56,6 +56,11 @@
 //
 // AChoirX v10.00.39 - Implement Internal SFTP Client - Adapted from: https://sftptogo.com/blog/go-sftp/
 //
+// AChoirX v10.00.40 - Refactor code for efficiencies, Fix Command Line Variables,
+//                   - Improve Comparisons for Missing Parameters (EQU:, NEQ:, N==:, N<<:, N>>:)
+//                   - Set LastRC for SFS:, SFU:, S3S:, and S3U:
+//                   - Release Candidate 1
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -91,8 +96,6 @@ import (
     "archive/zip"
     "regexp"
     "runtime"
-//    "net"
-//    "net/url"
     "net/http"
     "path/filepath"
     "io"
@@ -103,11 +106,8 @@ import (
     "crypto/aes"
     "crypto/cipher"
     "crypto/rand"
-//    "sync"
 
     "golang.org/x/crypto/ssh"
-//    "golang.org/x/crypto/ssh/agent"
-
     "github.com/pkg/sftp"
 
     "github.com/aws/aws-sdk-go/aws"
@@ -120,7 +120,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.39"                       // AChoir Version
+var Version = "v10.00.40"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -146,7 +146,6 @@ var CurrFil = "Current.fil"                     // Current File Name
 var inUser = "none"                             // UserId
 var inPass = "none"                             // Password
 var Numberz = "0123456789"                      // String to convert from Char to Int
-var VarArray[10][256] string                    // Variables Array VR0-VR9
 var iVar = -1                                   // Index of the Variable Array
 var FullDateTime = "01/01/0001 - 01:01:01"      // Date and Time
 var iHtmMode = 0                                // Have we begun writing the HTML Index File
@@ -244,8 +243,9 @@ var S3_AWSId = "none"                           // AWS ID
 var S3_AWSKey = "none"                          // AWS Secret Key
 var S3_Session *session.Session                 // AWS Session
 var S3_AWS_SplitRC = 0                          // AWS Split Return Code
-var S3_err error                                // S3 Errors
 var iS3Login = 0                                // Default is NOT logged in
+var upS3_err error                              // Upload (S3 Only) Errors
+var upld_err error                              // Upload (S3 & SFTP) Errors
 
 // SFTP Server Variables
 var SF_Server = "none"                          // SFTP Server
@@ -256,8 +256,8 @@ var SF_SSHConn *ssh.Client                      // SSH Connection for SFTP Clien
 var SF_Client *sftp.Client                      // SFTP Client
 var SF_SFTP_SplitRC = 0                         // SFTP Split Return Code
 var SF_SSH_err error                            // SFTP SSH Errors
-var SF_err error                                // SFTP Errors
 var iSFLogin = 0                                // Default is NOT logged in
+var upSF_err error                              // Upload (SFTP Only) Errors
 
 // Message and Log Levels
 var iLogOpen = 0                                // Is the LogFile Open Yet
@@ -577,7 +577,7 @@ func main() {
             } else if len(os.Args[i]) > 250 {
                 fmt.Println("[!] Variable Exceeds 250 Bytes: ", os.Args[i][1:4])
             } else {
-                VarArray[iVar][0] = os.Args[i][5:]
+                VardArray[iVar] = os.Args[i][5:]
             }
         } else {
             fmt.Println("[!] Bad Argument: ", os.Args[i])
@@ -1704,33 +1704,91 @@ func main() {
                     Cmprec = Inrec[4:]
                     splitString1, splitString2, SplitRC := twoSplit(Cmprec)
 
-                    if SplitRC == 1 {
-                        ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings\n")
-                        ConsLogSys(ConsOut, 1, 1)
+                    if(consOrFile == 1) {
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else if splitString1 != splitString2 {
+                            ConsOut = fmt.Sprintf("[*] Strings Are NOT Equal: %s != %s\n", splitString1, splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Strings ARE Equal: %s == %s\n", splitString1, splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
                     } else {
-                        if(consOrFile == 1) {
-                            if splitString1 != splitString2 {
-                                ConsOut = fmt.Sprintf("[*] Strings Are NOT Equal: %s != %s\n", splitString1, splitString2)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[*] Strings ARE Equal: %s == %s\n", splitString1, splitString2)
-                                ConsLogSys(ConsOut, 1, 1)
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings - Comparison Set To False.\n")
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        } else if splitString1 == splitString2 {
+                            // Yes on First Match Only
+                            if YesFound == 0 {
+                                YesFound = 1
                             }
                         } else {
-                            if splitString1 == splitString2 {
-                               // Yes on First Match Only
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                            RunMe++
+                            NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "N>>:") || strings.HasPrefix(strings.ToUpper(Inrec), "N<<:") || strings.HasPrefix(strings.ToUpper(Inrec), "N==:") {
+                    Cmprec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Cmprec)
+
+                    if SplitRC == 1 {
+                        ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Numbers - Setting missing number(s) to Zero.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        if len(splitString1) < 1 { splitString1 = "0" }
+                        if len(splitString2) < 1 { splitString2 = "0" }
+                    }
+
+
+
+                    longString1, _ := strconv.Atoi(splitString1)
+                    longString2, _ := strconv.Atoi(splitString2)
+
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "N>>:") {
+                        if longString1 > longString2 {
+                            if(consOrFile == 1) {
+                                ConsOut = fmt.Sprintf("[*] %d Is Greater Than %d\n", longString1, longString2)
+                                ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                // Yes on First Match Only
                                 if YesFound == 0 {
                                     YesFound = 1
                                 }
+                            }
+                        } else {
+                            if(consOrFile == 1) {
+                                ConsOut = fmt.Sprintf("[*] %d Is NOT Greater Than %d\n", longString1, longString2)
+                                ConsLogSys(ConsOut, 1, 1)
                             } else {
                                 // No On First Not Match Only
                                 if NotFound == 0 {
                                     NotFound = 1
                                 }
                             }
+                        }
 
+                        if(consOrFile != 1) {
                             if NotFound == 1 && YesFound == 0 {
-                                // Not Found, Increment Just Once
+                                 // Not Found, Increment Just Once
                                  RunMe++
                                  NotFound = 2
                             } else if YesFound == 1 && NotFound == 2 {
@@ -1739,121 +1797,74 @@ func main() {
                                 YesFound = 2
                             }
                         }
-                    }
-                } else if strings.HasPrefix(strings.ToUpper(Inrec), "N>>:") || strings.HasPrefix(strings.ToUpper(Inrec), "N<<:") || strings.HasPrefix(strings.ToUpper(Inrec), "N==:") {
-                    Cmprec = Inrec[4:]
-                    splitString1, splitString2, SplitRC := twoSplit(Cmprec)
 
-                    if SplitRC == 1 {
-                        ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Numbers\n")
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else {
-                        longString1, _ := strconv.Atoi(splitString1)
-                        longString2, _ := strconv.Atoi(splitString2)
-
-                        if strings.HasPrefix(strings.ToUpper(Inrec), "N>>:") {
-                            if longString1 > longString2 {
-                                if(consOrFile == 1) {
-                                    ConsOut = fmt.Sprintf("[*] %d Is Greater Than %d\n", longString1, longString2)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    // Yes on First Match Only
-                                    if YesFound == 0 {
-                                        YesFound = 1
-                                    }
-                                }
+                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "N<<:") {
+                        if longString1 < longString2 {
+                            if(consOrFile == 1) {
+                                ConsOut = fmt.Sprintf("[*] %d Is Less Than %d\n", longString1, longString2)
+                                ConsLogSys(ConsOut, 1, 1)
                             } else {
-                                if(consOrFile == 1) {
-                                    ConsOut = fmt.Sprintf("[*] %d Is NOT Greater Than %d\n", longString1, longString2)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    // No On First Not Match Only
-                                    if NotFound == 0 {
-                                        NotFound = 1
-                                    }
+                                // Yes on First Match Only
+                                if YesFound == 0 {
+                                    YesFound = 1
                                 }
                             }
-
-                            if(consOrFile != 1) {
-                                if NotFound == 1 && YesFound == 0 {
-                                     // Not Found, Increment Just Once
-                                     RunMe++
-                                     NotFound = 2
-                                } else if YesFound == 1 && NotFound == 2 {
-                                    // undo the Previous Runme++ and make sure we dont do it again.
-                                    RunMe--
-                                    YesFound = 2
-                                }
-                            }
-
-                        } else if strings.HasPrefix(strings.ToUpper(Inrec), "N<<:") {
-                            if longString1 < longString2 {
-                                if(consOrFile == 1) {
-                                    ConsOut = fmt.Sprintf("[*] %d Is Less Than %d\n", longString1, longString2)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    // Yes on First Match Only
-                                    if YesFound == 0 {
-                                        YesFound = 1
-                                    }
-                                }
+                        } else {
+                            if(consOrFile == 1) {
+                                ConsOut = fmt.Sprintf("[*] %d Is NOT Less Than %d\n", longString1, longString2)
+                                ConsLogSys(ConsOut, 1, 1)
                             } else {
-                                if(consOrFile == 1) {
-                                    ConsOut = fmt.Sprintf("[*] %d Is NOT Less Than %d\n", longString1, longString2)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    // No On First Not Match Only
-                                    if NotFound == 0 {
-                                        NotFound = 1
-                                    }
+                                // No On First Not Match Only
+                                if NotFound == 0 {
+                                    NotFound = 1
                                 }
                             }
+                        }
 
-                            if(consOrFile != 1) {
-                                if NotFound == 1 && YesFound == 0 {
-                                     // Not Found, Increment Just Once
-                                     RunMe++
-                                     NotFound = 2
-                                } else if YesFound == 1 && NotFound == 2 {
-                                    // undo the Previous Runme++ and make sure we dont do it again.
-                                    RunMe--
-                                    YesFound = 2
-                                }
+                        if(consOrFile != 1) {
+                            if NotFound == 1 && YesFound == 0 {
+                                 // Not Found, Increment Just Once
+                                 RunMe++
+                                 NotFound = 2
+                            } else if YesFound == 1 && NotFound == 2 {
+                                // undo the Previous Runme++ and make sure we dont do it again.
+                                RunMe--
+                                YesFound = 2
                             }
+                        }
 
-                        } else if strings.HasPrefix(strings.ToUpper(Inrec), "N==:") {
-                            if longString1 == longString2 {
-                                if(consOrFile == 1) {
-                                    ConsOut = fmt.Sprintf("[*] %d Is Equal To %d\n", longString1, longString2)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    // Yes on First Match Only
-                                    if YesFound == 0 {
-                                        YesFound = 1
-                                    }
-                                }
+                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "N==:") {
+                        if longString1 == longString2 {
+                            if(consOrFile == 1) {
+                                ConsOut = fmt.Sprintf("[*] %d Is Equal To %d\n", longString1, longString2)
+                                ConsLogSys(ConsOut, 1, 1)
                             } else {
-                                if(consOrFile == 1) {
-                                    ConsOut = fmt.Sprintf("[*] %d Is NOT Equal To %d\n", longString1, longString2)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    // No On First Not Match Only
-                                    if NotFound == 0 {
-                                        NotFound = 1
-                                    }
+                                // Yes on First Match Only
+                                if YesFound == 0 {
+                                    YesFound = 1
                                 }
                             }
-
-                            if(consOrFile != 1) {
-                                if NotFound == 1 && YesFound == 0 {
-                                     // Not Found, Increment Just Once
-                                     RunMe++
-                                     NotFound = 2
-                                } else if YesFound == 1 && NotFound == 2 {
-                                    // undo the Previous Runme++ and make sure we dont do it again.
-                                    RunMe--
-                                    YesFound = 2
+                        } else {
+                            if(consOrFile == 1) {
+                                ConsOut = fmt.Sprintf("[*] %d Is NOT Equal To %d\n", longString1, longString2)
+                                ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                // No On First Not Match Only
+                                if NotFound == 0 {
+                                    NotFound = 1
                                 }
+                            }
+                        }
+
+                        if(consOrFile != 1) {
+                            if NotFound == 1 && YesFound == 0 {
+                                 // Not Found, Increment Just Once
+                                 RunMe++
+                                 NotFound = 2
+                            } else if YesFound == 1 && NotFound == 2 {
+                                // undo the Previous Runme++ and make sure we dont do it again.
+                                RunMe--
+                                YesFound = 2
                             }
                         }
                     }
@@ -1864,42 +1875,49 @@ func main() {
                     Cmprec = Inrec[4:]
                     splitString1, splitString2, SplitRC := twoSplit(Cmprec)
 
-                    if SplitRC == 1 {
-                        ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings\n")
-                        ConsLogSys(ConsOut, 1, 1)
+                    if(consOrFile == 1) {
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else if splitString1 == splitString2 {
+                            ConsOut = fmt.Sprintf("[*] Strings are (NOT NOT) Equal: %s == %s\n", splitString1, splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Strings are NOT Equal: %s != %s\n", splitString1, splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
                     } else {
-                        if(consOrFile == 1) {
-                            if splitString1 == splitString2 {
-                                ConsOut = fmt.Sprintf("[*] Strings are (NOT NOT) Equal: %s == %s\n", splitString1, splitString2)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[*] Strings are NOT Equal: %s != %s\n", splitString1, splitString2)
-                                ConsLogSys(ConsOut, 1, 1)
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings - Comparison Set to True.\n")
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            // Yes on First Match Only
+                            if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else if splitString1 != splitString2 {
+                            // Yes on First Match Only
+                            if YesFound == 0 {
+                                YesFound = 1
                             }
                         } else {
-                            if splitString1 != splitString2 {
-                               // Yes on First Match Only
-                                if YesFound == 0 {
-                                    YesFound = 1
-                                }
-                            } else {
-                                // No On First Not Match Only
-                                if NotFound == 0 {
-                                    NotFound = 1
-                                }
-                            }
-
-                            if NotFound == 1 && YesFound == 0 {
-                                // Not Found, Increment Just Once
-                                 RunMe++
-                                 NotFound = 2
-                            } else if YesFound == 1 && NotFound == 2 {
-                                // undo the Previous Runme++ and make sure we dont do it again.
-                                RunMe--
-                                YesFound = 2
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
                             }
                         }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
+                        }
                     }
+
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "VER:") {
                     //****************************************************************
                     //* Check the Input String for Version.  This can be Partial.    *
@@ -2522,15 +2540,18 @@ func main() {
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "S3S:") {
+                    LastRC = 0  //Assume Everything Will Be Alright
                     //****************************************************************
                     //* Have we set the Region and Bucket Name?                      *
                     //****************************************************************
                     if S3_REGION == "none" {
                         ConsOut = fmt.Sprintf("[!] Please Set the AWS S3 Bucket REGION Before Starting an AWS Session.\n")
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
                     } else if S3_BUCKET == "none" {
                         ConsOut = fmt.Sprintf("[!] Please Set the AWS S3 BUCKET Name Before Starting an AWS Session.\n")
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
                     } else {
                         //****************************************************************
                         //* AWS S3 Bucket Login Parm1:UserID  Parm2: Secret Key          *
@@ -2544,25 +2565,29 @@ func main() {
                         if S3_AWS_SplitRC == 1 {
                             ConsOut = fmt.Sprintf("[!] AWS Session Requires Both an ID and a Key\n")
                             ConsLogSys(ConsOut, 1, 1)
+                            LastRC = 1
                         } else {
-                            S3_Session, S3_err = session.NewSession(&aws.Config {
+                            S3_Session, upS3_err = session.NewSession(&aws.Config {
                                 Region: aws.String(S3_REGION),
                                 Credentials: credentials.NewStaticCredentials(
                                 S3_AWSId, S3_AWSKey, ""),
                             })
 
-                            if S3_err != nil {
-                                ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", S3_err)
+                            if upS3_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
                                 ConsLogSys(ConsOut, 1, 1)
                                 iS3Login = 0
+                                LastRC = 1
                             } else {
                                 ConsOut = fmt.Sprintf("[*] AWS S3 Session Started...\n")
                                 ConsLogSys(ConsOut, 1, 1)
                                 iS3Login = 1
+                                LastRC = 0
                             }
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "S3U:") {
+                    LastRC = 0  //Assume Everything Will Be Alright
                     //****************************************************************
                     //* See if we have a Sesion.  If not, See if we can start one    *
                     //****************************************************************
@@ -2574,20 +2599,22 @@ func main() {
                             ConsOut = fmt.Sprintf("[+] Starting Session with AWS Key and Secret...\n")
                             ConsLogSys(ConsOut, 1, 1)
 
-                            S3_Session, S3_err = session.NewSession(&aws.Config {
+                            S3_Session, upS3_err = session.NewSession(&aws.Config {
                                 Region: aws.String(S3_REGION),
                                 Credentials: credentials.NewStaticCredentials(
                                 S3_AWSId, S3_AWSKey, ""),
                             })
 
-                            if S3_err != nil {
-                                ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", S3_err)
+                            if upS3_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
                                 ConsLogSys(ConsOut, 1, 1)
                                 iS3Login = 0
+                                LastRC = 1
                             } else {
                                 ConsOut = fmt.Sprintf("[*] AWS S3 Session Started...\n")
                                 ConsLogSys(ConsOut, 1, 1)
                                 iS3Login = 1
+                                LastRC = 0
                             }
                         }
                     }
@@ -2628,6 +2655,7 @@ func main() {
                         if SplitRC == 1 {
                             ConsOut = fmt.Sprintf("[!] S3 Upload Requires both a FROM File and a TO Directory\n")
                             ConsLogSys(ConsOut, 1, 1)
+                            LastRC = 1
                         } else {
                             //ConsOut = fmt.Sprintf("S3U: %s to %s\n", splitString1, splitString2)
                             //ConsLogSys(ConsOut, 1, 1)
@@ -2647,26 +2675,29 @@ func main() {
                                     WalkfileToo = splitString2
 
                                     BasicS3Up := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
-                                    S3UpParser(BasicS3Up, splitString2)
+                                    UpldParser(BasicS3Up, splitString2, "S3")
 
                                     filepath.Walk(WalkDir, WalkS3UpGlob)
                                 
                                 }
                             } else {
-                                S3UpParser(splitString1, splitString2)
+                                UpldParser(splitString1, splitString2, "S3")
                             }
                         }
                     } else {
                         ConsOut = fmt.Sprintf("[!] Please Start an AWS Session (Using S3S:) Before Attempting S3 Uploads\n")
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SFS:") {
+                    LastRC = 0  //Assume Everything Is Gonna Be Alright
                     //****************************************************************
                     //* Have we set the Server?                                      *
                     //****************************************************************
                     if SF_Server == "none" {
                         ConsOut = fmt.Sprintf("[!] Please Set the SFTP Server before Starting an SFTP Session.\n")
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
                     } else {
                         //****************************************************************
                         //* SFTP Server Login Parm1:UserID  Parm2: Password              *
@@ -2680,6 +2711,7 @@ func main() {
                         if SF_SFTP_SplitRC == 1 {
                             ConsOut = fmt.Sprintf("[!] SFTP Login Requires Both an ID and a Password\n")
                             ConsLogSys(ConsOut, 1, 1)
+                            LastRC = 1
                         } else {
                             ConsOut = fmt.Sprintf("[+] Connecting to: %s ...\n", SF_Server)
                             ConsLogSys(ConsOut, 1, 1)
@@ -2705,43 +2737,30 @@ func main() {
                                 ConsOut = fmt.Sprintf("[!] Failed to connecto to [%s]: %v\n", SF_Addr, SF_SSH_err)
                                 ConsLogSys(ConsOut, 1, 1)
                                 iSFLogin = 0
+                                LastRC = 1
                             } else {
                                 //defer SF_SSHConn.Close()
                                 //****************************************************************
                                 //* Create new SFTP client                                       *
                                 //****************************************************************
-                                SF_Client, SF_err = sftp.NewClient(SF_SSHConn)
-                                if SF_err != nil {
-                                    ConsOut = fmt.Sprintf("[!] Unable to start SFTP subsystem: %v\n", SF_err)
+                                SF_Client, upSF_err = sftp.NewClient(SF_SSHConn)
+                                if upSF_err != nil {
+                                    ConsOut = fmt.Sprintf("[!] Unable to start SFTP subsystem: %v\n", upSF_err)
                                     ConsLogSys(ConsOut, 1, 1)
                                     iSFLogin = 0
+                                    LastRC = 1
                                 } else {
                                     ConsOut = fmt.Sprintf("[*] SFTP Session Started...\n")
                                     ConsLogSys(ConsOut, 1, 1)
                                     iSFLogin = 1
+                                    LastRC = 0
                                     //defer SF_Client.Close()
                                 }
                             }
                         }
                     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SFU:") {
+                     LastRC = 0  //Assume it will al be OK
                     //****************************************************************
                     //* See if we are already/still Logged In or Not by attempting   *
                     //*  to read the current remote directory                        *
@@ -2787,20 +2806,23 @@ func main() {
                                 ConsOut = fmt.Sprintf("[!] Failed to connecto to [%s]: %v\n", SF_Addr, SF_SSH_err)
                                 ConsLogSys(ConsOut, 1, 1)
                                 iSFLogin = 0
+                                LastRC = 1
                             } else {
                                 //defer SF_SSHConn.Close()
                                 //****************************************************************
                                 //* Create new SFTP client                                       *
                                 //****************************************************************
-                                SF_Client, SF_err = sftp.NewClient(SF_SSHConn)
-                                if SF_err != nil {
-                                    ConsOut = fmt.Sprintf("[!] Unable to start SFTP subsystem: %v\n", SF_err)
+                                SF_Client, upSF_err = sftp.NewClient(SF_SSHConn)
+                                if upSF_err != nil {
+                                    ConsOut = fmt.Sprintf("[!] Unable to start SFTP subsystem: %v\n", upSF_err)
                                     ConsLogSys(ConsOut, 1, 1)
                                     iSFLogin = 0
+                                    LastRC = 1
                                 } else {
                                     ConsOut = fmt.Sprintf("[*] SFTP Session Started...\n")
                                     ConsLogSys(ConsOut, 1, 1)
                                     iSFLogin = 1
+                                    LastRC = 0
                                     //defer SF_Client.Close()
                                 }
                             }
@@ -2843,6 +2865,7 @@ func main() {
                         if SplitRC == 1 {
                             ConsOut = fmt.Sprintf("[!] SFTP Upload Requires both a FROM File and a TO Directory\n")
                             ConsLogSys(ConsOut, 1, 1)
+                            LastRC = 1
                         } else {
                             //ConsOut = fmt.Sprintf("SFU: %s to %s\n", splitString1, splitString2)
                             //ConsLogSys(ConsOut, 1, 1)
@@ -2862,31 +2885,21 @@ func main() {
                                     WalkfileToo = splitString2
 
                                     BasicSFUp := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
-                                    SFUpParser(BasicSFUp, splitString2)
+                                    UpldParser(BasicSFUp, splitString2, "SFTP")
 
                                     filepath.Walk(WalkDir, WalkSFUpGlob)
                                 
                                 }
                             } else {
-                                SFUpParser(splitString1, splitString2)
+                                UpldParser(splitString1, splitString2, "SFTP")
                             }
                         }
                     } else {
-                        ConsOut = fmt.Sprintf("[!] Please Start an AWS Session (Using S3S:) Before Attempting S3 Uploads\n")
+                        ConsOut = fmt.Sprintf("[!] Please Start an SFTP Session (Using SFS:) Before Attempting SFTP Uploads\n")
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
                     }
                 }
-
-
-
-
-
-
-
-
-
-
-
             }
         }
 
@@ -4284,7 +4297,7 @@ func WalkS3UpGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) err
 
     if file_stat.IsDir() {
         WalkfileFull := fmt.Sprintf("%s%c*%s", Walkfilepath, slashDelim, WalkfileWild)
-        S3UpParser(WalkfileFull, WalkfileToo)
+        UpldParser(WalkfileFull, WalkfileToo, "S3")
     }
 
     return nil
@@ -4307,7 +4320,7 @@ func WalkSFUpGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) err
 
     if file_stat.IsDir() {
         WalkfileFull := fmt.Sprintf("%s%c*%s", Walkfilepath, slashDelim, WalkfileWild)
-        SFUpParser(WalkfileFull, WalkfileToo)
+        UpldParser(WalkfileFull, WalkfileToo, "SFTP")
     }
 
     return nil
@@ -4420,9 +4433,9 @@ func uploadFileToS3(S3Session *session.Session, S3FileName string, S3UpldName st
 
 
 //***************************************************************************
-// S3UpParser: Parses out the Copy Parameters for Multi or Single Copy      *
+// UpldParser: Parses out the Copy Parameters for Multi or Single Copy      *
 //***************************************************************************
-func S3UpParser(splitString1 string, splitString2 string) {
+func UpldParser(splitString1 string, splitString2 string, UpType string) {
     //****************************************************************
     //* If we see any wildcards, do search for multiple occurances   *
     //****************************************************************
@@ -4461,6 +4474,7 @@ func S3UpParser(splitString1 string, splitString2 string) {
         if glob_err != nil {
             ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
             ConsLogSys(ConsOut, 1, 1)
+            LastRC = 1
             return
         }
 
@@ -4515,291 +4529,25 @@ func S3UpParser(splitString1 string, splitString2 string) {
 
 
             //****************************************************************
-            //* For S3 we will want to change all \ to a /                   *
+            //* For S3 & SFTP we will want to change all \ to a /            *
             //****************************************************************
             MCpShard  = strings.Replace(MCpShard , "\\", "/", -1) 
             MCpPath  = strings.Replace(MCpPath , "\\", "/", -1) 
             MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
 
-            ConsOut = fmt.Sprintf("[+] S3 Multi-Upload File: %s\n    To: %s\n", file_found, MCprcO)
+            ConsOut = fmt.Sprintf("[+] %s Multi-Upload File: %s\n    To: %s\n", UpType, file_found, MCprcO)
             ConsLogSys(ConsOut, 1, 1)
 
-            S3_err = uploadFileToS3(S3_Session, file_found, MCprcO)
-
-            if S3_err != nil {
-                ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", Inrec[4:], S3_err)
-                ConsLogSys(ConsOut, 1, 1)
-            }
-        }
-
-        if (iNative == 0) {
-            //****************************************************************
-            //* Replace System32 with Sysnative if we are non-native         *
-            //****************************************************************
-            if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
-                TempDir = splitString1
-
-                repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
-                TempDir = repl_sys.Replace(TempDir)
-
-                ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
-                ConsLogSys(ConsOut, 1, 1)
-
-                files_glob, glob_err := filepath.Glob(TempDir)
-
-                if glob_err != nil {
-                    ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
-                    ConsLogSys(ConsOut, 1, 1)
-                    return
-                }
-
-                for _, file_found := range files_glob {
-                    //****************************************************************
-                    //* Ignore Directories - Only Process Files                      *
-                    //****************************************************************
-                    file_stat, _ := os.Stat(file_found)
-                    if file_stat.IsDir() {
-                        continue
-                    }
-
-                    //****************************************************************
-                    //* Get Just the File Name                                       *
-                    //****************************************************************
-                    ForSlash = strings.LastIndexByte(file_found, slashDelim)
-                    if (ForSlash == -1) {
-                        MCpFName = file_found
-                    } else if len(file_found[ForSlash+1:]) < 2 {
-                        MCpFName = file_found
-                    } else {
-                        MCpFName = file_found[ForSlash+1:]
-                    }
-
-                    //****************************************************************
-                    //* Upload to Output File Name                                   *
-                    //****************************************************************
-                    if setCPath == 0 || len(MCpShard) < 1 {
-                        MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
-                    } else { 
-                        MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
-                    }
-
-
-                    //****************************************************************
-                    //* For S3 we will want to change all \ to a /                   *
-                    //****************************************************************
-                    MCpShard  = strings.Replace(MCpShard , "\\", "/", -1) 
-                    MCpPath  = strings.Replace(MCpPath , "\\", "/", -1) 
-                    MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
-
-                    ConsOut = fmt.Sprintf("[+] S3 Multi-Upload Redir File: %s\n    To: %s\n", file_found, MCprcO)
-                    ConsLogSys(ConsOut, 1, 1)
-
-                    S3_err = uploadFileToS3(S3_Session, file_found, MCprcO)
-
-                    if S3_err != nil {
-                        ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", Inrec[4:], S3_err)
-                        ConsLogSys(ConsOut, 1, 1)
-                    }
-                }
-            }
-        }
-    } else {
-        //****************************************************************
-        //* Get Just the File Name                                       *
-        //****************************************************************
-        ForSlash = strings.LastIndexByte(splitString1, slashDelim)
-        if (ForSlash == -1) {
-            MCpFName = splitString1
-        } else if len(splitString1[ForSlash+1:]) < 2 {
-            MCpFName = splitString1
-        } else {
-            MCpFName = splitString1[ForSlash+1:]
-        }
-
-        //****************************************************************
-        //* Upload to Output File Name                                   *
-        //****************************************************************
-        MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
-
-
-        //****************************************************************
-        //* For S3 we will want to change all \ to a /                   *
-        //****************************************************************
-        MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
-
-        ConsOut = fmt.Sprintf("[+] S3 Singl-Upload File: %s\n    To: %s\n", splitString1, MCprcO)
-        ConsLogSys(ConsOut, 1, 1)
-
-        S3_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
-
-        if S3_err != nil {
-            ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", splitString1, S3_err)
-            ConsLogSys(ConsOut, 1, 1)
-        }
-
-
-        if (iNative == 0) {
-            //****************************************************************
-            //* Replace System32 with Sysnative if we are non-native         *
-            //****************************************************************
-            if CaseInsensitiveContains(splitString1, "\\System32\\") || CaseInsensitiveContains(splitString1, "/System32/") {
-                TempDir = splitString1
-
-                repl_sys := NewCaseInsensitiveReplacer("System32", "sysnative")
-                TempDir = repl_sys.Replace(TempDir)
-
-                ConsOut = fmt.Sprintf("[*] Non-Native Flag Has Been Detected - Adding Sysnative Redirection: \n %s\n", TempDir)
-                ConsLogSys(ConsOut, 1, 1)
-
-                //****************************************************************
-                //* Get Just the File Name                                       *
-                //****************************************************************
-                ForSlash = strings.LastIndexByte(splitString1, slashDelim)
-                if (ForSlash == -1) {
-                    MCpFName = splitString1
-                } else if len(splitString1[ForSlash+1:]) < 2 {
-                    MCpFName = splitString1
-                } else {
-                    MCpFName = splitString1[ForSlash+1:]
-                }
-
-                //****************************************************************
-                //* Copy to Output File Name                                     *
-                //****************************************************************
-                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
-
-
-                //****************************************************************
-                //* For S3 we will want to change all \ to a /                   *
-                //****************************************************************
-                MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
-
-                ConsOut = fmt.Sprintf("[+] S3 Singl-Upload Redir File: %s\n    To: %s\n", splitString1, MCprcO)
-                ConsLogSys(ConsOut, 1, 1)
-
-                S3_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
-
-                if S3_err != nil {
-                    ConsOut = fmt.Sprintf("[!] Error Uploading File to S3: %s\n    %s\n", splitString1, S3_err)
-                    ConsLogSys(ConsOut, 1, 1)
-                }
-
-            }
-        }
-    }
-}
-
-
-//***************************************************************************
-// SFUpParser: Parses out the Copy Parameters for Multi or Single Copy      *
-//***************************************************************************
-func SFUpParser(splitString1 string, splitString2 string) {
-    //****************************************************************
-    //* If we see any wildcards, do search for multiple occurances   *
-    //****************************************************************
-    if strings.Contains(splitString1, "*") || strings.Contains(splitString1, "?") {
-
-        //****************************************************************
-        // Parse out the Expanded Directory Shard (pre-wildcard)         *
-        //****************************************************************
-        iAShard = strings.IndexByte(splitString1, '*')
-        iQShard = strings.IndexByte(splitString1, '?')
-
-        if iAShard < 0 {
-            iShard = strings.LastIndexByte(splitString1[:iQShard], slashDelim) + 1
-        } else if iQShard < 0 {
-            iShard = strings.LastIndexByte(splitString1[:iAShard], slashDelim) + 1
-        } else if iAShard < iQShard {
-            iShard = strings.LastIndexByte(splitString1[:iAShard], slashDelim) + 1
-        } else if iQShard < iAShard {
-            iShard = strings.LastIndexByte(splitString1[:iQShard], slashDelim) + 1
-        } else {
-            iShard = 0
-        }
-
-        if iShard > 1 {
-            MCpRoot = splitString1[:iShard]
-        } else {
-            MCpRoot = ""
-        }
-
-
-        //****************************************************************
-        // Do File Search using Glob                                     *
-        //****************************************************************
-        files_glob, glob_err := filepath.Glob(splitString1)
-
-        if glob_err != nil {
-            ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
-            ConsLogSys(ConsOut, 1, 1)
-            return
-        }
-
-        for _, file_found := range files_glob {
-            //****************************************************************
-            //* Ignore Directories - Only Process Files                      *
-            //****************************************************************
-            file_stat, _ := os.Stat(file_found)
-            if file_stat.IsDir() {
-                continue
-            }
-
-
-            //****************************************************************
-            //* Get Just the File Name                                       *
-            //****************************************************************
-            ForSlash = strings.LastIndexByte(file_found, slashDelim)
-
-            if (ForSlash == -1) {
-                MCpFName = file_found
-                MCpShard = ""
-                MCpPath = ""
-            } else if iShard == 0 {
-                MCpFName = file_found[ForSlash+1:]
-                MCpShard = ""
-                MCpPath = file_found[:ForSlash] 
-            } else if len(file_found[ForSlash+1:]) < 2 {
-                MCpFName = file_found
-                MCpShard = file_found[iShard:len(file_found)]
-                MCpPath = file_found[:ForSlash] 
+            if UpType == "S3" {
+                upld_err = uploadFileToS3(S3_Session, file_found, MCprcO)
             } else {
-                MCpFName = file_found[ForSlash+1:]
-                MCpShard = file_found[iShard:len(file_found)-len(MCpFName)]
-                MCpPath = file_found[:ForSlash] 
+              upld_err = uploadFileToSF(*SF_Client, file_found, MCprcO)
             }
 
-            //****************************************************************
-            //* Upload to Output File Name                                    *
-            //*  Note: a Shard is any expanded WildCard Directory - Shards   *
-            //*        can be used to logically group duplicate file names   *
-            //****************************************************************
-            if setCPath == 0 {
-                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
-            } else if setCPath == 1 && len(MCpShard) < 1 {
-                MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
-            } else if setCPath == 1 {
-                MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
-            } else if setCPath == 2 {
-                MCpPath = strings.Replace(MCpPath, ":", "", -1)
-                MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpPath, MCpFName)
-            }
-
-
-            //****************************************************************
-            //* For SFTP we will want to change all \ to a /                 *
-            //****************************************************************
-            MCpShard  = strings.Replace(MCpShard , "\\", "/", -1) 
-            MCpPath  = strings.Replace(MCpPath , "\\", "/", -1) 
-            MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
-
-            ConsOut = fmt.Sprintf("[+] SFTP Multi-Upload File: %s\n    To: %s\n", file_found, MCprcO)
-            ConsLogSys(ConsOut, 1, 1)
-
-            SF_err = uploadFileToSF(*SF_Client, file_found, MCprcO)
-
-            if SF_err != nil {
-                ConsOut = fmt.Sprintf("[!] Error Uploading File to SFTP: %s\n    %s\n", Inrec[4:], SF_err)
+            if upld_err != nil {
+                ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n", UpType, Inrec[4:], upld_err)
                 ConsLogSys(ConsOut, 1, 1)
+                LastRC = 1
             }
         }
 
@@ -4821,6 +4569,7 @@ func SFUpParser(splitString1 string, splitString2 string) {
                 if glob_err != nil {
                     ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
                     ConsLogSys(ConsOut, 1, 1)
+                    LastRC = 1
                     return
                 }
 
@@ -4856,20 +4605,26 @@ func SFUpParser(splitString1 string, splitString2 string) {
 
 
                     //****************************************************************
-                    //* For SFTP we will want to change all \ to a /                 *
+                    //* For S3 & SFTP we will want to change all \ to a /            *
                     //****************************************************************
                     MCpShard  = strings.Replace(MCpShard , "\\", "/", -1) 
                     MCpPath  = strings.Replace(MCpPath , "\\", "/", -1) 
                     MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
 
-                    ConsOut = fmt.Sprintf("[+] SFTP Multi-Upload Redir File: %s\n    To: %s\n", file_found, MCprcO)
+                    ConsOut = fmt.Sprintf("[+] %s Multi-Upload Redir File: %s\n    To: %s\n", UpType, file_found, MCprcO)
                     ConsLogSys(ConsOut, 1, 1)
 
-                    SF_err = uploadFileToSF(*SF_Client, file_found, MCprcO)
+                    if UpType == "S3" {
+                        upld_err = uploadFileToS3(S3_Session, file_found, MCprcO)
+                    } else {
+                       upld_err = uploadFileToSF(*SF_Client, file_found, MCprcO)
+                    }
 
-                    if SF_err != nil {
-                        ConsOut = fmt.Sprintf("[!] Error Uploading File to SFTP: %s\n    %s\n", Inrec[4:], SF_err)
+
+                    if upld_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n", UpType, Inrec[4:], upld_err)
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
                     }
                 }
             }
@@ -4894,18 +4649,23 @@ func SFUpParser(splitString1 string, splitString2 string) {
 
 
         //****************************************************************
-        //* For SFTP we will want to change all \ to a /                 *
+        //* For S3 & SFTP we will want to change all \ to a /            *
         //****************************************************************
         MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
 
-        ConsOut = fmt.Sprintf("[+] SFTP Singl-Upload File: %s\n    To: %s\n", splitString1, MCprcO)
+        ConsOut = fmt.Sprintf("[+] %s Singl-Upload File: %s\n    To: %s\n", UpType, splitString1, MCprcO)
         ConsLogSys(ConsOut, 1, 1)
 
-        SF_err = uploadFileToSF(*SF_Client, splitString1, MCprcO)
+        if UpType == "S3" {
+            upld_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
+        } else {
+            upld_err = uploadFileToSF(*SF_Client, splitString1, MCprcO)
+        }
 
-        if SF_err != nil {
-            ConsOut = fmt.Sprintf("[!] Error Uploading File to SFTP: %s\n    %s\n", splitString1, SF_err)
+        if upld_err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n", UpType, splitString1, upld_err)
             ConsLogSys(ConsOut, 1, 1)
+            LastRC = 1
         }
 
 
@@ -4941,18 +4701,23 @@ func SFUpParser(splitString1 string, splitString2 string) {
 
 
                 //****************************************************************
-                //* For SFTP we will want to change all \ to a /                 *
+                //* For S3 & SFTP we will want to change all \ to a /            *
                 //****************************************************************
                 MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
 
-                ConsOut = fmt.Sprintf("[+] SFTP Singl-Upload Redir File: %s\n    To: %s\n", splitString1, MCprcO)
+                ConsOut = fmt.Sprintf("[+] %s Singl-Upload Redir File: %s\n    To: %s\n", UpType, splitString1, MCprcO)
                 ConsLogSys(ConsOut, 1, 1)
 
-                SF_err = uploadFileToSF(*SF_Client, splitString1, MCprcO)
+                if UpType == "S3" {
+                    upld_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
+                } else {
+                    upld_err = uploadFileToSF(*SF_Client, splitString1, MCprcO)
+                }
 
-                if SF_err != nil {
-                    ConsOut = fmt.Sprintf("[!] Error Uploading File to SFTP: %s\n    %s\n", splitString1, S3_err)
+                if upld_err != nil {
+                    ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n", UpType, splitString1, upld_err)
                     ConsLogSys(ConsOut, 1, 1)
+                    LastRC = 1
                 }
 
             }
@@ -5055,9 +4820,8 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
     var SF_ReadByteCount = 0
     var scopy_err error
 
-
-    ConsOut = fmt.Sprintf("[+] Uploading [%s] to [%s] ...\n", localFile, remoteFile)
-    ConsLogSys(ConsOut, 1, 1)
+    //ConsOut = fmt.Sprintf("[+] Uploading [%s] to [%s] ...\n", localFile, remoteFile)
+    //ConsLogSys(ConsOut, 1, 1)
 
     srcFile, lopen_err := os.Open(localFile)
     if lopen_err != nil {

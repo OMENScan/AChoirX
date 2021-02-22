@@ -49,3 +49,5 @@ HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a sing
 01/01/2021 - Beta 38 - Implement END:Reset to clear any Dangling ENDs.  Use Judiciously.
 
 02/14/2021 - Beta 39 - Implement native SFTP Upload
+
+02/21/2021 - Beta 40(RC1) - Refactor code for efficiencies, Fix Command Line Variables. Improve Comparisons for Missing Parameters (EQU:, NEQ:, N==:, N<<:, N>>:). Set LastRC for SFS:, SFU:, S3S:, and S3U:. Upgrade Status to Release Candidate 1
