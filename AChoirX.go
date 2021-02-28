@@ -61,6 +61,8 @@
 //                   - Set LastRC for SFS:, SFU:, S3S:, and S3U:
 //                   - Release Candidate 1
 //
+// AChoirX v10.00.41 - Set LastRC for /GET:, GET:, and /GXR:
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -120,7 +122,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.40"                       // AChoir Version
+var Version = "v10.00.41"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -501,6 +503,7 @@ func main() {
                 ConsLogSys(ConsOut, 1, 1)
             }
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/GET:") {
+            LastRC = 0  //Assume Everything Will Be Alright
             WGetURL = os.Args[i][5:]
             RootSlash = strings.LastIndexByte(WGetURL, '/')
             if (RootSlash == -1) {
@@ -516,10 +519,13 @@ func main() {
             http_err := DownloadFile(CurrFil, WGetURL)
             if http_err != nil {
                 fmt.Println("[!] Downloaded Failed: " + WGetURL)        
+                LastRC = 1  //Failed
             } else {
                 fmt.Println("[+] Downloaded Success: " + WGetURL)        
+                LastRC = 0  //Sucess
             }
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/GXR:") {
+            LastRC = 0  //Assume Everything Will Be Alright
             WGetURL = os.Args[i][5:]
             CurrFil = fmt.Sprintf("%s%cGXR.Zip", CurrWorkDir, slashDelim)
 
@@ -528,19 +534,23 @@ func main() {
             http_err := DownloadFile(CurrFil, WGetURL)
             if http_err != nil {
                 fmt.Println("[!] GXR Downloaded Failed: " + WGetURL)        
+                LastRC = 1  //Failed
             } else {
-                fmt.Println("[+] GXR Downloaded Success: " + WGetURL)        
-                fmt.Println("[+] Now Expanding GXR Zip File...")        
+                fmt.Println("[+] GXR Downloaded Success: " + WGetURL)
+                LastRC = 0  //Assume Everything Will Be Alright
 
+                fmt.Println("[+] Now Expanding GXR Zip File...")        
                 ZipRdr, zip_err := zip.OpenReader(CurrFil)
                 if zip_err != nil {
-                    fmt.Println("[!] GXR Unzip File Open Error: " + CurrFil)        
+                    fmt.Println("[!] GXR Unzip File Open Error: " + CurrFil)
+                    LastRC = 1  //Failed
                 } else {
                     defer ZipRdr.Close()
 
                     Unzfiles, unz_err := Unzip(ZipRdr.File, CurrWorkDir)
                     if unz_err != nil {
                         fmt.Printf("[!] GXR Unzip Error: %s\n", unz_err)
+                        LastRC = 1  //Failed
                     }
 
                     for iUnz := 0; iUnz < len(Unzfiles); iUnz++ {
@@ -2487,6 +2497,7 @@ func main() {
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SYS:") {
                     RunCommand(Inrec[4:], 3)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "GET:") {
+                    LastRC = 0  //Assume Everything Will Be Alright
                     Getrec = Inrec[4:]
                     splitString1, splitString2, SplitRC := twoSplit(Getrec)
                     WGetURL = splitString1
@@ -2508,9 +2519,11 @@ func main() {
                     if http_err != nil {
                         ConsOut = fmt.Sprintf("[+] Download Failed: %s\n", WGetURL)
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1  //Failed
                     } else {
                         ConsOut = fmt.Sprintf("[+] Download Success: %s\n", WGetURL)
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 0  //Success
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "UNZ:") {
                     Ziprec = Inrec[4:]
