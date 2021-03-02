@@ -56,7 +56,17 @@
 //
 // AChoirX v10.00.39 - Implement Internal SFTP Client - Adapted from: https://sftptogo.com/blog/go-sftp/
 //
-// AChoirX v10.00.40 - Refactor code for efficiencies, Fix Command Line Variables, Improve String Comparisons
+// AChoirX v10.00.40 - Refactor code for efficiencies, Fix Command Line Variables,
+//                   - Improve Comparisons for Missing Parameters (EQU:, NEQ:, N==:, N<<:, N>>:)
+//                   - Set LastRC for SFS:, SFU:, S3S:, and S3U:
+//                   - Release Candidate 1
+//
+// AChoirX v10.00.41 - Set LastRC for /GET:, GET:, and /GXR:
+//
+// AChoirX v10.00.42 - Enhancement Request - Check if a port is open on a remote machine
+//                   - TCP:RemoteHost:Port or UDP:RemoteHost:Port
+//                      IMPORTANT NOTE: UDP is connectionless and unreliable.  I have included this 
+//                      functionality, but it cannot be trusted.  Use with Caution and Caveat.
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -93,6 +103,7 @@ import (
     "archive/zip"
     "regexp"
     "runtime"
+    "net"
     "net/http"
     "path/filepath"
     "io"
@@ -117,7 +128,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.40"                       // AChoir Version
+var Version = "v10.00.42"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -498,6 +509,7 @@ func main() {
                 ConsLogSys(ConsOut, 1, 1)
             }
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/GET:") {
+            LastRC = 0  //Assume Everything Will Be Alright
             WGetURL = os.Args[i][5:]
             RootSlash = strings.LastIndexByte(WGetURL, '/')
             if (RootSlash == -1) {
@@ -513,10 +525,13 @@ func main() {
             http_err := DownloadFile(CurrFil, WGetURL)
             if http_err != nil {
                 fmt.Println("[!] Downloaded Failed: " + WGetURL)        
+                LastRC = 1  //Failed
             } else {
                 fmt.Println("[+] Downloaded Success: " + WGetURL)        
+                LastRC = 0  //Sucess
             }
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/GXR:") {
+            LastRC = 0  //Assume Everything Will Be Alright
             WGetURL = os.Args[i][5:]
             CurrFil = fmt.Sprintf("%s%cGXR.Zip", CurrWorkDir, slashDelim)
 
@@ -525,19 +540,23 @@ func main() {
             http_err := DownloadFile(CurrFil, WGetURL)
             if http_err != nil {
                 fmt.Println("[!] GXR Downloaded Failed: " + WGetURL)        
+                LastRC = 1  //Failed
             } else {
-                fmt.Println("[+] GXR Downloaded Success: " + WGetURL)        
-                fmt.Println("[+] Now Expanding GXR Zip File...")        
+                fmt.Println("[+] GXR Downloaded Success: " + WGetURL)
+                LastRC = 0  //Assume Everything Will Be Alright
 
+                fmt.Println("[+] Now Expanding GXR Zip File...")        
                 ZipRdr, zip_err := zip.OpenReader(CurrFil)
                 if zip_err != nil {
-                    fmt.Println("[!] GXR Unzip File Open Error: " + CurrFil)        
+                    fmt.Println("[!] GXR Unzip File Open Error: " + CurrFil)
+                    LastRC = 1  //Failed
                 } else {
                     defer ZipRdr.Close()
 
                     Unzfiles, unz_err := Unzip(ZipRdr.File, CurrWorkDir)
                     if unz_err != nil {
                         fmt.Printf("[!] GXR Unzip Error: %s\n", unz_err)
+                        LastRC = 1  //Failed
                     }
 
                     for iUnz := 0; iUnz < len(Unzfiles); iUnz++ {
@@ -2479,11 +2498,22 @@ func main() {
                     ConsLogSys(ConsOut, 1, 1)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "EXE:") {
                     RunCommand(Inrec[4:], 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "TCP:") {
+                  LastRC = 0
+                  if scanPort("tcp", Inrec[4:]) {
+                      LastRC = 1
+                  }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "UDP:") {
+                  LastRC = 0
+                  if scanPort("udp", Inrec[4:]) {
+                      LastRC = 1
+                  }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "EXA:") {
                     RunCommand(Inrec[4:], 2)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SYS:") {
                     RunCommand(Inrec[4:], 3)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "GET:") {
+                    LastRC = 0  //Assume Everything Will Be Alright
                     Getrec = Inrec[4:]
                     splitString1, splitString2, SplitRC := twoSplit(Getrec)
                     WGetURL = splitString1
@@ -2505,9 +2535,11 @@ func main() {
                     if http_err != nil {
                         ConsOut = fmt.Sprintf("[+] Download Failed: %s\n", WGetURL)
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1  //Failed
                     } else {
                         ConsOut = fmt.Sprintf("[+] Download Success: %s\n", WGetURL)
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 0  //Success
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "UNZ:") {
                     Ziprec = Inrec[4:]
@@ -2537,15 +2569,18 @@ func main() {
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "S3S:") {
+                    LastRC = 0  //Assume Everything Will Be Alright
                     //****************************************************************
                     //* Have we set the Region and Bucket Name?                      *
                     //****************************************************************
                     if S3_REGION == "none" {
                         ConsOut = fmt.Sprintf("[!] Please Set the AWS S3 Bucket REGION Before Starting an AWS Session.\n")
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
                     } else if S3_BUCKET == "none" {
                         ConsOut = fmt.Sprintf("[!] Please Set the AWS S3 BUCKET Name Before Starting an AWS Session.\n")
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
                     } else {
                         //****************************************************************
                         //* AWS S3 Bucket Login Parm1:UserID  Parm2: Secret Key          *
@@ -2559,6 +2594,7 @@ func main() {
                         if S3_AWS_SplitRC == 1 {
                             ConsOut = fmt.Sprintf("[!] AWS Session Requires Both an ID and a Key\n")
                             ConsLogSys(ConsOut, 1, 1)
+                            LastRC = 1
                         } else {
                             S3_Session, upS3_err = session.NewSession(&aws.Config {
                                 Region: aws.String(S3_REGION),
@@ -2570,14 +2606,17 @@ func main() {
                                 ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
                                 ConsLogSys(ConsOut, 1, 1)
                                 iS3Login = 0
+                                LastRC = 1
                             } else {
                                 ConsOut = fmt.Sprintf("[*] AWS S3 Session Started...\n")
                                 ConsLogSys(ConsOut, 1, 1)
                                 iS3Login = 1
+                                LastRC = 0
                             }
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "S3U:") {
+                    LastRC = 0  //Assume Everything Will Be Alright
                     //****************************************************************
                     //* See if we have a Sesion.  If not, See if we can start one    *
                     //****************************************************************
@@ -2599,10 +2638,12 @@ func main() {
                                 ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
                                 ConsLogSys(ConsOut, 1, 1)
                                 iS3Login = 0
+                                LastRC = 1
                             } else {
                                 ConsOut = fmt.Sprintf("[*] AWS S3 Session Started...\n")
                                 ConsLogSys(ConsOut, 1, 1)
                                 iS3Login = 1
+                                LastRC = 0
                             }
                         }
                     }
@@ -2643,6 +2684,7 @@ func main() {
                         if SplitRC == 1 {
                             ConsOut = fmt.Sprintf("[!] S3 Upload Requires both a FROM File and a TO Directory\n")
                             ConsLogSys(ConsOut, 1, 1)
+                            LastRC = 1
                         } else {
                             //ConsOut = fmt.Sprintf("S3U: %s to %s\n", splitString1, splitString2)
                             //ConsLogSys(ConsOut, 1, 1)
@@ -2674,14 +2716,17 @@ func main() {
                     } else {
                         ConsOut = fmt.Sprintf("[!] Please Start an AWS Session (Using S3S:) Before Attempting S3 Uploads\n")
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SFS:") {
+                    LastRC = 0  //Assume Everything Is Gonna Be Alright
                     //****************************************************************
                     //* Have we set the Server?                                      *
                     //****************************************************************
                     if SF_Server == "none" {
                         ConsOut = fmt.Sprintf("[!] Please Set the SFTP Server before Starting an SFTP Session.\n")
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
                     } else {
                         //****************************************************************
                         //* SFTP Server Login Parm1:UserID  Parm2: Password              *
@@ -2695,6 +2740,7 @@ func main() {
                         if SF_SFTP_SplitRC == 1 {
                             ConsOut = fmt.Sprintf("[!] SFTP Login Requires Both an ID and a Password\n")
                             ConsLogSys(ConsOut, 1, 1)
+                            LastRC = 1
                         } else {
                             ConsOut = fmt.Sprintf("[+] Connecting to: %s ...\n", SF_Server)
                             ConsLogSys(ConsOut, 1, 1)
@@ -2720,6 +2766,7 @@ func main() {
                                 ConsOut = fmt.Sprintf("[!] Failed to connecto to [%s]: %v\n", SF_Addr, SF_SSH_err)
                                 ConsLogSys(ConsOut, 1, 1)
                                 iSFLogin = 0
+                                LastRC = 1
                             } else {
                                 //defer SF_SSHConn.Close()
                                 //****************************************************************
@@ -2730,16 +2777,19 @@ func main() {
                                     ConsOut = fmt.Sprintf("[!] Unable to start SFTP subsystem: %v\n", upSF_err)
                                     ConsLogSys(ConsOut, 1, 1)
                                     iSFLogin = 0
+                                    LastRC = 1
                                 } else {
                                     ConsOut = fmt.Sprintf("[*] SFTP Session Started...\n")
                                     ConsLogSys(ConsOut, 1, 1)
                                     iSFLogin = 1
+                                    LastRC = 0
                                     //defer SF_Client.Close()
                                 }
                             }
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SFU:") {
+                     LastRC = 0  //Assume it will al be OK
                     //****************************************************************
                     //* See if we are already/still Logged In or Not by attempting   *
                     //*  to read the current remote directory                        *
@@ -2785,6 +2835,7 @@ func main() {
                                 ConsOut = fmt.Sprintf("[!] Failed to connecto to [%s]: %v\n", SF_Addr, SF_SSH_err)
                                 ConsLogSys(ConsOut, 1, 1)
                                 iSFLogin = 0
+                                LastRC = 1
                             } else {
                                 //defer SF_SSHConn.Close()
                                 //****************************************************************
@@ -2795,10 +2846,12 @@ func main() {
                                     ConsOut = fmt.Sprintf("[!] Unable to start SFTP subsystem: %v\n", upSF_err)
                                     ConsLogSys(ConsOut, 1, 1)
                                     iSFLogin = 0
+                                    LastRC = 1
                                 } else {
                                     ConsOut = fmt.Sprintf("[*] SFTP Session Started...\n")
                                     ConsLogSys(ConsOut, 1, 1)
                                     iSFLogin = 1
+                                    LastRC = 0
                                     //defer SF_Client.Close()
                                 }
                             }
@@ -2841,6 +2894,7 @@ func main() {
                         if SplitRC == 1 {
                             ConsOut = fmt.Sprintf("[!] SFTP Upload Requires both a FROM File and a TO Directory\n")
                             ConsLogSys(ConsOut, 1, 1)
+                            LastRC = 1
                         } else {
                             //ConsOut = fmt.Sprintf("SFU: %s to %s\n", splitString1, splitString2)
                             //ConsLogSys(ConsOut, 1, 1)
@@ -2872,6 +2926,7 @@ func main() {
                     } else {
                         ConsOut = fmt.Sprintf("[!] Please Start an SFTP Session (Using SFS:) Before Attempting SFTP Uploads\n")
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
                     }
                 }
             }
@@ -4448,6 +4503,7 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
         if glob_err != nil {
             ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
             ConsLogSys(ConsOut, 1, 1)
+            LastRC = 1
             return
         }
 
@@ -4520,6 +4576,7 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
             if upld_err != nil {
                 ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n", UpType, Inrec[4:], upld_err)
                 ConsLogSys(ConsOut, 1, 1)
+                LastRC = 1
             }
         }
 
@@ -4541,6 +4598,7 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                 if glob_err != nil {
                     ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
                     ConsLogSys(ConsOut, 1, 1)
+                    LastRC = 1
                     return
                 }
 
@@ -4595,6 +4653,7 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                     if upld_err != nil {
                         ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n", UpType, Inrec[4:], upld_err)
                         ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
                     }
                 }
             }
@@ -4635,6 +4694,7 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
         if upld_err != nil {
             ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n", UpType, splitString1, upld_err)
             ConsLogSys(ConsOut, 1, 1)
+            LastRC = 1
         }
 
 
@@ -4686,6 +4746,7 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                 if upld_err != nil {
                     ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n", UpType, splitString1, upld_err)
                     ConsLogSys(ConsOut, 1, 1)
+                    LastRC = 1
                 }
 
             }
@@ -4788,9 +4849,8 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
     var SF_ReadByteCount = 0
     var scopy_err error
 
-
-    ConsOut = fmt.Sprintf("[+] Uploading [%s] to [%s] ...\n", localFile, remoteFile)
-    ConsLogSys(ConsOut, 1, 1)
+    //ConsOut = fmt.Sprintf("[+] Uploading [%s] to [%s] ...\n", localFile, remoteFile)
+    //ConsLogSys(ConsOut, 1, 1)
 
     srcFile, lopen_err := os.Open(localFile)
     if lopen_err != nil {
@@ -4859,5 +4919,19 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
     ConsLogSys(ConsOut, 1, 1)
     
     return
+}
+
+
+//***************************************************************************
+// Check if a remote port is Open - RC=0 is Closed, RC=1 is Open            *
+//***************************************************************************
+func scanPort(scanProto string, scanHostPort string) bool {
+    scan_conn, scan_err := net.DialTimeout(scanProto, scanHostPort, 60*time.Second)
+
+    if scan_err != nil {
+        return false
+    }
+    defer scan_conn.Close()
+    return true
 }
 
