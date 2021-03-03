@@ -1,4 +1,4 @@
-AChoirX - v10.00.41
+AChoirX - v10.00.42
 
 AChoirX
 =======
@@ -221,6 +221,11 @@ CSE:GET  Input Optional Case Information - ONLY allowed ONCE
 GET:     Get a file using HTTP into &Fil 
          Note: &Fil (FIL:) MUST BE SET TO THE FULL PATH OF 
                THE NEW FILE!
+TCP:<Server:Port> - Checks if a TCP Server:Port is Open & Sets &RCD
+                  RCD 0: Server:Port not found, RCD 1: Server:Port Found
+                  (Can be used to check if an Upload Server is online)
+UDP:<Server:Port> - Checks if a UDP Server:Port is Open & Sets &RCD
+                  (Not Recommended - UDP is connectionless)
 UNZ:<Zip File> <Dest Dir> - Unzip a Zip File into the Destination Dir
 S3S: <ID> <Key> - Start an AWS Session using an AWS ID and Key
 S3U: <Local Fname> <Remote FName> - Uploads file(s) to an S3 Bucket

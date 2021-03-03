@@ -53,3 +53,5 @@ HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a sing
 02/21/2021 - Beta 40(RC1) - Refactor code for efficiencies, Fix Command Line Variables. Improve Comparisons for Missing Parameters (EQU:, NEQ:, N==:, N<<:, N>>:). Set LastRC for SFS:, SFU:, S3S:, and S3U:. Upgrade Status to Release Candidate 1
 
 02/27/2021 - Beta 41(RC1) - Set LastRC for /GET:, GET:, and /GXR:
+
+03/02/2021 - Beta 42(RC1) - Check if a port is open on a remote machine - TCP:RemoteHost:Port or UDP:RemoteHost:Port. IMPORTANT NOTE: UDP is connectionless and unreliable - I have included this functionality, but it cannot be trusted.  Use with Caution and Caveat.

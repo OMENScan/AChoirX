@@ -63,6 +63,11 @@
 //
 // AChoirX v10.00.41 - Set LastRC for /GET:, GET:, and /GXR:
 //
+// AChoirX v10.00.42 - Enhancement Request - Check if a port is open on a remote machine
+//                   - TCP:RemoteHost:Port or UDP:RemoteHost:Port
+//                      IMPORTANT NOTE: UDP is connectionless and unreliable.  I have included this 
+//                      functionality, but it cannot be trusted.  Use with Caution and Caveat.
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -98,6 +103,7 @@ import (
     "archive/zip"
     "regexp"
     "runtime"
+    "net"
     "net/http"
     "path/filepath"
     "io"
@@ -122,7 +128,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.41"                       // AChoir Version
+var Version = "v10.00.42"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -2492,6 +2498,16 @@ func main() {
                     ConsLogSys(ConsOut, 1, 1)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "EXE:") {
                     RunCommand(Inrec[4:], 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "TCP:") {
+                  LastRC = 0
+                  if scanPort("tcp", Inrec[4:]) {
+                      LastRC = 1
+                  }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "UDP:") {
+                  LastRC = 0
+                  if scanPort("udp", Inrec[4:]) {
+                      LastRC = 1
+                  }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "EXA:") {
                     RunCommand(Inrec[4:], 2)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SYS:") {
@@ -4903,5 +4919,19 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
     ConsLogSys(ConsOut, 1, 1)
     
     return
+}
+
+
+//***************************************************************************
+// Check if a remote port is Open - RC=0 is Closed, RC=1 is Open            *
+//***************************************************************************
+func scanPort(scanProto string, scanHostPort string) bool {
+    scan_conn, scan_err := net.DialTimeout(scanProto, scanHostPort, 60*time.Second)
+
+    if scan_err != nil {
+        return false
+    }
+    defer scan_conn.Close()
+    return true
 }
 
