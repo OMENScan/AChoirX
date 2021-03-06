@@ -68,6 +68,10 @@
 //                      IMPORTANT NOTE: UDP is connectionless and unreliable.  I have included this 
 //                      functionality, but it cannot be trusted.  Use with Caution and Caveat.
 //
+// AChoirX v10.00.43 - Close Ini File at the end of processing
+//                   - Add LogHndl.Sync() after SAY: to control/force Log file Flushing better
+//                   - Improve Unzip messages 
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -128,7 +132,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.42"                       // AChoir Version
+var Version = "v10.00.43"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -553,14 +557,10 @@ func main() {
                 } else {
                     defer ZipRdr.Close()
 
-                    Unzfiles, unz_err := Unzip(ZipRdr.File, CurrWorkDir)
+                    unz_err := Unzip(ZipRdr.File, CurrWorkDir)
                     if unz_err != nil {
                         fmt.Printf("[!] GXR Unzip Error: %s\n", unz_err)
                         LastRC = 1  //Failed
-                    }
-
-                    for iUnz := 0; iUnz < len(Unzfiles); iUnz++ {
-                        fmt.Printf("[*] Unzipped File: %s\n", Unzfiles[iUnz])
                     }
                 }
             }
@@ -2207,6 +2207,11 @@ func main() {
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SAY:") {
                     ConsOut = fmt.Sprintf("%s\n", Inrec[4:])
                     ConsLogSys(ConsOut, 1, 1)
+
+                    //After writing, force the Log to be written to disk.
+                    if iLogOpen == 1 {
+                        LogHndl.Sync()
+                    }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "END:") {
                     if len(Inrec) > 4 {
                         // Is there a parameter after the END: Statement
@@ -2556,14 +2561,9 @@ func main() {
                         } else {
                             defer ZipRdr.Close()
 
-                            Unzfiles, unz_err := Unzip(ZipRdr.File, splitString2)
+                            unz_err := Unzip(ZipRdr.File, splitString2)
                             if unz_err != nil {
                                 ConsOut = fmt.Sprintf("[!] Unzip Error: %s\n", unz_err)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-
-                            for iUnz := 0; iUnz < len(Unzfiles); iUnz++ {
-                                ConsOut = fmt.Sprintf("[*] Unzipped File: %s\n", Unzfiles[iUnz])
                                 ConsLogSys(ConsOut, 1, 1)
                             }
                         }
@@ -3660,6 +3660,10 @@ func cleanUp_Exit(exitRC int) {
     //****************************************************************
     showTime("Acquisition Completed");
 
+    if consOrFile == 0 {
+        IniHndl.Close()
+    }
+
     if iXitCmd == 1 {
         ConsOut = fmt.Sprintf("[+] Queuing Exit Program: %s\n", XitCmd)
         ConsLogSys(ConsOut, 1, 1)
@@ -3934,21 +3938,19 @@ func RunCommand(Commandstring string, Commandtype int) error {
 // within the zip file (parameter 1) to an output directory (parameter 2).  *
 //   https://golangcode.com/unzip-files-in-go/                              *
 //***************************************************************************
-func Unzip(ZipRdrFile []*zip.File, ZipDest string) ([]string, error) {
-
-    var ZipFNames []string
+func Unzip(ZipRdrFile []*zip.File, ZipDest string) error {
 
     for _, ZipFile := range ZipRdrFile {
 
         // Store filename/path for returning and using later on
         ZipFpath := filepath.Join(ZipDest, ZipFile.Name)
+        ConsOut = fmt.Sprintf("[*] Unzipping: %s\n", ZipFpath)
+        ConsLogSys(ConsOut, 1, 1)
 
         // Check for ZipSlip. More Info: http://bit.ly/2MsjAWE
         if !strings.HasPrefix(ZipFpath, filepath.Clean(ZipDest)+string(os.PathSeparator)) {
-            return ZipFNames, fmt.Errorf("%s: illegal file path", ZipFpath)
+            return fmt.Errorf("%s: illegal file path", ZipFpath)
         }
-
-        ZipFNames = append(ZipFNames, ZipFpath)
 
         if ZipFile.FileInfo().IsDir() {
             // Make Folder
@@ -3958,17 +3960,17 @@ func Unzip(ZipRdrFile []*zip.File, ZipDest string) ([]string, error) {
 
         // Make File
         if zip_err := os.MkdirAll(filepath.Dir(ZipFpath), os.ModePerm); zip_err != nil {
-            return ZipFNames, zip_err
+            return zip_err
         }
 
         ZipOutFile, zip_err := os.OpenFile(ZipFpath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, ZipFile.Mode())
         if zip_err != nil {
-            return ZipFNames, zip_err
+            return zip_err
         }
 
         Ziprc, zip_err := ZipFile.Open()
         if zip_err != nil {
-            return ZipFNames, zip_err
+            return zip_err
         }
 
         _, zip_err = io.Copy(ZipOutFile, Ziprc)
@@ -3978,10 +3980,10 @@ func Unzip(ZipRdrFile []*zip.File, ZipDest string) ([]string, error) {
         Ziprc.Close()
 
         if zip_err != nil {
-            return ZipFNames, zip_err
+            return zip_err
         }
     }
-    return ZipFNames, nil
+    return nil
 }
 
 

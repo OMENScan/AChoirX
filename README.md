@@ -55,3 +55,5 @@ HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a sing
 02/27/2021 - Beta 41(RC1) - Set LastRC for /GET:, GET:, and /GXR:
 
 03/02/2021 - Beta 42(RC1) - Check if a port is open on a remote machine - TCP:RemoteHost:Port or UDP:RemoteHost:Port. IMPORTANT NOTE: UDP is connectionless and unreliable - I have included this functionality, but it cannot be trusted.  Use with Caution and Caveat.
+
+03/05/2021 - Beta 43(RC1) - Close Ini File at the end of processing. Add LogHndl.Sync() after SAY: to control/force Log file Flushing better. Improve Unzip messages.

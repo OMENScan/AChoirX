@@ -133,16 +133,11 @@ func UnEmbed(embdata []byte) bool {
         return false
     }
 
-    Unzfiles, unz_err := Unzip(ZipRdr.File, BaseDir)
+    unz_err = Unzip(ZipRdr.File, BaseDir)
     if unz_err != nil {
         ConsOut = fmt.Sprintf("[!] Unzip Error: %s\n", unz_err)
         ConsLogSys(ConsOut, 1, 1)
         return false
-    }
-
-    for iUnz := 0; iUnz < len(Unzfiles); iUnz++ {
-        ConsOut = fmt.Sprintf("[*] Unzipped File: %s\n", Unzfiles[iUnz])
-        ConsLogSys(ConsOut, 1, 1)
     }
 
     return true
