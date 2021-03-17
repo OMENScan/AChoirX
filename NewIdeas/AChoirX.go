@@ -74,11 +74,13 @@
 //
 // AChoirX v10.00.50 - Convert to Go1.16 (REQUIRED TO COMPILE THIS VERSION)
 //                   - Convert from AChoirX custom embedder to native GoLang Embed
+//                   - Convert from GOPATH to Module
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
-//  w32:    go get github.com/gonutz/w32
+//  w32:    go get github.com/gonutz/w32 - Deprecated
+//  w32:    go get github.com/gonutz/w32/v2
 //  S3:     go get github.com/aws/aws-sdk-go/...
 //  SFTP:   go get github.com/pkg/sftp
 //  SFTP:   go get golang.org/x/crypto/ssh
@@ -135,7 +137,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.43"                       // AChoir Version
+var Version = "v10.00.50"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])

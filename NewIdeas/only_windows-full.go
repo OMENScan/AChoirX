@@ -15,7 +15,7 @@ import (
     "bytes"
     "archive/zip"
     "golang.org/x/sys/windows"
-    "github.com/gonutz/w32"
+    "github.com/gonutz/w32/v2"
 )
 
 // ****************************************************************
