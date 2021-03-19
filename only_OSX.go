@@ -1,11 +1,13 @@
 // ****************************************************************
 // * Only Include this file for OSX version                       *
+// * - Uses the Embed Directive - Requires GoLang 1.16            *
 // ****************************************************************
 
 package main
 
 import (
     "fmt"
+    _ "embed"
     "syscall"
     "unsafe"
     "os"
@@ -13,6 +15,13 @@ import (
     "bytes"
     "archive/zip"
 )
+
+
+// ****************************************************************
+// * Embed Zip File in embdata byte array                         *
+// ****************************************************************
+//go:embed OSXEmbed.zip
+var embdata []byte
 
 
 // ****************************************************************

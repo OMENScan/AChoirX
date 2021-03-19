@@ -1,17 +1,26 @@
 // ****************************************************************
 // * Only Include this file for windows version                   *
+// * - Uses the Embed Directive - Requires GoLang 1.16            *
 // ****************************************************************
 
 package main
 
 import (
     "fmt"
+    _ "embed"
     "syscall"
     "os"
     "time"
     "bytes"
     "archive/zip"
 )
+
+
+// ****************************************************************
+// * Embed Zip File in embdata byte array                         *
+// ****************************************************************
+//go:embed LinEmbed.zip
+var embdata []byte
 
 
 // ****************************************************************

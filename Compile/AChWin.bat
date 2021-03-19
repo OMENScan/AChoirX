@@ -1,10 +1,15 @@
 @Echo Off
 Echo.
 Echo Compiling AChoirX for Windows...
-set CGO_ENABLED=0
 set GOARCH=amd64
 set GOOS=windows
-go build AChoirX.go only_windows.go WinEmbed.go
+set CGO_ENABLED=0
+go build AChoirX.go only_windows.go
+REM ***
+REM * Include DATA RACE Condition checking
+REM * set CGO_ENABLED=1
+REM * go build -race AChoirX.go only_windows.go
+REM ***
 copy AChoirX.exe A-AChoirX.exe
 Echo.
 Echo Now Embedding Manifest...

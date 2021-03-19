@@ -1,11 +1,13 @@
 // ****************************************************************
 // * Only Include this file for windows version                   *
+// * - Uses the Embed Directive - Requires GoLang 1.16            *
 // ****************************************************************
 
 package main
 
 import (
     "fmt"
+    _ "embed"
     "syscall"
     "unsafe"
     "os"
@@ -13,8 +15,14 @@ import (
     "bytes"
     "archive/zip"
     "golang.org/x/sys/windows"
-    "github.com/gonutz/w32"
+    "github.com/gonutz/w32/v2"
 )
+
+// ****************************************************************
+// * Embed Zip File in embdata byte array                         *
+// ****************************************************************
+//go:embed WinEmbed.zip
+var embdata []byte
 
 
 // ****************************************************************
