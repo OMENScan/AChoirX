@@ -75,6 +75,7 @@
 // AChoirX v10.00.50 - Convert to Go1.16 (REQUIRED TO COMPILE THIS VERSION)
 //                   - Convert from AChoirX custom embedder to native GoLang Embed
 //                   - Convert from GOPATH to Module
+//                   - Improve UnZip Routine
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -3971,17 +3972,20 @@ func Unzip(ZipRdrFile []*zip.File, ZipDest string) error {
         if zip_err != nil {
             return zip_err
         }
+        defer ZipOutFile.Close()
 
         Ziprc, zip_err := ZipFile.Open()
         if zip_err != nil {
             return zip_err
         }
+        defer Ziprc.Close()
 
         _, zip_err = io.Copy(ZipOutFile, Ziprc)
 
         // Close the file without defer to close before next iteration of loop
-        ZipOutFile.Close()
-        Ziprc.Close()
+        // Move to Defer to prevent hanging on lots of small files 
+        //ZipOutFile.Close()
+        //Ziprc.Close()
 
         if zip_err != nil {
             return zip_err
