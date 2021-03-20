@@ -59,3 +59,5 @@ HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a sing
 03/05/2021 - Beta 43(RC1) - Close Ini File at the end of processing. Add LogHndl.Sync() after SAY: to control/force Log file Flushing better. Improve Unzip messages.
 
 03/18/2021 - Beta 50(RC1) - Convert to Go1.16 (REQUIRED TO COMPILE THIS VERSION). Convert from AChoirX custom embedder to native GoLang Embed. Convert from GOPATH to Module. Improve UnZip Routine.
+
+03/19/2021 - Beta 51(RC1) - Implement Syslog RFC3164 Format

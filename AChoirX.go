@@ -77,6 +77,8 @@
 //                   - Convert from GOPATH to Module
 //                   - Improve UnZip Routine
 //
+// AChoirX v10.00.51 - Implement Syslog RFC3164 Format
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -138,7 +140,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.50"                       // AChoir Version
+var Version = "v10.00.51"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -253,6 +255,7 @@ var iSyslogp = 514                              // Syslog Port Int
 var SyslogTMSG = "AChoir Syslog Started."       // Initialize Syslog Messages 
 var SyslogServer = "127.0.0.1:514"              // Syslog Server:Port
 var tlsConfig *tls.Config                       // TLS Config
+var SyslogCount = 0                             // Syslog Message ID
 
 // AWS S3 Variables
 var S3_REGION = "none"                          // AWS Region
@@ -311,6 +314,11 @@ var WinRoot = "NA"                              // Windows Root Directory
 var Procesr = "NA"                              // Processor
 var TempVar = "NA"                              // Windows Temp Directory
 var ProgVar = "NA"                              // Windows Program Files
+
+// Host Information
+var cName = "localhost"                         // Endpoint Host Name
+var host_err error                              // HostName Errors
+var MyPID = 0                                   // This Programs Process ID
 
 // Global File Handles
 var IniScan *bufio.Scanner                      // IO Reader for File or Console
@@ -377,10 +385,13 @@ func main() {
     iMin := lclTime.Minute()
 
     // Get Host Name
-    cName, host_err := os.Hostname()
+    cName, host_err = os.Hostname()
     if host_err != nil {
         cName = "LocalHost"
     }
+
+    // Get My PID
+    MyPID = os.Getpid()
 
 
     // Get Operating System and Architecture
@@ -3098,12 +3109,17 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
         fmt.Printf (ConLogMSG)
     }
 
+    SyslogCount++
+    timenow := time.Now().UTC()
+    timefmt := timenow.Format("Jan _2 15:04:05")
+    LogLogMSG := fmt.Sprintf("<37> %s %s AChoirX %d ID%d %s", timefmt, cName, MyPID, SyslogCount, ConLogMSG)
+
     if iLogOpen == 1 {
-        fmt.Fprintf(LogHndl, ConLogMSG)
+        fmt.Fprintf(LogHndl, LogLogMSG[5:])
     }
     
     if iSyslogLvl >= thisSyslog && iSyslogLvl > 0 {
-        AChSyslog(ConLogMSG) 
+        AChSyslog(LogLogMSG) 
     }
 }
 
