@@ -79,6 +79,9 @@
 //
 // AChoirX v10.00.51 - Implement Syslog RFC3164 Format
 //
+// AChoirX v10.00.52 - Add Syslog Type (SET:SyslogT=) of UDP or TCP
+//                   - Improve Syslog Message format
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -140,7 +143,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.51"                       // AChoir Version
+var Version = "v10.00.52"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -252,6 +255,7 @@ var caseExmnr = "Unknown"                       // Case Examiner
 var Syslogd = "127.0.0.1"                       // Syslog Server 
 var Syslogp = "514"                             // Syslog Port string
 var iSyslogp = 514                              // Syslog Port Int
+var iSyslogt = 0                                // Syslog Protocol Type (0=UDP, 1=TCP)
 var SyslogTMSG = "AChoir Syslog Started."       // Initialize Syslog Messages 
 var SyslogServer = "127.0.0.1:514"              // Syslog Server:Port
 var tlsConfig *tls.Config                       // TLS Config
@@ -2453,6 +2457,16 @@ func main() {
                     }
 
                     iSyslogLvl = 0; 
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGT=UDP") {
+                    ConsOut = fmt.Sprintf("[*] Syslog Protocol Type Set to: UDP\n")
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    iSyslogt = 0
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGT=TCP") {
+                    ConsOut = fmt.Sprintf("[*] Syslog Protocol Type Set to: TCP\n")
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    iSyslogt = 1
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGL=MIN") {
                     ConsOut = fmt.Sprintf("[*] Syslog Level Set to Min: 1\n")
                     ConsLogSys(ConsOut, 1, 1)
@@ -3048,16 +3062,28 @@ func AChSyslog(SendLogMSG string) {
     // Not sure why UDP Syslog requires tlsConfig - but it wont compile without it
     SyslogServer = fmt.Sprintf("%s:%s", Syslogd, Syslogp)
 
-    syslog_client, syslog_err := syslog.NewClient(syslog.ConnectionUDP, SyslogServer, tlsConfig)
-    if syslog_err != nil {
-        // fmt.Println("[!] Problem Defining Syslog Client: ", opSystem)
-        return
-    }
-    defer syslog_client.Close()
+    if iSyslogt == 0 {
+        syslog_client, syslog_err := syslog.NewClient(syslog.ConnectionUDP, SyslogServer, tlsConfig)
 
-    if syslog_err := syslog_client.Send(SendLogMSG, syslog.LOG_LOCAL0|syslog.LOG_NOTICE); syslog_err != nil {
-        // fmt.Println("[!] Problem Sending From Syslog Client: ", opSystem)
-        return
+        if syslog_err != nil {
+            return
+        }
+        defer syslog_client.Close()
+
+        if syslog_err := syslog_client.Send(SendLogMSG, syslog.LOG_LOCAL0|syslog.LOG_NOTICE); syslog_err != nil {
+            return
+        }
+    } else {
+        syslog_client, syslog_err := syslog.NewClient(syslog.ConnectionTCP, SyslogServer, tlsConfig)
+
+        if syslog_err != nil {
+            return
+        }
+        defer syslog_client.Close()
+
+        if syslog_err := syslog_client.Send(SendLogMSG, syslog.LOG_LOCAL0|syslog.LOG_NOTICE); syslog_err != nil {
+            return
+        }
     }
 }
 
@@ -3112,10 +3138,10 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
     SyslogCount++
     timenow := time.Now().UTC()
     timefmt := timenow.Format("Jan _2 15:04:05")
-    LogLogMSG := fmt.Sprintf("<37> %s %s AChoirX %d ID%d %s", timefmt, cName, MyPID, SyslogCount, ConLogMSG)
+    LogLogMSG := fmt.Sprintf("%s %s AChoirX %d ID%d %s", timefmt, cName, MyPID, SyslogCount, ConLogMSG)
 
     if iLogOpen == 1 {
-        fmt.Fprintf(LogHndl, LogLogMSG[5:])
+        fmt.Fprintf(LogHndl, LogLogMSG)
     }
     
     if iSyslogLvl >= thisSyslog && iSyslogLvl > 0 {

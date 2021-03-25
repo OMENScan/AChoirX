@@ -1,4 +1,4 @@
-AChoirX - v10.00.51
+AChoirX - v10.00.52
 
 AChoirX
 =======
@@ -150,6 +150,7 @@ SET:S3Region=<AWS Region> The region that the AWS S3 Bucket is in
 SET:S3Bucket=<AWS Bucket> The AWS Bucket Name
 SET:S3AWSId=<AWS ID> The AWS ID
 SET:S3AWSKey=<AWS Key> The AWS Secret Key
+SET:SyslogT=<UDP | TCP> Sets the Syslog Protocol Type.
 SET:SyslogL=<syslogging Level> Sets the Syslog Level.
                 Options are: none, min, max
                 The default is NONE (No Syslogging)
@@ -414,7 +415,8 @@ footprint minimal, and have as little impact on the target machine as possible. 
 however, the need run and track AChoirX across many machines overides the above.
 
 To turn Syslogging on, simply set the Syslog Server IP (SET:SyslogS=nnn.nnn.nnn.nnn). AChoirX 
-is currently written to have three logging levels (none, min, max). 
+is currently written to have three logging levels (none, min, max). The Syslog Protocol Type 
+can also be set (UDP or TCP).
 
 
 A note about Case Information (/CSE, CSE:GET, CSE:SAY)
