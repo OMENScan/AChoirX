@@ -352,7 +352,7 @@ function EditList()
         <tr valign="top">
           <td>
 
-            <TABLE Width="100%" border="0" bgcolor="#FFFFEF"><TR><TD>
+            <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
             <p>
             This Tab runs LOCAL AChoirX scripts on the LOCAL machine, and saves the
             artifacts to a LOCALLY attached drive.
@@ -417,7 +417,7 @@ function EditList()
       <table border="0" width="100%">
         <tr valign="top">
           <td>
-            <TABLE Width="100%" border="0" bgcolor="#FFFFEF"><TR><TD>
+            <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
             <p>
             This Tab runs AChoirX on the Local Machine and Uploads the Telemetry 
             and Artifacts to either an SFTP Server or an S3 Bucket. 
@@ -437,48 +437,57 @@ function EditList()
             <TABLE Width="100%" border="0"><TR><TD>
             <font color="#000000"><i><fieldset><legend>Fill In All Fields</legend></i></font>
 
-            <p>
-            Select either S3 or SFTP Upload:
-            <select size="1" name="SFTP2orS3">
-            <option value="S3" selected>S3</option>
-            <option value="SFTP">SFTP</option>
-            </select>
-            </p>
+            <TABLE Width="100%" border="1" cellspacing="20" cellpadding="10">
+              <TR>
+                <TD ColSpan=2>
+                  Select either S3 or SFTP Upload:
+                  <select size="1" name="SFTP2orS3">
+                  <option value="S3" selected>S3</option>
+                  <option value="SFTP">SFTP</option>
+                  </select>
+                </TD
+              </TR>
 
-            <p>
-            UserId/KeyID:
-            <input type="text" size="25" name="Serv2Usr" value="">&nbsp<br>
-            <i>Enter SFTP UserID or S3 AWS Key ID</i>
-            </p>
+              <TR>
+                <TD>
+                  User/KeyID:
+                  <input type="text" size="25" name="Serv2Usr" value="">&nbsp<br>
+                        <font size=-1><i>Enter SFTP UserID or S3 AWS Key ID</i></font>
+                </TD>
 
-            <p>
-            Password/AWS Secret Key:
-            <input type="password" size="25" name="Serv2Pwd" value="">&nbsp<br>
-            <i>Enter SFTP Pasword or S3 Secret Key</i>
-            </p>
+                <TD>
+                  Passwd/Key:
+                  <input type="password" size="25" name="Serv2Pwd" value="">&nbsp<br>
+                  <font size=-1><i>Enter SFTP Pasword or S3 Secret Key</i></font>
+                </TD>
+              </TR>
 
-            <p>
-            SFTP Server or S3 Bucket:
-            <input type="text" size="25" name="Server2Name" value="">&nbsp<br>
-            <i>Enter the SFTP Server or S3 Bucket to send the data</i>
-            </p>
+              <TR>
+                <TD>
+                  SFTP Srvr or S3 Bucket:
+                  <input type="text" size="25" name="Server2Name" value="">&nbsp<br>
+                  <font size=-1><i>Enter the SFTP Server or S3 Bucket to send the data</i></font>
+                </TD>
 
-            <p>
-            S3 Region:
-            <input type="text" size="25" name="Server2Region" value="">&nbsp<br>
-            <i>If you are uploading to S3 - Enter the S3 Bucket Region</i>
-            </p>
+                <TD>
+                  S3 Region:
+                  <input type="text" size="25" name="Server2Region" value="">&nbsp<br>
+                  <font size=-1><i>If you are uploading to S3 - Enter the S3 Bucket Region</i></font>
+                </TD>
+              </TR>
 
-            <p>
-            <input type="button" value="AChoir-32" onclick="RunLRACh(32);"/> - 
-            <input type="button" value="AChoir-64" onclick="RunLRACh(64);"/> - 
-            <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
-            </p>
+              <TR>
+                <TD ColSpan=2>
+                  <input type="button" value="AChoir-32" onclick="RunLRACh(32);"/> - 
+                  <input type="button" value="AChoir-64" onclick="RunLRACh(64);"/> - 
+                  <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
+                </TD>
+              </TR>
+            </TABLE>
 
             </TD></TR></TABLE>
 
-            <br>
-            <p>
+            <p><br>
             <Font Size = small>
             <b><i>Note 1: </b></i>If you're not sure if the OS is 32 or 64 Bit, run AChoirX 32 Bit<br>
             <b><i>Note 2: </b></i>This GUI will call AChoirX as an Admin
@@ -500,7 +509,7 @@ function EditList()
             computer using PSExec.  It will push A-AChoirX to the remote computer and 
             store the Telemtry and Artifacts in C:\Windows\Temp on the remote machine. 
             </p>
-            </TD></TR></TABLE>
+            </td></tr></table>
 
 
             <p>
@@ -511,15 +520,14 @@ function EditList()
             AChoir Script to Run:
             <select size="1" name="Run3ACQ">
             <option value="AChoir.ACQ" selected>AChoir</option>
-            <option value="NoMem.ACQ">NoMem</option>
             </select>
             </p>
 
             <p>
             Host to Triage:
             <input type="text" size="25" name="Host3Name" value="MyHost">&nbsp<br>
-            <i>This is the Remote Host you want to Triage. The Artifacts and Telemetry will
-               be saved Locally on that machine.</i>
+            <font size=-1><i>This is the Remote Host you want to Triage. 
+             The Artifacts and Telemetry will be saved Locally on that machine.</i></font>
             </p>
 
             <BR><BR><BR><BR><BR><BR><BR><BR><BR><BR><BR>
@@ -547,80 +555,99 @@ function EditList()
       <table border="0" width="100%">
         <tr valign="top">
           <td>
+            <TABLE Width="100%" border="1" bgcolor="#FFFFEF">
+              <TR>
+                <TD>
+                  <p>
+                  This Tab is meant to simplify running an AChoir Remote Script on a remote
+                  computer using PSExec.  It will Upload the Telemetry and Artifacts to either
+                  an SFTP Server or an S3 Bucket.
+                  </p>
+                </td>
+              </tr>
+            </table>
 
-            <TABLE Width="100%" border="0" bgcolor="#FFFFEF"><TR><TD>
-            <p>
-            This Tab is meant to simplify running an AChoir Remote Script on a remote
-            computer using PSExec.  It will Upload the Telemetry and Artifacts to either
-            an SFTP Server or an S3 Bucket.
-            </p>
-            </TD></TR></TABLE>
-
-
-            <p>
-            <TABLE Width="100%" border="0"><TR><TD>
-            <font color="#000000"><i><fieldset><legend>Fill In All Fields</legend></i></font>
-
-            <p>
-            AChoir Script to Run on Remote Machine:
-            <select size="1" name="Run4ACQ">
-            <option value="AChUpload.ACQ" selected>AChUpload</option>
-            <option value="AChUplNoMem.ACQ">AChUplNoMem</option>
-            </select>
-            </p>
 
             <p>
-            Host to Triage:
-            <input type="text" size="25" name="Host4Name" value="MyHost">&nbsp<br>
-            <i>This is the Remote Host you want to Triage</i>
-            </p>
+            <TABLE Width="100%" border="0">
+              <TR>
+                <TD>
+                  <font color="#000000"><i><fieldset><legend>Fill In All Fields</legend></i></font>
+           
+                  <TABLE Width="100%" border="1" cellspacing="20" cellpadding="10">
+                    <TR>
+                      <TD ColSpan=2>
+                        AChoir Script to Run on Remote Machine:
+                        <select size="1" name="Run4ACQ">
+                        <option value="AChUpload.ACQ" selected>AChUpload</option>
+                        <option value="AChUplNoMem.ACQ">AChUplNoMem</option>
+                        </select>
+                      </TD>
+                    </TR>
 
-            <p>
-            Select either S3 or SFTP Upload:
-            <select size="1" name="SFTP4orS3">
-            <option value="S3" selected>S3</option>
-            <option value="SFTP">SFTP</option>
-            </select>
-            </p>
+                    <TR>
+                      <TD ColSpan=2>
+                        Host to Triage:
+                        <input type="text" size="25" name="Host4Name" value="MyHost">&nbsp<br>
+                        <font size=-1><i>This is the Remote Host you want to Triage</i></Font>
+                      </TD>
+                    </TR>
 
-            <p>
-            UserId/KeyID:
-            <input type="text" size="25" name="Serv4Usr" value="">&nbsp<br>
-            <i>Enter SFTP UserID or S3 AWS Key ID</i>
-            </p>
+                    <TR>
+                      <TD ColSpan=2>
+                        Select either S3 or SFTP Upload:
+                        <select size="1" name="SFTP4orS3">
+                        <option value="S3" selected>S3</option>
+                        <option value="SFTP">SFTP</option>
+                        </select>
+                      </TD>
+                    </TR>
 
-            <p>
-            Password/AWS Secret Key:
-            <input type="password" size="25" name="Serv4Pwd" value="">&nbsp<br>
-            <i>Enter SFTP Pasword or S3 Secret Key</i>
-            </p>
+                    <TR>
+                      <TD>
+                        User/KeyID:
+                        <input type="text" size="25" name="Serv4Usr" value="">&nbsp<br>
+                        <font size=-1><i>Enter SFTP UserID or S3 AWS Key ID</i></font>
+                      </TD>
 
-            <p>
-            SFTP Server or S3 Bucket:
-            <input type="text" size="25" name="Server4Name" value="">&nbsp<br>
-            <i>Enter the SFTP Server or S3 Bucket to send the data</i>
-            </p>
+                      <TD>
+                        Passwd/Key:
+                        <input type="password" size="25" name="Serv4Pwd" value="">&nbsp<br>
+                        <font size=-1><i>Enter SFTP Pasword or S3 Secret Key</i></font>
+                      </TD>
+                    </TR>
 
-            <p>
-            S3 Region:
-            <input type="text" size="25" name="Server4Region" value="">&nbsp<br>
-            <i>If you are uploading to S3 - Enter the S3 Bucket Region</i>
-            </p>
+                    <TR>
+                      <TD>
+                        SFTP Srvr or S3 Bucket:
+                        <input type="text" size="25" name="Server4Name" value="">&nbsp<br>
+                        <font size=-1><i>Enter the SFTP Server or S3 Bucket to send the data</i></font>
+                      </TD>
 
-            <p>
-            <input type="button" value="AChoir-32" onclick="RunRRACh(32);"/> - 
-            <input type="button" value="AChoir-64" onclick="RunRRACh(64);"/> - 
-            <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
-            </p>
+                      <TD>
+                        S3 Region:
+                        <input type="text" size="25" name="Server4Region" value="">&nbsp<br>
+                        <font size=-1><i>If you are uploading to S3 - Enter the S3 Bucket Region</i></font>
+                      </TD>
+                    </TR>
 
-            </TD></TR></TABLE>
+                    <TR>
+                      <TD ColSpan=2>
+                        <input type="button" value="AChoir-32" onclick="RunRRACh(32);"/> - 
+                        <input type="button" value="AChoir-64" onclick="RunRRACh(64);"/> - 
+                        <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
+                      </TD>
+                    </TR>
+                  </TABLE>
+                </TD>
+              </TR>
+            </TABLE>
 
             <p>
             <b><i>Important Note: </b></i>This GUI will call the 32Bit AChoir Program Remotely as Admin.
-            </p>
-          </td>
-        </tr>
-      </table>
+          </TD>
+        </TR>
+      </TABLE>
     </div>
 
 
