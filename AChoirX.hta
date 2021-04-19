@@ -1,0 +1,830 @@
+<html>
+<head>
+  <title>AChoirX GUI 0.52</title>
+  <HTA:APPLICATION ID="AChoirXGUI" 
+    APPLICATIONNAME="AChoirX GUI" 
+    BORDER="Yes"
+    CAPTION="Yes"
+    SHOWINTASKBAR="Yes"
+    SINGLEINSTANCE="Yes"
+    SYSMENU="Yes"
+    SCROLL="no"
+  WINDOWSTATE="normal">
+
+<script type="text/javascript">
+self.moveTo(10,10);
+self.resizeTo(1100,860);
+var panels = new Array("","panel1","panel2","panel3","panel4","panel5","panel6");
+
+function panel(tab) 
+{
+  for (i=1; i<panels.length; i++) 
+  {
+    if (i == tab)
+    {
+       document.getElementById("tab"+i).className = "tabs tabs1";
+       document.getElementById("panel"+i).style.display = "block";
+    } 
+    else
+    {
+       document.getElementById("tab"+i).className = "tabs tabs0";
+       document.getElementById("panel"+i).style.display = "none";
+    }
+  }
+}
+
+// Run AChoirX Local. Save Artifacts Local
+function RunAChoir(Bits)
+{
+  var rbutns = document.getElementsByName("rbtn");
+  var ScrName = " /ini:AChoir.acq" ;
+  var ScrBits = "A-AChoirX.exe";
+  var RunMe = 1 ;
+  
+  if (Bits == 32) 
+  {
+    ScrBits = "A-AChoirX32.exe" ;
+  } 
+  else if (Bits == 64) 
+  {
+    ScrBits = "A-AChoirX.exe" ;
+  } 
+
+
+  if (rbutns[0].checked == true) 
+  {
+    ScrName = ScrBits + " /ini:AChoir.acq" ;
+  } 
+  else if (rbutns[1].checked == true) 
+  {
+    ScrName = ScrBits + " /ini:NoMem.acq" ;
+  }
+  else if (rbutns[2].checked == true)
+  {
+    ScrName = ScrBits + " /ini:Scripts/PlasoX.acq" ;
+  }
+  else if (rbutns[7].checked == true)
+  {
+    ScrName = ScrBits + " /ini:Build.acq" ;
+  }
+  else
+  {
+    RunMe = 0;
+    alert("Invalid Script, Please Try Again.");
+  }
+
+  if (RunMe == 1)
+  {
+    WshShell = new ActiveXObject("WScript.Shell");
+    WshShell.Run(ScrName, 1, false);
+    self.close()
+  }
+}
+
+
+// Run AChoir Local - Save Artifacts to Remote Server
+function RunLRACh(Bits)
+{
+  var ScrName = " /ini:Scripts\\AChUpload.Acq" ;
+  var ScrBits = "A-AChoir.exe";
+  
+  if (Bits == 32) 
+  {
+    ScrBits = "A-AChoirX32.exe" ;
+  } 
+  else if (Bits == 64) 
+  {
+    ScrBits = "A-AChoirX.exe" ;
+  } 
+
+  ScrName = ScrBits + ScrName + " /VR0:" + SFTP2orS3.value + " /VR1:" + Server2Name.value + " /VR2:" + Serv2Usr.value + " /VR3:" + Serv2Pwd.value + " /VR4:" + Server2Region.value ; 
+
+  WshShell = new ActiveXObject("WScript.Shell");
+  WshShell.Run(ScrName, 1, false);
+}
+
+
+// Run AChoir Remotely using PSExec
+function RunRemot(Bits)
+{
+  var ScrName = " /ini:Scripts\\RemotChk.acq" ;
+  var ScrBits = "A-AChoirX.exe" ;
+  
+  if (Bits == 32) 
+  {
+    ScrBits = "A-AChoirX32.exe" ;
+  } 
+  else if (Bits == 64) 
+  {
+    ScrBits = "A-AChoirX.exe" ;
+  } 
+
+  ScrName = ScrBits + ScrName + " /VR0:" + Host3Name.value + " /VR1:" + Run3ACQ.value ;  
+
+  WshShell = new ActiveXObject("WScript.Shell");
+  WshShell.Run(ScrName, 1, false);
+}
+
+// Saves the Artifacts to remote AChoir Server
+function RunRRACh(Bits)
+{
+  var ScrName = " /ini:Scripts\\RemotChkR.acq" ;
+  var ScrBits = "A-AChoirX.exe" ;
+  
+  if (Bits == 32) 
+  {
+    ScrBits = "A-AChoirX32.exe" ;
+  } 
+  else if (Bits == 64) 
+  {
+    ScrBits = "A-AChoirX.exe" ;
+  } 
+
+  ScrName = ScrBits + ScrName + " /VR0:" + Host4Name.value + " /VR1:" + Run4ACQ.value + " /VR2:" + SFTP4orS3.value + " /VR3:" + Server4Name.value + " /VR4:" + Serv4Usr.value + " /VR5:" + Serv4Pwd.value + " /VR6:" + Server4Region.value ; 
+
+  WshShell = new ActiveXObject("WScript.Shell");
+  WshShell.Run(ScrName, 1, false);
+}
+
+// Saves the Artifacts to remote AChoir Server from Multiple Remote Machines
+function RunMRACh(Bits)
+{
+  var ScrName = " /ini:Scripts\\RemotChkMR.acq" ;
+  var ScrBits = "A-AChoirX.exe" ;
+  
+  if (Bits == 32) 
+  {
+    ScrBits = "A-AChoirX32.exe" ;
+  } 
+  else if (Bits == 64) 
+  {
+    ScrBits = "A-AChoirX.exe" ;
+  } 
+
+  ScrName = ScrBits + ScrName + " /VR0:" + File5Name.value + " /VR1:" + Run5ACQ.value + " /VR2:" + SFTP5orS3.value + " /VR3:" + Server5Name.value + " /VR4:" + Serv5Usr.value + " /VR5:" + Serv5Pwd.value + " /VR6:" + Server5Region.value ; 
+
+  WshShell = new ActiveXObject("WScript.Shell");
+  WshShell.Run(ScrName, 1, false);
+}
+
+
+// Run AChoir GXR (Remotely Hosted Toolkit)
+function RunGXR(Bits)
+{
+  var ScrName = " /ini:AChoir.acq" ;
+  var ScrBits = "A-AChoirX.exe";
+  
+  if (Bits == 32) 
+  {
+    ScrBits = "A-AChoirX32.exe" ;
+  } 
+  else if (Bits == 64) 
+  {
+    ScrBits = "A-AChoirX.exe" ;
+  } 
+
+  ScrName = ScrBits + ScrName + " /GXR:" + File6Name.value  ;  
+
+  WshShell = new ActiveXObject("WScript.Shell");
+  WshShell.Run(ScrName, 1, false);
+}
+
+
+// Run AChoir GXR on Remote Machine (Remotely Hosted Toolkit)
+function RunGXRR(Bits)
+{
+  var ScrName = " /ini:Scripts/RemotChkGXR.acq" ;
+  var ScrBits = "A-AChoirX.exe";
+  
+  if (Bits == 32) 
+  {
+    ScrBits = "A-AChoirX32.exe" ;
+  } 
+  else if (Bits == 64) 
+  {
+    ScrBits = "A-AChoirX.exe" ;
+  } 
+
+  ScrName = ScrBits + ScrName + " /VR0:" + Host6Name.value + " /VR1:" + File6Name2.value ;  
+
+  WshShell = new ActiveXObject("WScript.Shell");
+  WshShell.Run(ScrName, 1, false);
+}
+
+
+// Check for Admin Privileges on Remote machine
+function RunRTest(Bits)
+{
+  var ScrName = " /ini:RScripts\\RTest.acq" ;
+  var ScrBits = "A-AChoir.exe";
+  
+  if (Bits == 32) 
+  {
+    ScrBits = "A-AChoir.exe" ;
+  } 
+  else if (Bits == 64) 
+  {
+    ScrBits = "A-AChoir64.exe" ;
+  } 
+
+  ScrName = ScrBits + ScrName + " /VR0:" + Host6Name.value ;  
+
+
+
+  X=MsgBox (ScrName, 48, " ")
+
+
+
+  WshShell = new ActiveXObject("WScript.Shell");
+  WshShell.Run(ScrName, 1, false);
+}
+
+
+// Run AChoir Server Share Map Test Script
+function RunSTest(Bits)
+{
+  var ScrName = " /ini:RScripts\\STest.acq" ;
+  var ScrBits = "A-AChoir.exe";
+  
+  if (Bits == 32) 
+  {
+    ScrBits = "A-AChoir.exe" ;
+  } 
+  else if (Bits == 64) 
+  {
+    ScrBits = "A-AChoir64.exe" ;
+  } 
+
+  ScrName = ScrBits + ScrName + " /VR0:" + Serv6Name.value + " /VR1:" + Serv6User.value + " /VR2:" + Serv6Pass.value ;  
+
+  WshShell = new ActiveXObject("WScript.Shell");
+  WshShell.Run(ScrName, 1, false);
+}
+
+
+// Exit HTA
+function ExitMe()
+{
+  self.close()
+}
+
+// Edit The List of Remote Hosts using Notepad
+function EditList()
+{
+  var ScrName = "NotePad.exe " + File5Name.value ;
+  
+  WshShell = new ActiveXObject("WScript.Shell");
+  WshShell.Run(ScrName, 1, false);
+}
+
+
+</script>
+
+<style type="text/css">
+ body,td,th { 
+  font-family:Arial;
+  padding: 5px;
+}
+.head { 
+  font-size:110%;
+  font-weight:bold;
+  color:white;
+}
+.panel {
+  background-color: white;
+  border: solid 1px black;
+  height: 700px;
+  padding: 5px;
+  position: relative;
+  width: 1000px;
+  z-index: 0;
+}
+.tabs {
+  border-collapse: collapse;
+  color: black;
+  cursor: pointer;
+  cursor: hand;
+  font-family: arial;
+  font-size: 12pt;
+  font-weight: bold;
+  margin-top: 4px;
+  padding: 2px 4px 0px 4px;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  z-index: 1;
+}
+.tabs0 {
+  color: white;
+  background-color: gray;
+  border: solid 1px black;
+}
+.tabs1 {
+  color: black;
+  background-color: white;
+  border-color: black black white black;
+  border-style: solid solid solid solid;
+  border-width: 1px 1px 1px 1px;
+}
+</style>
+</head>
+
+
+<body bgcolor=#879dbd>
+<table align="center" border="0" cellpadding="0" cellspacing="0" width="1000">
+<tr valign="top">
+  <td align="right" colspan="2">
+    <span class="head">AChoir GUI 0.52</span> &nbsp; &nbsp;
+    <br>
+  </td>
+</tr>
+<tr valign="top">
+  <td colspan="2">
+    &nbsp; <span class="tabs tabs1" id="tab1" onclick="panel(1)">Local->Local</span>
+    &nbsp; <span class="tabs tabs0" id="tab2" onclick="panel(2)">Local->Remote</span>
+    &nbsp; <span class="tabs tabs0" id="tab3" onclick="panel(3)">Remote->Local</span>
+    &nbsp; <span class="tabs tabs0" id="tab4" onclick="panel(4)">Remote->Remote</span>
+    &nbsp; <span class="tabs tabs0" id="tab5" onclick="panel(5)">Multi-Remote</span>
+    &nbsp; <span class="tabs tabs0" id="tab6" onclick="panel(6)">GXR</span>
+
+    <div class="panel" id="panel1" style="display:block">
+      <table border="0" width="100%">
+        <tr valign="top">
+          <td>
+
+            <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
+            <p>
+            This Tab runs LOCAL AChoirX scripts on the LOCAL machine, and saves the
+            artifacts to a LOCALLY attached drive.
+            </p>
+
+            <p> 
+            Please Note: 
+            Running the AChoirX Scripts from a Command Prompt will give the same results.
+            When running AChoirX in an environment where minimal impact is needed - This GUI 
+            should not be used.  However, in environments where a menu driven GUI is desired, 
+            this GUI helps to make AChoirX easier to use.
+            </p>
+            </TD></TR></TABLE>
+
+            <p>
+            <TABLE Width="100%" border="0" ><TR><TD>
+            <font color="#000000"><i><fieldset><legend>Select A Script</legend></i></font>
+
+            <p>
+            <input type="radio" checked name="rbtn" value="0"> Default Script - 
+            Default AChoirX Script. It gathers as much information as possible
+            </p>
+
+            <p>
+            <input type="radio"         name="rbtn" value="1"> No Memory - 
+            Gathers the same Artifacts as the Default Script EXCEPT Memory
+            </p>
+
+            <p>
+            <input type="radio"         name="rbtn" value="2"> PlasoX - 
+            Run Plaso (Log2Timeline) on an AChoirX Collection
+            </p>
+
+            <p>
+            <input type="radio"         name="rbtn" value="7"> Build - 
+            Re-Run the AChoirX Toolkit Builder (Use with CAUTION)
+            </p>
+
+            <BR><BR><BR><BR><BR><BR>
+
+            <p>
+            <input type="button" value="AChoirX-32" onclick="RunAChoir(32);"/> - 
+            <input type="button" value="AChoirX-64" onclick="RunAChoir(64);"/> - 
+            <input type="button" value="Exit GUI" onclick="ExitMe();"/>
+            </p>
+
+            </TD></TR></TABLE>
+
+            <p>
+            <Font Size = small>
+            <b><i>Note 1: </b></i>If you're not sure if the OS is 32 or 64 Bit, run AChoirX 32 Bit<br>
+            <b><i>Note 2: </b></i>This GUI will call AChoirX as an Admin.
+            </Font>
+            </p>
+
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="panel" id="panel2" style="display:none">
+      <table border="0" width="100%">
+        <tr valign="top">
+          <td>
+            <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
+            <p>
+            This Tab runs AChoirX on the Local Machine and Uploads the Telemetry 
+            and Artifacts to either an SFTP Server or an S3 Bucket. 
+            </p>
+
+            <p> 
+            Please Note: 
+            Running the AChoirX Script from a Command Prompt will give the same results.
+            When running AChoirX in an environment where minimal impact is needed - This GUI 
+            should not be used.  However, in environments where a menu driven GUI is desired, 
+            this GUI helps to make AChoir easier to use.
+            </p>
+            </TD></TR></TABLE>
+
+
+            <p>
+            <TABLE Width="100%" border="0"><TR><TD>
+            <font color="#000000"><i><fieldset><legend>Fill In All Fields</legend></i></font>
+
+            <TABLE Width="100%" border="1" cellspacing="20" cellpadding="10">
+              <TR>
+                <TD ColSpan=2>
+                  Select either S3 or SFTP Upload:
+                  <select size="1" name="SFTP2orS3">
+                  <option value="S3" selected>S3</option>
+                  <option value="SFTP">SFTP</option>
+                  </select>
+                </TD
+              </TR>
+
+              <TR>
+                <TD>
+                  User/KeyID:
+                  <input type="text" size="25" name="Serv2Usr" value="">&nbsp<br>
+                        <font size=-1><i>Enter SFTP UserID or S3 AWS Key ID</i></font>
+                </TD>
+
+                <TD>
+                  Passwd/Key:
+                  <input type="password" size="25" name="Serv2Pwd" value="">&nbsp<br>
+                  <font size=-1><i>Enter SFTP Pasword or S3 Secret Key</i></font>
+                </TD>
+              </TR>
+
+              <TR>
+                <TD>
+                  SFTP Srvr or S3 Bucket:
+                  <input type="text" size="25" name="Server2Name" value="">&nbsp<br>
+                  <font size=-1><i>Enter the SFTP Server or S3 Bucket to send the data</i></font>
+                </TD>
+
+                <TD>
+                  S3 Region:
+                  <input type="text" size="25" name="Server2Region" value="">&nbsp<br>
+                  <font size=-1><i>If you are uploading to S3 - Enter the S3 Bucket Region</i></font>
+                </TD>
+              </TR>
+
+              <TR>
+                <TD ColSpan=2>
+                  <input type="button" value="AChoir-32" onclick="RunLRACh(32);"/> - 
+                  <input type="button" value="AChoir-64" onclick="RunLRACh(64);"/> - 
+                  <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
+                </TD>
+              </TR>
+            </TABLE>
+
+            </TD></TR></TABLE>
+
+            <p><br>
+            <Font Size = small>
+            <b><i>Note 1: </b></i>If you're not sure if the OS is 32 or 64 Bit, run AChoirX 32 Bit<br>
+            <b><i>Note 2: </b></i>This GUI will call AChoirX as an Admin
+            </Font>
+            </p>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+
+    <div class="panel" id="panel3" style="display:none">
+      <table border="0" width="100%">
+        <tr valign="top">
+          <td>
+            <TABLE Width="100%" border="0" bgcolor="#FFFFEF"><TR><TD>
+            <p>
+            This Tab is meant to simplify running an AChoirX Remote Script on a remote
+            computer using PSExec.  It will push A-AChoirX to the remote computer and 
+            store the Telemtry and Artifacts in C:\Windows\Temp on the remote machine. 
+            </p>
+            </td></tr></table>
+
+
+            <p>
+            <TABLE Width="100%" border="0"><TR><TD>
+            <font color="#000000"><i><fieldset><legend>Fill In All Fields</legend></i></font>
+
+            <p>
+            AChoir Script to Run:
+            <select size="1" name="Run3ACQ">
+            <option value="AChoir.ACQ" selected>AChoir</option>
+            </select>
+            </p>
+
+            <p>
+            Host to Triage:
+            <input type="text" size="25" name="Host3Name" value="MyHost">&nbsp<br>
+            <font size=-1><i>This is the Remote Host you want to Triage. 
+             The Artifacts and Telemetry will be saved Locally on that machine.</i></font>
+            </p>
+
+            <BR><BR><BR><BR><BR><BR><BR><BR><BR><BR><BR>
+
+            <p>
+            <input type="button" value="AChoir-32" onclick="RunRemot(32);"/> - 
+            <input type="button" value="AChoir-64" onclick="RunRemot(64);"/> - 
+            <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
+            </p>
+
+            </TD></TR></TABLE>
+
+
+            <br>
+            <p>
+            <b><i>Important Note: </b></i>This GUI will call the 64-Bit AChoirX Program Remotely as Admin.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+
+    <div class="panel" id="panel4" style="display:none">
+      <table border="0" width="100%">
+        <tr valign="top">
+          <td>
+            <TABLE Width="100%" border="1" bgcolor="#FFFFEF">
+              <TR>
+                <TD>
+                  <p>
+                  This Tab is meant to simplify running an AChoir Remote Script on a remote
+                  computer using PSExec.  It will Upload the Telemetry and Artifacts to either
+                  an SFTP Server or an S3 Bucket.
+                  </p>
+                </td>
+              </tr>
+            </table>
+
+
+            <p>
+            <TABLE Width="100%" border="0">
+              <TR>
+                <TD>
+                  <font color="#000000"><i><fieldset><legend>Fill In All Fields</legend></i></font>
+           
+                  <TABLE Width="100%" border="1" cellspacing="20" cellpadding="10">
+                    <TR>
+                      <TD ColSpan=2>
+                        AChoir Script to Run on Remote Machine:
+                        <select size="1" name="Run4ACQ">
+                        <option value="AChUpload.ACQ" selected>AChUpload</option>
+                        <option value="AChUplNoMem.ACQ">AChUplNoMem</option>
+                        </select>
+                      </TD>
+                    </TR>
+
+                    <TR>
+                      <TD ColSpan=2>
+                        Host to Triage:
+                        <input type="text" size="25" name="Host4Name" value="MyHost">&nbsp<br>
+                        <font size=-1><i>This is the Remote Host you want to Triage</i></Font>
+                      </TD>
+                    </TR>
+
+                    <TR>
+                      <TD ColSpan=2>
+                        Select either S3 or SFTP Upload:
+                        <select size="1" name="SFTP4orS3">
+                        <option value="S3" selected>S3</option>
+                        <option value="SFTP">SFTP</option>
+                        </select>
+                      </TD>
+                    </TR>
+
+                    <TR>
+                      <TD>
+                        User/KeyID:
+                        <input type="text" size="25" name="Serv4Usr" value="">&nbsp<br>
+                        <font size=-1><i>Enter SFTP UserID or S3 AWS Key ID</i></font>
+                      </TD>
+
+                      <TD>
+                        Passwd/Key:
+                        <input type="password" size="25" name="Serv4Pwd" value="">&nbsp<br>
+                        <font size=-1><i>Enter SFTP Pasword or S3 Secret Key</i></font>
+                      </TD>
+                    </TR>
+
+                    <TR>
+                      <TD>
+                        SFTP Srvr or S3 Bucket:
+                        <input type="text" size="25" name="Server4Name" value="">&nbsp<br>
+                        <font size=-1><i>Enter the SFTP Server or S3 Bucket to send the data</i></font>
+                      </TD>
+
+                      <TD>
+                        S3 Region:
+                        <input type="text" size="25" name="Server4Region" value="">&nbsp<br>
+                        <font size=-1><i>If you are uploading to S3 - Enter the S3 Bucket Region</i></font>
+                      </TD>
+                    </TR>
+
+                    <TR>
+                      <TD ColSpan=2>
+                        <input type="button" value="AChoir-32" onclick="RunRRACh(32);"/> - 
+                        <input type="button" value="AChoir-64" onclick="RunRRACh(64);"/> - 
+                        <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
+                      </TD>
+                    </TR>
+                  </TABLE>
+                </TD>
+              </TR>
+            </TABLE>
+
+            <p>
+            <b><i>Important Note: </b></i>This GUI will call the 32Bit AChoir Program Remotely as Admin.
+          </TD>
+        </TR>
+      </TABLE>
+    </div>
+
+
+    <div class="panel" id="panel5" style="display:none">
+      <table border="0" width="100%">
+        <tr valign="top">
+          <td>
+
+            <TABLE Width="100%" border="1" bgcolor="#FFFFEF">
+              <TR>
+                <TD>
+                  This Tab is meant to simplify running an AChoir Remote Script on a list of remote
+                  computers using PSExec.  It will Upload the Telemetry and Artifacts to either
+                  an SFTP Server or an S3 Bucket.
+                </TD>
+              </TR>
+            </TABLE>
+
+            <p>
+            <TABLE Width="100%" border="0">
+              <TR>
+                <TD>
+                  <font color="#000000"><i><fieldset><legend>Fill In All Fields</legend></i></font>
+
+                  <TABLE Width="100%" border="1" cellspacing="20" cellpadding="10">
+                    <TR>
+                      <TD ColSpan=2>
+                        AChoir Script to Run on Remote Machine(s):
+                        <select size="1" name="Run5ACQ">
+                        <option value="AChUpload.ACQ" selected>AChUpload</option>
+                        <option value="AChUplNoMem.ACQ">AChUplNoMem</option>
+                        </select>
+                      </TD>
+                    </TR>
+
+                    <TR>
+                      <TD ColSpan=2>
+                        File List of Hosts to Triage:
+                        <input type="text" size="25" name="File5Name" value="Targets.txt">&nbsp - &nbsp 
+                        <input type="button" value="EditList" onclick="EditList();"/><br>
+                        <font size=-1><i>This is the List of Remote Hosts you want to Triage</i></font>
+                      </TD>
+                    </TR>
+
+                    <TR>
+                      <TD ColSpan=2>
+                        Select either S3 or SFTP Upload:
+                        <select size="1" name="SFTP5orS3">
+                        <option value="S3" selected>S3</option>
+                        <option value="SFTP">SFTP</option>
+                        </select>
+                      </TD>
+                    </TR>
+
+                    <TR>
+                      <TD>
+                        User/KeyID:
+                        <input type="text" size="25" name="Serv5Usr" value="">&nbsp<br>
+                        <font size=-1><i>Enter SFTP UserID or S3 AWS Key ID</i></font>
+                      </TD>
+
+                      <TD>
+                        Passwd/Key:
+                        <input type="password" size="25" name="Serv5Pwd" value="">&nbsp<br>
+                        <font size=-1<i>Enter SFTP Pasword or S3 Secret Key</i></font>
+                      </TD>
+                    </TR>
+
+                    <TR>
+                      <TD>
+                        SFTP Srvr or S3 Bucket:
+                        <input type="text" size="25" name="Server5Name" value="">&nbsp<br>
+                        <font size=-1><i>Enter the SFTP Server or S3 Bucket to send the data</i></font>
+                      </TD>
+
+                      <TD>
+                        S3 Region:
+                        <input type="text" size="25" name="Server5Region" value="">&nbsp<br>
+                        <font size=-1><i>If you are uploading to S3 - Enter the S3 Bucket Region</i></font>
+                      </TD>
+                    </TR>
+
+                    <TR>
+                      <TD ColSpan=2>
+                        <input type="button" value="AChoir-32" onclick="RunMRACh(32);"/> - 
+                        <input type="button" value="AChoir-64" onclick="RunMRACh(64);"/> - 
+                        <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
+                      </TD>
+                    </TR>
+                  </TABLE>
+                </TD>
+              </TR>
+            </TABLE>
+            </p>
+
+            <p>
+            <b><i>Important Note: </b></i>This GUI will call the 32Bit AChoir Program Remotely as Admin.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+
+    <div class="panel" id="panel6" style="display:none">
+      <table border="0" width="100%">
+        <tr valign="top">
+          <td>
+
+            <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
+            <p>
+            This Tab Runs AChoirX on either a Remote or Local Machine with /GXR: (Get, Extract, Run).
+            The GXR Option requires an HTTP location that contains a zipped AChoirX Toolkit.
+            The Toolkit will be Downloaded, Extracted, and Run.
+            </p>
+            </TD></TR></TABLE>
+
+
+            <p>
+            <TABLE Width="100%" border="0"><TR><TD>
+            <font color="#000000"><i><fieldset><legend>Local GXR</legend></i></font>
+
+            <p>
+            HTTP/S Location of ToolKit:
+            <input type="text" size="50" name="File6Name" value="https://YourDomain/Toolkit.zip">&nbsp<br>
+            <font size=-1><i>This is the HTTP/S location of the Toolkit to be downloaded, extracted. and run.</i></font>
+            </p><BR>
+
+            <p>
+            <input type="button" value="AChoir-32" onclick="RunGXR(32);"/> - 
+            <input type="button" value="AChoir-64" onclick="RunGXR(64);"/> - 
+            <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
+            </p>
+
+            </TD></TR></TABLE>
+
+            <BR><BR>
+
+            <p>
+            <TABLE Width="100%" border="0"><TR><TD>
+            <font color="#000000"><i><fieldset><legend>Remote GXR</legend></i></font>
+
+            <p>
+            HTTP/S Location of ToolKit:
+            <input type="text" size="50" name="File6Name2" value="https://YourDomain/Toolkit.zip">&nbsp<br>
+            <font size=-1><i>This is the HTTP/S location of the Toolkit to be downloaded, extracted. and run.</i></font>
+            </p>
+
+            Host to Triage:
+            <input type="text" size="25" name="Host6Name" value="MyHost">&nbsp<br>
+            <font size=-1><i>This is the Remote Host you want to Triage. The Artifacts and Telemetry will
+             be saved Locally on that machine.</i></font>
+            </p><BR>
+
+            <p>
+            <input type="button" value="AChoir-32" onclick="RunGXRR(32);"/> - 
+            <input type="button" value="AChoir-64" onclick="RunGXRR(64);"/> - 
+            <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
+            </p>
+
+            </TD></TR></TABLE>
+
+
+            <p>
+            <b><i>Important Note: </b></i>This GUI will use the 32Bit AChoir Program as Admin.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+
+
+  </td>
+</tr>
+</table>
+
+</body>
+
+</html>
