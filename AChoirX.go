@@ -82,6 +82,11 @@
 // AChoirX v10.00.52 - Add Syslog Type (SET:SyslogT=) of UDP or TCP
 //                   - Improve Syslog Message format
 //
+// AChoirX v10.00.53 - Improve Embedded Extraction Logic
+//                     - Extract if AChoir.ACQ is not there
+//                     - Allow other .ACQ files to be extracted and Run
+//                     - Error Detection when Files Dissapear during processing
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -143,7 +148,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.52"                       // AChoir Version
+var Version = "v10.00.53"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -207,6 +212,7 @@ var setCDepth = 10                              // Set Copy Depth
 var LastHash = "none"                           // Last Single File Hash
 var NotFound = 0                                // Flag for ensuring that only one Found Rec Increments RunMe
 var YesFound = 0                                // Flag for ensuring that only one Found Rec Increments RunMe
+var isInstalled = 0                             // AChoirX Install Has Not been Run Yet (0)
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -622,6 +628,17 @@ func main() {
 
 
     //****************************************************************
+    // Has the AChoir Install Run, or is this just the Executable    *
+    //****************************************************************
+    IniFile = fmt.Sprintf("%s%cAChoir.ACQ", BaseDir, slashDelim)
+    if FileExists(IniFile) {
+        isInstalled = 1
+    } else {
+        isInstalled = 0
+    }
+
+
+    //****************************************************************
     // Set Initial File Names (BaseDir needs to be set 1st)          *
     //****************************************************************
     IniFile = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, inFnam)
@@ -734,9 +751,9 @@ func main() {
         IniScan = bufio.NewScanner(os.Stdin)
 
     } else {
-        // If the Default IniFile does not exist, let's extract the Default one
-        if !FileExists(IniFile) && strings.HasSuffix(strings.ToUpper(IniFile), "ACHOIR.ACQ") {
-            ConsOut = fmt.Sprintf("[*] Ini File Does Not Exist UnEmbedding the Default one: %s\n", IniFile)
+        // If the IniFile and/or the Default IniFile (AChoir.ACQ) do not exist, extract the Embedded Files
+        if !FileExists(IniFile) && isInstalled == 0 {
+            ConsOut = fmt.Sprintf("[*] Ini File Does Not Exist UnEmbedding the Default ToolKit: %s\n", IniFile)
             ConsLogSys(ConsOut, 1, 2)
             UnEmbed(embdata)
         }
@@ -4563,7 +4580,15 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
             //****************************************************************
             //* Ignore Directories - Only Process Files                      *
             //****************************************************************
-            file_stat, _ := os.Stat(file_found)
+            file_stat, stat_err := os.Stat(file_found)
+
+            // v10.00.53 - Add Check for Deleted Files During Upload
+            if stat_err != nil {
+                ConsOut = fmt.Sprintf("[!] File Error: %s\n", stat_err)
+                ConsLogSys(ConsOut, 1, 1)
+                continue
+            }
+
             if file_stat.IsDir() {
                 continue
             }
@@ -4658,7 +4683,15 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                     //****************************************************************
                     //* Ignore Directories - Only Process Files                      *
                     //****************************************************************
-                    file_stat, _ := os.Stat(file_found)
+                    file_stat, stat_err := os.Stat(file_found)
+
+                    // v10.00.53 - Add Check for Deleted Files During Upload
+                    if stat_err != nil {
+                        ConsOut = fmt.Sprintf("[!] File Error: %s\n", stat_err)
+                        ConsLogSys(ConsOut, 1, 1)
+                       continue
+                    }
+
                     if file_stat.IsDir() {
                         continue
                     }

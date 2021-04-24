@@ -1,6 +1,6 @@
 <html>
 <head>
-  <title>AChoirX GUI 0.52</title>
+  <title>AChoirX GUI 0.53</title>
   <HTA:APPLICATION ID="AChoirXGUI" 
     APPLICATIONNAME="AChoirX GUI" 
     BORDER="Yes"
@@ -61,7 +61,7 @@ function RunAChoir(Bits)
   }
   else if (rbutns[2].checked == true)
   {
-    ScrName = ScrBits + " /ini:Scripts/PlasoX.acq" ;
+    ScrName = ScrBits + " /ini:Scripts\\PlasoX.acq" ;
   }
   else if (rbutns[7].checked == true)
   {
@@ -97,7 +97,14 @@ function RunLRACh(Bits)
     ScrBits = "A-AChoirX.exe" ;
   } 
 
-  ScrName = ScrBits + ScrName + " /VR0:" + SFTP2orS3.value + " /VR1:" + Server2Name.value + " /VR2:" + Serv2Usr.value + " /VR3:" + Serv2Pwd.value + " /VR4:" + Server2Region.value ; 
+  if (Server2Region.value == "") 
+  {
+    ScrName = ScrBits + ScrName + " /VR0:" + SFTP2orS3.value + " /VR1:" + Server2Name.value + " /VR2:" + Serv2Usr.value + " /VR3:" + Serv2Pwd.value + " /VR4:none" ; 
+  }
+  else
+  {
+    ScrName = ScrBits + ScrName + " /VR0:" + SFTP2orS3.value + " /VR1:" + Server2Name.value + " /VR2:" + Serv2Usr.value + " /VR3:" + Serv2Pwd.value + " /VR4:" + Server2Region.value ; 
+  }
 
   WshShell = new ActiveXObject("WScript.Shell");
   WshShell.Run(ScrName, 1, false);
@@ -140,7 +147,15 @@ function RunRRACh(Bits)
     ScrBits = "A-AChoirX.exe" ;
   } 
 
-  ScrName = ScrBits + ScrName + " /VR0:" + Host4Name.value + " /VR1:" + Run4ACQ.value + " /VR2:" + SFTP4orS3.value + " /VR3:" + Server4Name.value + " /VR4:" + Serv4Usr.value + " /VR5:" + Serv4Pwd.value + " /VR6:" + Server4Region.value ; 
+  if (Server4Region.value == "") 
+  {
+    ScrName = ScrBits + ScrName + " /VR0:" + Host4Name.value + " /VR1:" + Run4ACQ.value + " /VR2:" + SFTP4orS3.value + " /VR3:" + Server4Name.value + " /VR4:" + Serv4Usr.value + " /VR5:" + Serv4Pwd.value + " /VR6:none" ; 
+  }
+  else 
+  {
+    ScrName = ScrBits + ScrName + " /VR0:" + Host4Name.value + " /VR1:" + Run4ACQ.value + " /VR2:" + SFTP4orS3.value + " /VR3:" + Server4Name.value + " /VR4:" + Serv4Usr.value + " /VR5:" + Serv4Pwd.value + " /VR6:" + Server4Region.value ; 
+  }
+
 
   WshShell = new ActiveXObject("WScript.Shell");
   WshShell.Run(ScrName, 1, false);
@@ -161,7 +176,15 @@ function RunMRACh(Bits)
     ScrBits = "A-AChoirX.exe" ;
   } 
 
-  ScrName = ScrBits + ScrName + " /VR0:" + File5Name.value + " /VR1:" + Run5ACQ.value + " /VR2:" + SFTP5orS3.value + " /VR3:" + Server5Name.value + " /VR4:" + Serv5Usr.value + " /VR5:" + Serv5Pwd.value + " /VR6:" + Server5Region.value ; 
+  if (Server5Region.value == "") 
+  {
+    ScrName = ScrBits + ScrName + " /VR0:" + File5Name.value + " /VR1:" + Run5ACQ.value + " /VR2:" + SFTP5orS3.value + " /VR3:" + Server5Name.value + " /VR4:" + Serv5Usr.value + " /VR5:" + Serv5Pwd.value + " /VR6:none" ; 
+  } 
+  else
+  {
+    ScrName = ScrBits + ScrName + " /VR0:" + File5Name.value + " /VR1:" + Run5ACQ.value + " /VR2:" + SFTP5orS3.value + " /VR3:" + Server5Name.value + " /VR4:" + Serv5Usr.value + " /VR5:" + Serv5Pwd.value + " /VR6:" + Server5Region.value ; 
+  } 
+
 
   WshShell = new ActiveXObject("WScript.Shell");
   WshShell.Run(ScrName, 1, false);
@@ -193,7 +216,7 @@ function RunGXR(Bits)
 // Run AChoir GXR on Remote Machine (Remotely Hosted Toolkit)
 function RunGXRR(Bits)
 {
-  var ScrName = " /ini:Scripts/RemotChkGXR.acq" ;
+  var ScrName = " /ini:Scripts\\RemotChkGXR.acq" ;
   var ScrBits = "A-AChoirX.exe";
   
   if (Bits == 32) 
@@ -206,56 +229,6 @@ function RunGXRR(Bits)
   } 
 
   ScrName = ScrBits + ScrName + " /VR0:" + Host6Name.value + " /VR1:" + File6Name2.value ;  
-
-  WshShell = new ActiveXObject("WScript.Shell");
-  WshShell.Run(ScrName, 1, false);
-}
-
-
-// Check for Admin Privileges on Remote machine
-function RunRTest(Bits)
-{
-  var ScrName = " /ini:RScripts\\RTest.acq" ;
-  var ScrBits = "A-AChoir.exe";
-  
-  if (Bits == 32) 
-  {
-    ScrBits = "A-AChoir.exe" ;
-  } 
-  else if (Bits == 64) 
-  {
-    ScrBits = "A-AChoir64.exe" ;
-  } 
-
-  ScrName = ScrBits + ScrName + " /VR0:" + Host6Name.value ;  
-
-
-
-  X=MsgBox (ScrName, 48, " ")
-
-
-
-  WshShell = new ActiveXObject("WScript.Shell");
-  WshShell.Run(ScrName, 1, false);
-}
-
-
-// Run AChoir Server Share Map Test Script
-function RunSTest(Bits)
-{
-  var ScrName = " /ini:RScripts\\STest.acq" ;
-  var ScrBits = "A-AChoir.exe";
-  
-  if (Bits == 32) 
-  {
-    ScrBits = "A-AChoir.exe" ;
-  } 
-  else if (Bits == 64) 
-  {
-    ScrBits = "A-AChoir64.exe" ;
-  } 
-
-  ScrName = ScrBits + ScrName + " /VR0:" + Serv6Name.value + " /VR1:" + Serv6User.value + " /VR2:" + Serv6Pass.value ;  
 
   WshShell = new ActiveXObject("WScript.Shell");
   WshShell.Run(ScrName, 1, false);
@@ -334,7 +307,7 @@ function EditList()
 <table align="center" border="0" cellpadding="0" cellspacing="0" width="1000">
 <tr valign="top">
   <td align="right" colspan="2">
-    <span class="head">AChoir GUI 0.52</span> &nbsp; &nbsp;
+    <span class="head">AChoir GUI 0.53</span> &nbsp; &nbsp;
     <br>
   </td>
 </tr>
@@ -520,6 +493,7 @@ function EditList()
             AChoir Script to Run:
             <select size="1" name="Run3ACQ">
             <option value="AChoir.ACQ" selected>AChoir</option>
+            <option value="NoMem.ACQ">NoMem</option>
             </select>
             </p>
 
@@ -579,8 +553,8 @@ function EditList()
                       <TD ColSpan=2>
                         AChoir Script to Run on Remote Machine:
                         <select size="1" name="Run4ACQ">
-                        <option value="AChUpload.ACQ" selected>AChUpload</option>
-                        <option value="AChUplNoMem.ACQ">AChUplNoMem</option>
+                        <option value="Scripts\\AChUpload.ACQ" selected>AChUpload</option>
+                        <option value="Scripts\\AChUplNoMem.ACQ">AChUplNoMem</option>
                         </select>
                       </TD>
                     </TR>
@@ -677,8 +651,8 @@ function EditList()
                       <TD ColSpan=2>
                         AChoir Script to Run on Remote Machine(s):
                         <select size="1" name="Run5ACQ">
-                        <option value="AChUpload.ACQ" selected>AChUpload</option>
-                        <option value="AChUplNoMem.ACQ">AChUplNoMem</option>
+                        <option value="Scripts\\AChUpload.ACQ" selected>AChUpload</option>
+                        <option value="Scripts\\AChUplNoMem.ACQ">AChUplNoMem</option>
                         </select>
                       </TD>
                     </TR>
@@ -818,9 +792,6 @@ function EditList()
         </tr>
       </table>
     </div>
-
-
-
   </td>
 </tr>
 </table>
