@@ -85,6 +85,7 @@
 // AChoirX v10.00.53 - Improve Embedded Extraction Logic
 //                     - Extract if AChoir.ACQ is not there
 //                     - Allow other .ACQ files to be extracted and Run
+//                     - Error Detection when Files Dissapear during processing
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -4579,7 +4580,15 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
             //****************************************************************
             //* Ignore Directories - Only Process Files                      *
             //****************************************************************
-            file_stat, _ := os.Stat(file_found)
+            file_stat, stat_err := os.Stat(file_found)
+
+            // v10.00.53 - Add Check for Deleted Files During Upload
+            if stat_err != nil {
+                ConsOut = fmt.Sprintf("[!] File Error: %s\n", stat_err)
+                ConsLogSys(ConsOut, 1, 1)
+                continue
+            }
+
             if file_stat.IsDir() {
                 continue
             }
@@ -4674,7 +4683,15 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                     //****************************************************************
                     //* Ignore Directories - Only Process Files                      *
                     //****************************************************************
-                    file_stat, _ := os.Stat(file_found)
+                    file_stat, stat_err := os.Stat(file_found)
+
+                    // v10.00.53 - Add Check for Deleted Files During Upload
+                    if stat_err != nil {
+                        ConsOut = fmt.Sprintf("[!] File Error: %s\n", stat_err)
+                        ConsLogSys(ConsOut, 1, 1)
+                       continue
+                    }
+
                     if file_stat.IsDir() {
                         continue
                     }
