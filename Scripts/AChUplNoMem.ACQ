@@ -157,7 +157,7 @@ VER:Windows
   SFU:&Acq\* \&Acn\RawData
  END:
  SAY: 3f. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\RawData
  SAY:
  SAY: 4a. Gathering System Information...
  SAY:
@@ -184,9 +184,9 @@ VER:Windows
    SFU:&Acq\GPResult.txt \&Acn
  END:
  SAY: 4e. Deleting Local Copy...
- SYS:Cmd /c Del &Acq\Info.dat
- SYS:Cmd /c Del &Acq\WinAud* /Q
- SYS:Cmd /c Del &Acq\GPResult.txt
+ DEL:&Acn\Info.dat
+ DEL:&Acn\WinAud*
+ DEL:&Acn\GPResult.txt
  SAY:
  SAY: 5. Raw Copy Registry Hives...
  SAY:
@@ -206,7 +206,7 @@ VER:Windows
   SFU:&Acq\* \&Acn\Reg
  END:
  SAY: 5b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\Reg
  SAY:
  SAY: 6. Copying (System32) EventViewer Logs...
  SAY:
@@ -229,7 +229,7 @@ VER:Windows
   SFU:&Acq\**\* \&Acn\Evt
  END:
  SAY: 6b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\Evt
  SAY:
  SAY: 7. Parsing (System32) Etc Directory, and SRUM...
  SAY:
@@ -317,7 +317,7 @@ VER:Windows
   SFU:&Acq\* \&Acn\Sys
  END:
  SAY: 20b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\Sys
  SAY:
  SAY: 21. Gathering AutoRun Information...
  SAY:
@@ -337,7 +337,7 @@ VER:Windows
   SFU:&Acq\**\* \&Acn\Arn
  END:
  SAY: 21b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\Arn
  SAY:
  SAY: 22. Gathering Current (Open) User Registry...
  SAY:
@@ -360,7 +360,7 @@ VER:Windows
   SFU:&Acq\**\* \&Acn\Reg
  END:
  SAY: 22c. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:Acn\Reg
  SAY:
  SAY: 23. Now Extracting Browser History...
  SAY:
@@ -377,7 +377,7 @@ VER:Windows
   SFU:&Acq\* \&Acn\Brw
  END:
  SAY: 23b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\Brw
  SAY:
  SAY: 24. Gathering $Recycle.Bin entries (Going 10 Levels Deep)...
  SAY:
@@ -394,7 +394,7 @@ VER:Windows
   SFU:&Acq\**\* \&Acn\RBin
  END:
  SAY: 24b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\RBin
  SAY:
  SAY: Acquisition Complete...
  SAY:
@@ -415,7 +415,7 @@ VER:Windows
   SFU:&Acq\* \&Acn
  END:
  SAY: 25b. Deleting All Remaining Files...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn
  PZZ: All Done!  Press Any Key to Finish.
  BYE:
 END:

@@ -29,7 +29,7 @@ VER:Windows
  Set:S3AWSKey=<Your Secret Key Goes Here>
  S3U:&Acq\* \&acn\MemDump
  SAY: 1b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\MemDump
  SAY:
  SAY: 2. Extracting Prefetch Directory...
  SAY:
@@ -59,7 +59,7 @@ VER:Windows
  SAY:
  S3U:&Acq\* \&Acn\RawData
  SAY: 3f. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\RawData
  SAY:
  SAY: 4a. Gathering System Information...
  SAY:
@@ -79,9 +79,9 @@ VER:Windows
  S3U:&Acq\WinAud* \&Acn
  S3U:&Acq\GPResult.txt \&Acn
  SAY: 4e. Deleting Local Copy...
- SYS:Cmd /c Del &Acq\Info.dat
- SYS:Cmd /c Del &Acq\WinAud* /Q
- SYS:Cmd /c Del &Acq\GPResult.txt
+ DEL:&Acn\Info.dat
+ DEL:&Acn\WinAud*
+ DEL:&Acn\GPResult.txt
  SAY:
  SAY: 5. Raw Copy Registry Hives...
  SAY:
@@ -95,7 +95,7 @@ VER:Windows
  SAY: 5a. Uploading to S3...
  S3U:&Acq\* \&Acn\Reg
  SAY: 5b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\Reg
  SAY:
  SAY: 6. Copying (System32) EventViewer Logs...
  SAY:
@@ -112,7 +112,7 @@ VER:Windows
  SAY: 6a. Uploading to S3...
  S3U:&Acq\**\* \&Acn\Evt
  SAY: 6b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\Evt
  SAY:
  SAY: 7. Parsing (System32) Etc Directory, and SRUM...
  SAY:
@@ -194,7 +194,7 @@ VER:Windows
  SAY: 20a. Uploading to S3...
  S3U:&Acq\* \&Acn\Sys
  SAY: 20b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\Sys
  SAY:
  SAY: 21. Gathering AutoRun Information...
  SAY:
@@ -208,7 +208,7 @@ VER:Windows
  SAY: 21a. Uploading to S3...
  S3U:&Acq\**\* \&Acn\Arn
  SAY: 21b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\Arn
  SAY:
  SAY: 22. Gathering Current (Open) User Registry...
  SAY:
@@ -225,7 +225,7 @@ VER:Windows
  SAY: 22b. Uploading to S3...
  S3U:&Acq\**\* \&Acn\Reg
  SAY: 22c. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\Reg
  SAY:
  SAY: 23. Now Extracting Browser History...
  SAY:
@@ -236,7 +236,7 @@ VER:Windows
  SAY: 23a. Uploading to S3...
  S3U:&Acq\* \&Acn\Brw
  SAY: 23b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\Brw
  SAY:
  SAY: 24. Gathering $Recycle.Bin entries (Going 10 Levels Deep)...
  SAY:
@@ -247,7 +247,7 @@ VER:Windows
  SAY: 24a. Uploading to S3...
  S3U:&Acq\**\* \&Acn\RBin
  SAY: 24b. Deleting Local Copy...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn\RBin
  SAY:
  SAY: Acquisition Complete...
  SAY:
@@ -260,7 +260,7 @@ VER:Windows
  S3U:&Acq\RanProg\* \&Acn\RanProg
  S3U:&Acq\* \&Acn
  SAY: 25b. Deleting All Remaining Files...
- SYS:Cmd /c RmDir &acq /S /Q
+ CLN:&Acn
  PZZ: All Done!  Press Any Key to Finish.
  BYE:
 END:
