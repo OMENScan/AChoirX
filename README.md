@@ -61,3 +61,10 @@ HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a sing
 03/18/2021 - Beta 50(RC1) - Convert to Go1.16 (REQUIRED TO COMPILE THIS VERSION). Convert from AChoirX custom embedder to native GoLang Embed. Convert from GOPATH to Module. Improve UnZip Routine.
 
 03/19/2021 - Beta 51(RC1) - Implement Syslog RFC3164 Format
+
+03/19/2021 - Beta 52(RC1) - Add Syslog Type (SET:SyslogT=) of UDP or TCP. Improve Syslog Message format
+
+03/24/2021 - Beta 53(RC1) - Improve Embedded Extraction Logic. Extract if AChoir.ACQ is not there. Allow other .ACQ files to be extracted and Run. Error Detection when Files Dissapear during processing
+
+05/01/2021 - Beta 54(RC2) - Add File and Directory Delete Functions. DEL:<File To Delete> (Accepts WildCards) - Only Files in Subdirectories (Off of The AChoirX Root). CLN:<AChoirX Sub-Directory to Clean and Delete> - Only Subdirectories (Off of The AChoirX Root). This is to prevent accidental Deletion of files not related to the acquisition or toolkit
+

@@ -1,4 +1,4 @@
-AChoirX - v10.00.53
+AChoirX - v10.00.54
 
 AChoirX
 =======
@@ -274,6 +274,15 @@ CPS:     Copy Files (CPS:<FromFile> <ToFile>) by Signature
          (Loaded by the Sig: command)
          Supports Wildcard. Important Note: CPY: WILL RECURSE THROuGH
          SUBDIRECTORIES ONLY IF A WILDCARD IS USED.
+DEL:<File To Delete> - Delete Files (Accepts WildCards)
+         Only Files in Subdirectories (Off of The AChoirX Root) can be 
+         deleted. This is to prevent accidental Deletion of files not 
+         related to the acquisition or toolkit
+CLN:<AChoirX Sub-Directory to Clean and Delete>
+         Cleans and Deletes all files and Subdirectories in the specified
+         subdirectory (Off of The AChoirX Root). Only Files/Subdirectories
+         Off of The AChoirX Root) can be deleted. This is to prevent 
+         accidental Deletion of files not related to the acquisition or toolkit
 VCK:<x:> Check if the Volume <x:> is NTFS, FAT32, CDFS, Other, None
          (Used for conditional execution if Vol is/not NTFS)
 Sig:Clear Clears out the AChoirX Signature Table 

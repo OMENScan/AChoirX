@@ -87,6 +87,14 @@
 //                     - Allow other .ACQ files to be extracted and Run
 //                     - Error Detection when Files Dissapear during processing
 //
+// AChoirX v10.00.54 - Add File and Directory Delete Functions
+//                     - DEL:<File To Delete> (Accepts WildCards)
+//                       - Only Files in Subdirectories (Off of The AChoirX Root) 
+//                     - CLN:<AChoirX Sub-Directory to Clean and Delete>
+//                       - Only Subdirectories (Off of The AChoirX Root) 
+//                         This is to prevent accidental Deletion of files not related 
+//                         to the acquisition or toolkit
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -148,7 +156,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.53"                       // AChoir Version
+var Version = "v10.00.54"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -2427,6 +2435,41 @@ func main() {
 
                     ForHndl.Close()
 
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "DEL:") {
+                    TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[4:])
+
+                    //*****************************************************************
+                    //* Golang does not support ** - So this code approximates it     *
+                    //*  using filepath.Walk.  The limitation is that the string cant *
+                    //*  contain another * BEFORE the ** because filepath.Walk does   *
+                    //*  not support wildcards. This code is a decent compromise.     *
+                    //*****************************************************************
+                    DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
+                    if strings.Contains(TempDir, DubGlob) {
+                        iDblShard = strings.Index(TempDir, DubGlob)
+                        if iDblShard > 0 {
+                            WalkDir := TempDir[:iDblShard]
+                            WalkfileWild = TempDir[iDblShard+3:]
+
+                            BasicDel := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
+                            DelParser(BasicDel)
+
+                            filepath.Walk(WalkDir, WalkDelGlob)
+                        }
+                    } else {
+                        DelParser(TempDir)
+                    }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CLN:") {
+
+                    TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[4:])
+
+                    remov_err := os.RemoveAll(TempDir)
+                    if remov_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Cleaning Directory: %s\n", remov_err)
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "LST:") {
                     LstFile = fmt.Sprintf("%s%c%s", BaseDir,slashDelim, Inrec[4:])
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "BYE:") {
@@ -4103,7 +4146,15 @@ func CopyParser(splitString1 string, splitString2 string) {
             //****************************************************************
             //* Ignore Directories - Only Process Files                      *
             //****************************************************************
-            file_stat, _ := os.Stat(file_found)
+            file_stat, fstat_err := os.Stat(file_found)
+
+            // v10.00.53 - Add Check for Deleted Files
+            if fstat_err != nil {
+                ConsOut = fmt.Sprintf("[!] File Error: %s\n", fstat_err)
+                ConsLogSys(ConsOut, 1, 1)
+                continue
+            }
+
             if file_stat.IsDir() {
                 continue
             }
@@ -4189,7 +4240,15 @@ func CopyParser(splitString1 string, splitString2 string) {
                     //****************************************************************
                     //* Ignore Directories - Only Process Files                      *
                     //****************************************************************
-                    file_stat, _ := os.Stat(file_found)
+                    file_stat, fstat_err := os.Stat(file_found)
+
+                    // v10.00.53 - Add Check for Deleted Files
+                    if fstat_err != nil {
+                        ConsOut = fmt.Sprintf("[!] File Error: %s\n", fstat_err)
+                        ConsLogSys(ConsOut, 1, 1)
+                        continue
+                    }
+
                     if file_stat.IsDir() {
                         continue
                     }
@@ -4380,6 +4439,29 @@ func WalkForGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) erro
 }
 
 
+func WalkDelGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) error {
+    //****************************************************************
+    //* Walk the filepath looking for DIRECTORIES ONLY. Then Glob    *
+    //*  them with the wilcards...  This Approximates ** Globbing    *
+    //****************************************************************
+    file_stat, stat_err := os.Stat(Walkfilepath)
+
+    if stat_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Identifying File: %s\n", stat_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return stat_err
+    }
+
+    if file_stat.IsDir() {
+        WalkfileFull := fmt.Sprintf("%s%c*%s", Walkfilepath, slashDelim, WalkfileWild)
+        DelParser(WalkfileFull)
+    }
+
+    return nil
+
+}
+
+
 func WalkS3UpGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) error {
     //****************************************************************
     //* Walk the filepath looking for DIRECTORIES ONLY. Then Glob    *
@@ -4443,7 +4525,15 @@ func ForParser(ForDir string) {
     //****************************************************************
     //* Ignore Directories - Only Process Files                      *
     //****************************************************************
-        file_stat, _ := os.Stat(file_found)
+        file_stat, fstat_err := os.Stat(file_found)
+
+        // v10.00.53 - Add Check for Deleted Files
+        if fstat_err != nil {
+            ConsOut = fmt.Sprintf("[!] File Error: %s\n", fstat_err)
+            ConsLogSys(ConsOut, 1, 1)
+            continue
+        }
+
         if file_stat.IsDir() {
             continue
         } else {
@@ -4475,13 +4565,56 @@ func ForParser(ForDir string) {
             //****************************************************************
             //* Ignore Directories - Only Process Files                      *
             //****************************************************************
-                file_stat, _ := os.Stat(file_found)
+                file_stat, fstat_err := os.Stat(file_found)
+
+                // v10.00.53 - Add Check for Deleted Files
+                if fstat_err != nil {
+                    ConsOut = fmt.Sprintf("[!] File Error: %s\n", fstat_err)
+                    ConsLogSys(ConsOut, 1, 1)
+                    continue
+                }
+
                 if file_stat.IsDir() {
                 continue
                 } else {
                     ForHndl.WriteString(file_found + "\n")
                 }
             }
+        }
+    }
+}
+
+
+//***************************************************************************
+// DelParser: Parses out the DEL: Parameters                                *
+//***************************************************************************
+func DelParser(DelDir string) {
+
+    files_glob, glob_err := filepath.Glob(DelDir)
+
+    if glob_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Expanding WildCards: %s\n", glob_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return
+    }
+
+    for _, file_found := range files_glob {
+    //****************************************************************
+    //* Ignore Directories - Only Process Files                      *
+    //****************************************************************
+        file_stat, fstat_err := os.Stat(file_found)
+
+        // v10.00.53 - Add Check for Deleted Files
+        if fstat_err != nil {
+            ConsOut = fmt.Sprintf("[!] File Error: %s\n", fstat_err)
+            ConsLogSys(ConsOut, 1, 1)
+            continue
+        }
+
+        if file_stat.IsDir() {
+            continue
+        } else {
+            os.Remove(file_found)
         }
     }
 }
