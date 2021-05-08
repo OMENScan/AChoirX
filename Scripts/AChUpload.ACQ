@@ -154,11 +154,11 @@ VER:Windows
  SAY:
  DSK:Fixed
  ACQ:\RawData
- EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe $MFT \\.\&dsk: --exestdout=&acn\RawData\MFT-&Dsk
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe -f ntfs $MFT \\.\&dsk: --exestdout=&acn\RawData\MFT-&Dsk
  SAY:
  SAY: 3b. Copy Raw $LogFile...
  SAY:
- EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe $LogFile \\.\&dsk: --exestdout=&acn\RawData\LogFile-&Dsk
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe -f ntfs $LogFile \\.\&dsk: --exestdout=&acn\RawData\LogFile-&Dsk
  SAY:
  SAY: 3c. Now Extracting USNJrnl...
  SAY:
