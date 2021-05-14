@@ -291,7 +291,10 @@ var S3_AWS_SplitRC = 0                          // AWS Split Return Code
 var iS3Login = 0                                // Default is NOT logged in
 var upS3_err error                              // Upload (S3 Only) Errors
 var upld_err error                              // Upload (S3 & SFTP) Errors
-var upld_countr = 0                             // Upload Counter for Tracking
+
+var proc_countr = 0                             // File/Network File Processing Counter for Tracking
+var read_countr = 0                             // File/Network Read Close Counter for Tracking
+var writ_countr = 0                             // File/Network Write Close Counter for Tracking
 
 // SFTP Server Variables
 var SF_Server = "none"                          // SFTP Server
@@ -3530,8 +3533,8 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     if frm_err != nil {
         return 0, fmt.Errorf("[!] Copy Error: %s", frm_err)
     }
-    defer FrmSource.Close()
-
+    //defer FrmSource.Close()
+    defer CloseCopyRead(FrmSource, "File: Read")
 
     //***********************************************************************
     //* Get FrmSource File MetaData                                         *
@@ -3622,7 +3625,6 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     }
 
 
-
     //***********************************************************************
     //* Now Copy the File                                                   *
     //***********************************************************************
@@ -3630,7 +3632,8 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     if too_err != nil {
         return 0, too_err
     }
-    defer TooDest.Close()
+    //defer TooDest.Close()
+    defer CloseCopyWrit(TooDest, "File: Write")
 
     // File Copy
     nBytes, copy_err := io.Copy(TooDest, FrmSource)
@@ -3649,7 +3652,7 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
             TooFileSize := TooFileStat.Size()
             TooATime, TooMTime, TooCTime = FTime(TooFile)
 
-            ConsOut = fmt.Sprintf("[+] Copy Complete: %d Bytes Copied\n", nBytes)
+            ConsOut = fmt.Sprintf("[+] Copy Complete (%d): %d Bytes Copied\n", proc_countr, nBytes)
             ConsLogSys(ConsOut, 1, 1)
 
             ConsOut = fmt.Sprintf("[+] To File Meta Data: \n    Bytes: %d\n    ATime: %v\n    MTime: %v\n    CTime: %v\n", TooFileSize, TooATime, TooMTime, TooCTime)
@@ -3978,7 +3981,8 @@ func RunCommand(Commandstring string, Commandtype int) error {
     FullCopyCommand = fmt.Sprintf("%s%cRanProg%c%s-%s", BACQDir, slashDelim, slashDelim, TempCopyCommand, execMD5)
 
     if !FileExists(FullCopyCommand) {
-        ConsOut = fmt.Sprintf("[+] Saving Called Program As: %s\n", FullCopyCommand)
+        proc_countr++
+        ConsOut = fmt.Sprintf("[+] Saving Called Program As (%d): %s\n", proc_countr, FullCopyCommand)
         ConsLogSys(ConsOut, 1, 1)
         _, _ = binCopy(Fullpath, FullCopyCommand)
     }
@@ -4206,7 +4210,8 @@ func CopyParser(splitString1 string, splitString2 string) {
                 MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpPath, MCpFName)
             }
 
-            ConsOut = fmt.Sprintf("[+] Multi-Copy File: %s\n    To: %s\n", file_found, MCprcO)
+            proc_countr++
+            ConsOut = fmt.Sprintf("[+] Multi-Copy File (%d): %s\n    To: %s\n", proc_countr, file_found, MCprcO)
             ConsLogSys(ConsOut, 1, 1)
 
             nBytes, copy_err := binCopy(file_found, MCprcO)
@@ -4281,7 +4286,7 @@ func CopyParser(splitString1 string, splitString2 string) {
                         MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
                     }
 
-                    ConsOut = fmt.Sprintf("[+] Multi-Copy Redir File: %s\n    To: %s\n", file_found, MCprcO)
+                    ConsOut = fmt.Sprintf("[+] Multi-Copy Redir File(%d): %s\n    To: %s\n", proc_countr, file_found, MCprcO)
                     ConsLogSys(ConsOut, 1, 1)
 
                     nBytes, copy_err := binCopy(file_found, MCprcO)
@@ -4334,7 +4339,8 @@ func CopyParser(splitString1 string, splitString2 string) {
             MCprcO = fmt.Sprintf("%s%c%s%c%s", splitString2, slashDelim, MCpPath, slashDelim, MCpFName)
         }
 
-        ConsOut = fmt.Sprintf("[+] Singl-Copy File: %s\n    To: %s\n", splitString1, MCprcO)
+        proc_countr++
+        ConsOut = fmt.Sprintf("[+] Singl-Copy File (%d): %s\n    To: %s\n", proc_countr, splitString1, MCprcO)
         ConsLogSys(ConsOut, 1, 1)
 
         nBytes, copy_err := binCopy(splitString1, MCprcO)
@@ -4380,7 +4386,8 @@ func CopyParser(splitString1 string, splitString2 string) {
                 //****************************************************************
                 MCprcO = fmt.Sprintf("%s%c%s", splitString2, slashDelim, MCpFName)
 
-                ConsOut = fmt.Sprintf("[+] Singl-Copy Redir File: %s\n    To: %s\n", splitString1, MCprcO)
+                proc_countr++
+                ConsOut = fmt.Sprintf("[+] Singl-Copy Redir File (%d): %s\n    To: %s\n", proc_countr, splitString1, MCprcO)
                 ConsLogSys(ConsOut, 1, 1)
 
                 nBytes, copy_err := binCopy(splitString1, MCprcO)
@@ -4640,7 +4647,7 @@ func uploadFileToS3(S3Session *session.Session, S3FileName string, S3UpldName st
         return S3Up_err
     }
     // defer S3UpFile.Close()
-    defer CloseUploadFile(S3UpFile)
+    defer CloseCopyRead(S3UpFile, "S3: File Read")
 
 
     // get file size and read the file content into a buffer
@@ -4673,16 +4680,52 @@ func uploadFileToS3(S3Session *session.Session, S3FileName string, S3UpldName st
 
 
 //***************************************************************************
-// CloseUploadFile: Defered File Closer                                     *
+// CloseUploadNetw: Defered Network Closer                                     *
 //***************************************************************************
-func CloseUploadFile(UploadedFileName *os.File) {
-    ConsOut = fmt.Sprintf("[+] File Upload Complete: %d\n", upld_countr)
-    ConsLogSys(ConsOut, 2, 1)
+func CloseUploadNetw(UploadedNetwName *sftp.File, UploadNetwType string) {
 
-    closr_err := UploadedFileName.Close()
+    writ_countr++
+    ConsOut = fmt.Sprintf("[+] %s Complete: %d\n", UploadNetwType, writ_countr)
+    ConsLogSys(ConsOut, 3, 2)
+
+    closr_err := UploadedNetwName.Close()
     if closr_err != nil {
-        ConsOut = fmt.Sprintf("[!] Error Closing Upload File(%d): %v\n", upld_countr, closr_err)
-        ConsLogSys(ConsOut, 1, 1)
+        ConsOut = fmt.Sprintf("[!] %s Error (%d): %v\n", UploadNetwType, writ_countr, closr_err)
+        ConsLogSys(ConsOut, 3, 2)
+    }
+}
+
+
+//***************************************************************************
+// CloseCopyRead: Defered File Closer                                       *
+//***************************************************************************
+func CloseCopyRead(ReadFileName *os.File, CopyFileType string) {
+
+    read_countr++
+    ConsOut = fmt.Sprintf("[+] %s Complete: %d\n", CopyFileType, read_countr)
+    ConsLogSys(ConsOut, 3, 2)
+
+    readr_err := ReadFileName.Close()
+    if readr_err != nil {
+        ConsOut = fmt.Sprintf("[!] %s Error (%d): %v\n", CopyFileType, read_countr, readr_err)
+        ConsLogSys(ConsOut, 3, 2)
+    }
+}
+
+
+//***************************************************************************
+// CloseCopyWrit: Defered File Closer                                       *
+//***************************************************************************
+func CloseCopyWrit(WritFileName *os.File, CopyFileType string) {
+
+    writ_countr++
+    ConsOut = fmt.Sprintf("[+] %s Complete: %d\n", CopyFileType, writ_countr)
+    ConsLogSys(ConsOut, 3, 2)
+
+    readr_err := WritFileName.Close()
+    if readr_err != nil {
+        ConsOut = fmt.Sprintf("[!] %s Error (%d): %v\n", CopyFileType, writ_countr, readr_err)
+        ConsLogSys(ConsOut, 3, 2)
     }
 }
 
@@ -4798,8 +4841,8 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
             MCpPath  = strings.Replace(MCpPath , "\\", "/", -1) 
             MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
 
-            upld_countr++
-            ConsOut = fmt.Sprintf("[+] %s Multi-Upload File(%d): %s\n    To: %s\n", UpType, upld_countr, file_found, MCprcO)
+            proc_countr++
+            ConsOut = fmt.Sprintf("[+] %s Multi-Upload File(%d): %s\n    To: %s\n", UpType, proc_countr, file_found, MCprcO)
             ConsLogSys(ConsOut, 1, 1)
 
             if UpType == "S3" {
@@ -4883,8 +4926,8 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                     MCpPath  = strings.Replace(MCpPath , "\\", "/", -1) 
                     MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
 
-                    upld_countr++
-                    ConsOut = fmt.Sprintf("[+] %s Multi-Upload Redir File(%d): %s\n    To: %s\n", UpType, upld_countr, file_found, MCprcO)
+                    proc_countr++
+                    ConsOut = fmt.Sprintf("[+] %s Multi-Upload Redir File(%d): %s\n    To: %s\n", UpType, proc_countr, file_found, MCprcO)
                     ConsLogSys(ConsOut, 1, 1)
 
                     if UpType == "S3" {
@@ -4926,8 +4969,8 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
         //****************************************************************
         MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
 
-        upld_countr++
-        ConsOut = fmt.Sprintf("[+] %s Singl-Upload File(%d): %s\n    To: %s\n", UpType, upld_countr, splitString1, MCprcO)
+        proc_countr++
+        ConsOut = fmt.Sprintf("[+] %s Singl-Upload File(%d): %s\n    To: %s\n", UpType, proc_countr, splitString1, MCprcO)
         ConsLogSys(ConsOut, 1, 1)
 
         if UpType == "S3" {
@@ -4979,8 +5022,8 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                 //****************************************************************
                 MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
 
-                upld_countr++
-                ConsOut = fmt.Sprintf("[+] %s Singl-Upload Redir File(%d): %s\n    To: %s\n", UpType, upld_countr, splitString1, MCprcO)
+                proc_countr++
+                ConsOut = fmt.Sprintf("[+] %s Singl-Upload Redir File(%d): %s\n    To: %s\n", UpType, proc_countr, splitString1, MCprcO)
                 ConsLogSys(ConsOut, 1, 1)
 
                 if UpType == "S3" {
@@ -5105,7 +5148,7 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
         return
     }
     //defer srcFile.Close()
-    defer CloseUploadFile(srcFile)
+    defer CloseCopyRead(srcFile, "SFTP: File Read")
 
 
     //***************************************************************************
@@ -5130,7 +5173,8 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
         ConsLogSys(ConsOut, 1, 1)
         return
     }
-    defer dstFile.Close()
+    //defer dstFile.Close()
+    defer CloseUploadNetw(dstFile, "SFTP: Network Write")
 
 
     //***************************************************************************
