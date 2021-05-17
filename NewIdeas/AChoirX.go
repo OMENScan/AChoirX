@@ -5225,7 +5225,7 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
         }
     }
 
-    ConsOut = fmt.Sprintf("[+] Upload Completed: %d bytes copied\n", scopy_bytes)
+    ConsOut = fmt.Sprintf("[+] Upload Completed (%d): %d bytes copied\n", proc_countr, scopy_bytes)
     ConsLogSys(ConsOut, 1, 1)
     
     return
