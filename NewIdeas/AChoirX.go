@@ -98,7 +98,7 @@
 // AChoirX v10.00.55 - Attempting to fix occasional Hang on Threads in the Wait Chain
 //                     - The problem only happens on many small files
 //                     - It may be related to deferring the Close.  Added Counters to
-//                       troubleshoot the issue. 
+//                       troubleshoot the issue.
 //                     
 //
 // Other Libraries and code I use:
@@ -3482,6 +3482,8 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
                     ConsLogSys(ConsOut, 1, 1)
 
                     //No... Sorry... Not Sysnative
+                    read_countr++
+                    writ_countr++
                     return 0, fmt.Errorf("[!] Copy Error - File Could Not Be Found: %s", FrmFile)
 
                 } else {
@@ -3501,10 +3503,14 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     //***********************************************************************
     FrmFileStat, stat_err := os.Stat(FrmFile)
     if stat_err != nil {
+        read_countr++
+        writ_countr++
         return 0, stat_err
     }
 
     if !FrmFileStat.Mode().IsRegular() {
+        read_countr++
+        writ_countr++
         return 0, fmt.Errorf("[!] Copy Error: %s is not a Regular File", FrmFile)
     }
 
@@ -3515,6 +3521,8 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     _, FreeBytes := winFreeDisk()
     FrmFileSize := FrmFileStat.Size()
     if (int64(FreeBytes) < FrmFileSize) {
+        read_countr++
+        writ_countr++
         iOutOfDiskSpace = 1
         return 0, fmt.Errorf("[!] Copy Error: Not Enough Disk Space Available: %d", FreeBytes)
     }
@@ -3531,10 +3539,12 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     //***********************************************************************
     FrmSource, frm_err := os.Open(FrmFile)
     if frm_err != nil {
+        read_countr++
+        writ_countr++
         return 0, fmt.Errorf("[!] Copy Error: %s", frm_err)
     }
     //defer FrmSource.Close()
-    defer CloseCopyRead(FrmSource, "File: Read")
+    defer CloseCopyRead(FrmSource, "File: Input/Deferred Close")
 
     //***********************************************************************
     //* Get FrmSource File MetaData                                         *
@@ -3596,6 +3606,8 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     if iCPSFound == 1 {
         FrmSource.Seek(0, 0)
     } else {
+        read_countr++
+        writ_countr++
         return 0, fmt.Errorf("[!] No Signature Match in File. File Bypassed\n")
     }
 
@@ -3630,10 +3642,11 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     //***********************************************************************
     TooDest, too_err := os.Create(TooFile)
     if too_err != nil {
+        writ_countr++
         return 0, too_err
     }
     //defer TooDest.Close()
-    defer CloseCopyWrit(TooDest, "File: Write")
+    defer CloseCopyWrit(TooDest, "File: Output/Deferred Close")
 
     // File Copy
     nBytes, copy_err := io.Copy(TooDest, FrmSource)
@@ -3796,7 +3809,8 @@ func cleanUp_Exit(exitRC int) {
     } else {
         iCPS = 0; //ALWAYS Copy LogFile
 
-        ConsOut = fmt.Sprintf("[+] Copying Log File...\n")
+        proc_countr++
+        ConsOut = fmt.Sprintf("[+] Copying Log File (%d)...\n", proc_countr)
         ConsLogSys(ConsOut, 1, 1)
 
         //Very Last Log Entry - Close Log now, and copy WITHOUT LOGGING
@@ -4644,10 +4658,12 @@ func uploadFileToS3(S3Session *session.Session, S3FileName string, S3UpldName st
     // Open the file
     S3UpFile, S3Up_err := os.Open(S3FileName)
     if S3Up_err != nil {
+        read_countr++
+        writ_countr++
         return S3Up_err
     }
     // defer S3UpFile.Close()
-    defer CloseCopyRead(S3UpFile, "S3: File Read")
+    defer CloseCopyRead(S3UpFile, "S3: File Input/Deferred Close")
 
 
     // get file size and read the file content into a buffer
@@ -5143,12 +5159,14 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
 
     srcFile, lopen_err := os.Open(localFile)
     if lopen_err != nil {
+        read_countr++
+        writ_countr++
         ConsOut = fmt.Sprintf("[!] Unable to open local file: %v\n", lopen_err)
         ConsLogSys(ConsOut, 1, 1)
         return
     }
     //defer srcFile.Close()
-    defer CloseCopyRead(srcFile, "SFTP: File Read")
+    defer CloseCopyRead(srcFile, "SFTP: File Input/Deferred Close")
 
 
     //***************************************************************************
@@ -5169,12 +5187,13 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
     //***************************************************************************
     dstFile, ropen_err := sftp_client.OpenFile(remoteFile, (os.O_WRONLY|os.O_CREATE|os.O_TRUNC))
     if ropen_err != nil {
+        writ_countr++
         ConsOut = fmt.Sprintf("[!] Unable to open remote file: %v\n", ropen_err)
         ConsLogSys(ConsOut, 1, 1)
         return
     }
     //defer dstFile.Close()
-    defer CloseUploadNetw(dstFile, "SFTP: Network Write")
+    defer CloseUploadNetw(dstFile, "SFTP: Network Output/Deferred Close")
 
 
     //***************************************************************************
