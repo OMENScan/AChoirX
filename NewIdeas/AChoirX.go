@@ -296,6 +296,10 @@ var proc_countr = 0                             // File/Network File Processing 
 var read_countr = 0                             // File/Network Read Close Counter for Tracking
 var writ_countr = 0                             // File/Network Write Close Counter for Tracking
 
+var procz_countr = 0                            // Zip File Processing Counter for Tracking
+var readz_countr = 0                            // Zip Read Close Counter for Tracking
+var writz_countr = 0                            // Zip Write Close Counter for Tracking
+
 // SFTP Server Variables
 var SF_Server = "none"                          // SFTP Server
 var SF_Port = 22                                // SFTP Default Port
@@ -3201,7 +3205,7 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
     // thisSyslog == Should we send to Syslog                       *
     //  0==None, 1==Min, 2==Standard, 3==Max, 4==Debug              *
     //***************************************************************
-    if setMSGLvl >= thisMSGLvl && setMSGLvl > 0 {
+    if (setMSGLvl >= thisMSGLvl) && setMSGLvl > 0 {
         fmt.Printf (ConLogMSG)
     }
 
@@ -3210,11 +3214,11 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
     timefmt := timenow.Format("Jan _2 15:04:05")
     LogLogMSG := fmt.Sprintf("%s %s AChoirX %d ID%d %s", timefmt, cName, MyPID, SyslogCount, ConLogMSG)
 
-    if iLogOpen == 1 {
+    if iLogOpen == 1 && (setMSGLvl >= thisMSGLvl) && setMSGLvl > 0 {
         fmt.Fprintf(LogHndl, LogLogMSG)
     }
     
-    if iSyslogLvl >= thisSyslog && iSyslogLvl > 0 {
+    if (iSyslogLvl >= thisSyslog) && iSyslogLvl > 0 {
         AChSyslog(LogLogMSG) 
     }
 }
@@ -4076,8 +4080,6 @@ func Unzip(ZipRdrFile []*zip.File, ZipDest string) error {
 
         // Store filename/path for returning and using later on
         ZipFpath := filepath.Join(ZipDest, ZipFile.Name)
-        ConsOut = fmt.Sprintf("[*] Unzipping: %s\n", ZipFpath)
-        ConsLogSys(ConsOut, 1, 1)
 
         // Check for ZipSlip. More Info: http://bit.ly/2MsjAWE
         if !strings.HasPrefix(ZipFpath, filepath.Clean(ZipDest)+string(os.PathSeparator)) {
@@ -4099,14 +4101,22 @@ func Unzip(ZipRdrFile []*zip.File, ZipDest string) error {
         if zip_err != nil {
             return zip_err
         }
-        defer ZipOutFile.Close()
+        //defer ZipOutFile.Close()
+        defer CloseZipWrit(ZipOutFile, "Zip: File Output/Deferred Close")
 
         Ziprc, zip_err := ZipFile.Open()
         if zip_err != nil {
+            readz_countr++
+            procz_countr++
             return zip_err
         }
-        defer Ziprc.Close()
+        //defer Ziprc.Close()
+        defer CloseZipRead(Ziprc, "Zip: File Input/Deferred Close")
 
+        // Now Write the Zip filename/path
+        procz_countr++
+        ConsOut = fmt.Sprintf("[*] Unzipping (%d): %s\n", procz_countr, ZipFpath)
+        ConsLogSys(ConsOut, 1, 1)
         _, zip_err = io.Copy(ZipOutFile, Ziprc)
 
         // Close the file without defer to close before next iteration of loop
@@ -4702,12 +4712,12 @@ func CloseUploadNetw(UploadedNetwName *sftp.File, UploadNetwType string) {
 
     writ_countr++
     ConsOut = fmt.Sprintf("[+] %s Complete: %d\n", UploadNetwType, writ_countr)
-    ConsLogSys(ConsOut, 3, 2)
+    ConsLogSys(ConsOut, 3, 3)
 
     closr_err := UploadedNetwName.Close()
     if closr_err != nil {
         ConsOut = fmt.Sprintf("[!] %s Error (%d): %v\n", UploadNetwType, writ_countr, closr_err)
-        ConsLogSys(ConsOut, 3, 2)
+        ConsLogSys(ConsOut, 3, 3)
     }
 }
 
@@ -4719,12 +4729,12 @@ func CloseCopyRead(ReadFileName *os.File, CopyFileType string) {
 
     read_countr++
     ConsOut = fmt.Sprintf("[+] %s Complete: %d\n", CopyFileType, read_countr)
-    ConsLogSys(ConsOut, 3, 2)
+    ConsLogSys(ConsOut, 3, 3)
 
     readr_err := ReadFileName.Close()
     if readr_err != nil {
         ConsOut = fmt.Sprintf("[!] %s Error (%d): %v\n", CopyFileType, read_countr, readr_err)
-        ConsLogSys(ConsOut, 3, 2)
+        ConsLogSys(ConsOut, 3, 3)
     }
 }
 
@@ -4736,12 +4746,46 @@ func CloseCopyWrit(WritFileName *os.File, CopyFileType string) {
 
     writ_countr++
     ConsOut = fmt.Sprintf("[+] %s Complete: %d\n", CopyFileType, writ_countr)
-    ConsLogSys(ConsOut, 3, 2)
+    ConsLogSys(ConsOut, 3, 3)
 
     readr_err := WritFileName.Close()
     if readr_err != nil {
         ConsOut = fmt.Sprintf("[!] %s Error (%d): %v\n", CopyFileType, writ_countr, readr_err)
-        ConsLogSys(ConsOut, 3, 2)
+        ConsLogSys(ConsOut, 3, 3)
+    }
+}
+
+
+//***************************************************************************
+// CloseCopyRead: Defered File Closer                                       *
+//***************************************************************************
+func CloseZipRead(ReadZipName io.ReadCloser, ZipFileType string) {
+
+    readz_countr++
+    ConsOut = fmt.Sprintf("[+] %s Complete: %d\n", ZipFileType, readz_countr)
+    ConsLogSys(ConsOut, 3, 3)
+
+    readz_err := ReadZipName.Close()
+    if readz_err != nil {
+        ConsOut = fmt.Sprintf("[!] %s Error (%d): %v\n", ZipFileType, readz_countr, readz_err)
+        ConsLogSys(ConsOut, 3, 3)
+    }
+}
+
+
+//***************************************************************************
+// CloseCopyWrit: Defered File Closer                                       *
+//***************************************************************************
+func CloseZipWrit(WritZipName *os.File, ZipFileType string) {
+
+    writz_countr++
+    ConsOut = fmt.Sprintf("[+] %s Complete: %d\n", ZipFileType, writz_countr)
+    ConsLogSys(ConsOut, 3, 3)
+
+    writz_err := WritZipName.Close()
+    if writz_err != nil {
+        ConsOut = fmt.Sprintf("[!] %s Error (%d): %v\n", ZipFileType, writz_countr, writz_err)
+        ConsLogSys(ConsOut, 3, 3)
     }
 }
 
