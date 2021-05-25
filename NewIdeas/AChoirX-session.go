@@ -103,9 +103,6 @@
 //
 // AChoirX v10.00.56 - Separate the Debugging Counters to Isolate Better
 //                   - Add Debug command Line Option - /DBG:<min>, <std>, <max>, <debug>
-//
-// AChoirX v10.00.57 - Add Context and Timeout to AWS S3 upload for Upload hangs 
-//                   - Add Zip Routine
 //                     
 //
 // Other Libraries and code I use:
@@ -136,7 +133,6 @@ import (
     "time"
     "os"
     "os/exec"
-    "context"
     "strings"
     "strconv"
     "text/scanner"
@@ -4686,19 +4682,29 @@ func DelParser(DelDir string) {
 
 
 //***************************************************************************
-// Upload a File to S3 - Assumes we are logged in and have a Session        *
+// Upload a File to S3 - Create a new Session Every Time                    *
 //  https://paulbradley.org/gos3/                                           *
 //  https://golangcode.com/uploading-a-file-to-s3/                          *
 //***************************************************************************
-func uploadFileToS3(S3Session *session.Session, S3FileName string, S3UpldName string) error {
+func uploadFileToS3(S3FileName string, S3UpldName string) error {
 
-    var S3Timeout time.Duration
-    var cancelS3 func()
+    var this3_Session *session.Session
+    var this3_err error 
 
-    //***************************************************************************
-    // Create context with Timeout for S3 Upload (1Byte = 1MSec, Min of 1000)   *
-    //***************************************************************************
-    S3upl_ctx := context.Background()
+    this3_Session, this3_err = session.NewSession(&aws.Config {
+        Region: aws.String(S3_REGION),
+        Credentials: credentials.NewStaticCredentials(
+        S3_AWSId, S3_AWSKey, ""),
+    })
+
+    if this3_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
+        ConsLogSys(ConsOut, 1, 1)
+    } else {
+        ConsOut = fmt.Sprintf("[*] AWS S3 Session Started...\n")
+        ConsLogSys(ConsOut, 1, 1)
+    }
+
     
     // Open the file
     S3UpFile, S3Up_err := os.Open(S3FileName)
@@ -4718,30 +4724,9 @@ func uploadFileToS3(S3Session *session.Session, S3FileName string, S3UpldName st
     //S3Buffer := make([]byte, size)
     //S3UpFile.Read(S3Buffer)
 
-
-    //***************************************************************************
-    //* Set Minumum, Maximum, and Normal Timeout (based on number of bytes)     *
-    //***************************************************************************
-    if S3FileSize < 1000 {
-        S3Timeout = 1000 * time.Millisecond
-    } else if S3FileSize > 3600000 {
-        S3Timeout = 3600000 * time.Millisecond
-    } else {
-        S3Timeout = time.Duration(S3FileSize) * time.Millisecond
-    }
-
-
-    //***************************************************************************
-    //* Setup the Context, and Defer Close to prevent leaking                   *
-    //***************************************************************************
-    S3upl_ctx, cancelS3 = context.WithTimeout(S3upl_ctx, S3Timeout)
-    defer cancelS3()
-
-
     // Config settings: this is where you choose the bucket, filename, content-type and 
     //  storage class of the file being uploaded
-    //_, s3err := s3.New(S3Session).PutObject(&s3.PutObjectInput{
-    _, s3err := s3.New(S3Session).PutObjectWithContext(S3upl_ctx, &s3.PutObjectInput{
+    _, s3err := s3.New(this3_Session).PutObject(&s3.PutObjectInput{
         Bucket:               aws.String(S3_BUCKET),
         Key:                  aws.String(S3UpldName),
         ACL:                  aws.String("private"),
@@ -4995,7 +4980,7 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                 proc3_countr++
                 ConsOut = fmt.Sprintf("[+] S3 Multi-Upload File (%d): %s\n    To: %s\n", proc3_countr, file_found, MCprcO)
                 ConsLogSys(ConsOut, 1, 1)
-                upld_err = uploadFileToS3(S3_Session, file_found, MCprcO)
+                upld_err = uploadFileToS3(file_found, MCprcO)
             } else {
                 procs_countr++
                 ConsOut = fmt.Sprintf("[+] SFTP Multi-Upload File (%d): %s\n    To: %s\n", procs_countr, file_found, MCprcO)
@@ -5083,7 +5068,7 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                         proc3_countr++
                         ConsOut = fmt.Sprintf("[+] S3 Multi-Upload Redir File (%d): %s\n    To: %s\n", proc3_countr, file_found, MCprcO)
                         ConsLogSys(ConsOut, 1, 1)
-                        upld_err = uploadFileToS3(S3_Session, file_found, MCprcO)
+                        upld_err = uploadFileToS3(file_found, MCprcO)
                     } else {
                         procs_countr++
                         ConsOut = fmt.Sprintf("[+] SFTP Multi-Upload Redir File (%d): %s\n    To: %s\n", procs_countr, file_found, MCprcO)
@@ -5127,7 +5112,7 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
             proc3_countr++
             ConsOut = fmt.Sprintf("[+] S3 Singl-Upload File (%d): %s\n    To: %s\n", proc3_countr, splitString1, MCprcO)
             ConsLogSys(ConsOut, 1, 1)
-            upld_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
+            upld_err = uploadFileToS3(splitString1, MCprcO)
         } else {
             procs_countr++
             ConsOut = fmt.Sprintf("[+] SFTP Singl-Upload File (%d): %s\n    To: %s\n", procs_countr, splitString1, MCprcO)
@@ -5183,7 +5168,7 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                     proc3_countr++
                     ConsOut = fmt.Sprintf("[+] S3 Singl-Upload Redir File(%d): %s\n    To: %s\n", proc3_countr, splitString1, MCprcO)
                     ConsLogSys(ConsOut, 1, 1)
-                    upld_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
+                    upld_err = uploadFileToS3(splitString1, MCprcO)
                 } else {
                     procs_countr++
                     ConsOut = fmt.Sprintf("[+] SFTP Singl-Upload Redir File(%d): %s\n    To: %s\n", procs_countr, splitString1, MCprcO)
