@@ -105,8 +105,8 @@
 //                   - Add Debug command Line Option - /DBG:<min>, <std>, <max>, <debug>
 //
 // AChoirX v10.00.57 - Add Context and Timeout to AWS S3 upload for Upload hangs 
-//                   - Add Zip Routine
-//                     
+//                   - Add Rudimentary Zip Routine - Must Use &FOR and cannot add to Zip.
+//                      Will expand functionality in subsequent releases
 //
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
@@ -316,6 +316,11 @@ var proc3_countr = 0                            // S3 Upload Processing Counter 
 var read3_countr = 0                            // S3 Upload Read Close Counter for Tracking
 var writ3_countr = 0                            // S3 Upload Write Close Counter for Tracking
 
+var izipw_countr = 0                            // Input Zip File Write Counter for Tracking
+var ozipw_countr = 0                            // Output Zip File Write Counter for Tracking
+var rzipw_countr = 0                            // Output Zip File Reader Counter for Tracking
+var wzipw_countr = 0                            // Output Zip File Writer Counter for Tracking
+
 // SFTP Server Variables
 var SF_Server = "none"                          // SFTP Server
 var SF_Port = 22                                // SFTP Default Port
@@ -400,6 +405,7 @@ var dsk_rcd bool                                // Return Code for DskFile Read
 // Global Zip Variables
 var zipWriter *zip.Writer                       // Zip Writer
 var iWasZipping = 0                             // Are we Zipping Some Files?
+var zipOffset =0                                // In the &for Loop, keep the Root Offset for Zip Output
 
 // Arrays
 var ForsArray = []string{"&FO0", "&FO1", "&FO2", "&FO3", "&FO4", "&FO5", "&FO6", "&FO7", "&FO8", 
@@ -1001,13 +1007,6 @@ func main() {
                     } else {
                         ConsOut = fmt.Sprintf("[+] For Records Processed: %d\n", LoopNum)
                         ConsLogSys(ConsOut, 3, 2)
-
-                        if iWasZipping == 1 {
-                            zipWriterClose(zipWriter)
-                            CloseZipWritZ(ZipHndl)
-                            iWasZipping = 0
-                        }
-
                         break
                     }
                 } else if ForMe == 0 && LstMe == 1 && DskMe == 0 {
@@ -1720,98 +1719,127 @@ func main() {
                             ConsLogSys(ConsOut, 1, 1)
                         }
                     }
-
-
-
-
-
-
-
-
-
-
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "ZIP:") {
                     //****************************************************************
                     //* Zip Testing                                                  *
                     //****************************************************************
                     splitString1, splitString2, SplitRC := twoSplit(Inrec[4:])
-                    fmt.Printf("Split return code: %d\n", SplitRC)
-                    fmt.Printf("Zipping: %s ==> %s\n", splitString1, splitString2)
+
+                    if SplitRC == 1 {
+                        ConsOut = fmt.Sprintf("[!] Zipping Requires both a FROM File and a TO Zip File\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        break
+                    }
+
+                    ConsOut = fmt.Sprintf("[+]Zipping: %s ==> %s\n", splitString1, splitString2)
+                    ConsLogSys(ConsOut, 1, 1)
 
                     if LoopNum < 2 {
-                        fmt.Printf("Opening Zip File: %s\n", splitString2)
+                        if FileExists(splitString2) {
+                            ConsOut = fmt.Sprintf("[!] Zip File Aready Exists. Please Create a New Zip File: %s\n", splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                            break
+                        }
+
+                        ConsOut = fmt.Sprintf("[+] Opening Zip File: %s\n", splitString2)
+                        ConsLogSys(ConsOut, 3, 3)
                         iWasZipping = 1
+
+                        //****************************************************************
+                        //* First File.  Generate Dir Offset for this collection         *
+                        //****************************************************************
+                        zipOffset = strings.LastIndexByte(splitString1, slashDelim)
+                        if (zipOffset == -1) {
+                            zipOffset = 0
+                        } else if len(splitString1[zipOffset+1:]) < 2 {
+                            zipOffset = 0
+                        } else {
+                            zipOffset++
+                        }
+
+                        //****************************************************************
+                        //* Open/Create the Output Zip File                              *
+                        //****************************************************************
                         ZipHndl, zip_err = os.OpenFile(splitString2, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
                         if zip_err != nil {
-                            fmt.Printf("Error Opening Zip File: %s\n", splitString2)
-                            continue
+                            ConsOut = fmt.Sprintf("[!] Error Opening Zip File: %s\n", splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                            break
                         }
-                        //defer ZipHndl.Close()
-                        //defer CloseZipWritZ(ZipHndl)
 
-                        // Create a Zip Writer
-                        fmt.Printf("Opening Zip Writer\n")
-                        //zipWriter := zip.NewWriter(ZipHndl)
+                        //****************************************************************
+                        //* Create a Zip Writer                                          *
+                        //****************************************************************
+                        ConsOut = fmt.Sprintf("[+] Opening Zip Writer\n")
+                        ConsLogSys(ConsOut, 3, 3)
                         zipWriter = zip.NewWriter(ZipHndl)
-                        //defer zipWriter.Close()
-                        //defer zipWriterClose(zipWriter)
                     }
 
 
-                    //Read Input & Add it to Zip Archive
-                    fmt.Printf("Opening Input File: %s\n", splitString1)
+                    //****************************************************************
+                    //* Read Input & Add it to Zip Archive                           *
+                    //****************************************************************
+                    ConsOut = fmt.Sprintf("[+] Opening Input File: %s\n", splitString1)
+                    ConsLogSys(ConsOut, 3, 3)
+
                     fileToZip, zipi_err := os.Open(splitString1)
                     if zipi_err != nil {
-                        fmt.Printf("Error Opening Input File: %s\n", splitString1)
+                        ConsOut = fmt.Sprintf("[!] Error Opening Input File: %s\n", splitString1)
+                        ConsLogSys(ConsOut, 3, 3)
                         continue
                     }
-                    //defer fileToZip.Close()
-                    //defer fileToZipClose(fileToZip)
 
-                    // Get the file information
-                    fmt.Printf("Checking Input File Metadata: %s\n", splitString1)
+
+                    //****************************************************************
+                    //* Get the file information                                     *
+                    //****************************************************************
+                    ConsOut = fmt.Sprintf("[+] Checking Input File Metadata: %s\n", splitString1)
+                    ConsLogSys(ConsOut, 3, 3)
+
                     zipInfo, zips_err := fileToZip.Stat()
                     if zips_err != nil {
-                        fmt.Printf("Error Checking Input File Metadata: %s\n", splitString1)
+                        ConsOut = fmt.Sprintf("[!] Error Checking Input File Metadata: %s\n", splitString1)
+                        ConsLogSys(ConsOut, 3, 3)
                         continue
                     }
 
-                    fmt.Printf("Checking Input File Header: %s\n", splitString1)
+                    ConsOut = fmt.Sprintf("[+] Checking Input File Header: %s\n", splitString1)
+                    ConsLogSys(ConsOut, 3, 3)
+
                     Zipheader, ziph_err := zip.FileInfoHeader(zipInfo)
                     if ziph_err != nil {
-                        fmt.Printf("Error Checking Input File Header: %s\n", splitString1)
+                        ConsOut = fmt.Sprintf("[!] Error Checking Input File Header: %s\n", splitString1)
+                        ConsLogSys(ConsOut, 3, 3)
                         continue 
                     }
 
-                    // Using FileInfoHeader() above only uses the basename of the file. If we want
-                    // to preserve the folder structure we can overwrite this with the full path.
-                    Zipheader.Name = fmt.Sprintf("File%d", LoopNum)
+                    //*****************************************************************
+                    //* Using FileInfoHeader() above only uses the basename of the    *
+                    //* file. Preserve the folder structure by using the first Offset *
+                    //*****************************************************************
+                    Zipheader.Name = fmt.Sprintf("%s",splitString1[zipOffset:])
+                    ConsOut = fmt.Sprintf("[+] OutZipFileHeader: %s - Offset: %d\n",splitString1[zipOffset:], zipOffset)
+                    ConsLogSys(ConsOut, 3, 3)
 
-                    // Change to deflate to gain better compression
-                    // see http://golang.org/pkg/archive/zip/#pkg-constants
+
+                    //*****************************************************************
+                    //* Change to deflate to gain better compression                  *
+                    //* see http://golang.org/pkg/archive/zip/#pkg-constants          *
+                    //*****************************************************************
                     Zipheader.Method = zip.Deflate
 
                     OutZipWriter, ozip_err := zipWriter.CreateHeader(Zipheader)
                     if ozip_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Creating ZipWriter/Header\n")
+                        ConsLogSys(ConsOut, 3, 3)
                         continue
                     }
 
-                    fmt.Printf("Final: Writing Zip File\n")
+                    ConsOut = fmt.Sprintf("[+] Writing File into Zip Archive.\n")
+                    ConsLogSys(ConsOut, 3, 3)
                     _, ozip_err = io.Copy(OutZipWriter, fileToZip)
 
                     fileToZipClose(fileToZip)
-                    //zipWriterClose(zipWriter)
-                    //CloseZipWritZ(ZipHndl)
-
-
-
-
-
-
-
-
-
-
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "CPY:") || strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
                     //****************************************************************
                     //* Binary Copy From => To                                       *
@@ -3171,6 +3199,16 @@ func main() {
 
         if consOrFile == 1 {
             fmt.Printf(">>>")
+        }
+
+        //****************************************************************
+        // If I was looping through the Zip with &For, we are done       *
+        //  - close the Writer                                           *
+        //****************************************************************
+        if iWasZipping == 1 {
+            zipWriterClose(zipWriter)
+            CloseZipWritZ(ZipHndl)
+            iWasZipping = 0
         }
     }
 
@@ -4991,13 +5029,14 @@ func CloseZipWrit(WritZipName *os.File) {
 //***************************************************************************
 func CloseZipWritZ(WritZipNameZ *os.File) {
 
-    ConsOut = fmt.Sprintf("[+] Zip File Write/Close Complete: \n")
-    ConsLogSys(ConsOut, 1, 1)
+    ozipw_countr++
+    ConsOut = fmt.Sprintf("[+] Zip File Write/Close Complete: %d\n", ozipw_countr)
+    ConsLogSys(ConsOut, 3, 3)
 
-    writz_err := WritZipNameZ.Close()
-    if writz_err != nil {
-        ConsOut = fmt.Sprintf("[!] Zip File Write/Close Error: %v\n", writz_countr, writz_err)
-        ConsLogSys(ConsOut, 1, 1)
+    ozipw_err := WritZipNameZ.Close()
+    if ozipw_err != nil {
+        ConsOut = fmt.Sprintf("[!] Zip File Write/Close Error (%d): %v\n", ozipw_countr, ozipw_err)
+        ConsLogSys(ConsOut, 3, 3)
     }
 }
 
@@ -5007,13 +5046,14 @@ func CloseZipWritZ(WritZipNameZ *os.File) {
 //***************************************************************************
 func fileToZipClose(ReadFileName *os.File) {
 
-    ConsOut = fmt.Sprintf("[+] Zip Input File Read/Close Complete: \n")
-    ConsLogSys(ConsOut, 1, 1)
+    izipw_countr++
+    ConsOut = fmt.Sprintf("[+] Zip Input File Read/Close Complete: %d\n", izipw_countr)
+    ConsLogSys(ConsOut, 3, 3)
 
     readr_err := ReadFileName.Close()
     if readr_err != nil {
-        ConsOut = fmt.Sprintf("[!] Zip Input File Read Error: %v\n", readr_err)
-        ConsLogSys(ConsOut, 1, 1)
+        ConsOut = fmt.Sprintf("[!] Zip Input File Read Error (%d): %v\n", izipw_countr, readr_err)
+        ConsLogSys(ConsOut, 3, 3)
     }
 }
 
@@ -5023,12 +5063,13 @@ func fileToZipClose(ReadFileName *os.File) {
 //***************************************************************************
 func ZipRdrClose(ZipRdrName *zip.ReadCloser) {
 
-    ConsOut = fmt.Sprintf("[+] Zip Reader Close Complete: \n")
+    rzipw_countr++
+    ConsOut = fmt.Sprintf("[+] Zip Reader Close Complete: %d\n", rzipw_countr)
     ConsLogSys(ConsOut, 1, 1)
 
     readr_err := ZipRdrName.Close()
     if readr_err != nil {
-        ConsOut = fmt.Sprintf("[!] Zip Reader Close Error: %v\n", readr_err)
+        ConsOut = fmt.Sprintf("[!] Zip Reader Close Error (%d): %v\n", rzipw_countr, readr_err)
         ConsLogSys(ConsOut, 1, 1)
     }
 }
@@ -5040,13 +5081,14 @@ func ZipRdrClose(ZipRdrName *zip.ReadCloser) {
 //***************************************************************************
 func zipWriterClose(WritZipNameZ *zip.Writer) {
 
-    ConsOut = fmt.Sprintf("[+] Zip File Write/Close Complete: \n")
-    ConsLogSys(ConsOut, 1, 1)
+    wzipw_countr++
+    ConsOut = fmt.Sprintf("[+] Zip File Write/Close Complete: %d\n", wzipw_countr)
+    ConsLogSys(ConsOut, 3, 3)
 
     writz_err := WritZipNameZ.Close()
     if writz_err != nil {
-        ConsOut = fmt.Sprintf("[!] Zip File Write/Close Error: %v\n", writz_countr, writz_err)
-        ConsLogSys(ConsOut, 1, 1)
+        ConsOut = fmt.Sprintf("[!] Zip File Write/Close Error (%d): %v\n", wzipw_countr, writz_err)
+        ConsLogSys(ConsOut, 3, 3)
     }
 }
 
