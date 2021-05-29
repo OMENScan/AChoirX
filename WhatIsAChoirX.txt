@@ -1,4 +1,4 @@
-AChoirX - v10.00.56
+AChoirX - v10.00.57
 
 AChoirX
 =======
@@ -227,6 +227,9 @@ TCP:<Server:Port> - Checks if a TCP Server:Port is Open & Sets &RCD
                   (Can be used to check if an Upload Server is online)
 UDP:<Server:Port> - Checks if a UDP Server:Port is Open & Sets &RCD
                   (Not Recommended - UDP is connectionless)
+ZIP:<Input File> <Dest Zip> - Zip A file into a Zip Archive.  
+         Note: use FOR:/&FOR to Zip a set of files into a Zip Archive
+               ZIP: does not yet support WildCards.     
 UNZ:<Zip File> <Dest Dir> - Unzip a Zip File into the Destination Dir
 S3S: <ID> <Key> - Start an AWS Session using an AWS ID and Key
 S3U: <Local Fname> <Remote FName> - Uploads file(s) to an S3 Bucket
