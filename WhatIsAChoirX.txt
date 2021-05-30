@@ -1,4 +1,4 @@
-AChoirX - v10.00.57
+AChoirX - v10.00.58 (RC2)
 
 AChoirX
 =======
@@ -171,6 +171,9 @@ SET:CopyPath=Part Set the CPY: Copy Path to Partial.
                   the source files were found in.
 SET:DELIMS=<chars> These are the delimiters that the &FOR and &LST objects 
                    will use to Parse out &FO0-&FO9 and &LS0-&LS9
+SET:ZipFileName=<FileName> Name of the Zip File to Write To
+SET:ZipFileName=close Close the Current Zip File & assign new Zip File Name
+SET:ZipFileRoot=<ZipRoot> Name of the Zip File Root in the Zip File
 SAY:     Echo Text and Objects to the Screen and Logfile
 CON:Hide Hide The Console Screen - For quiet Acquisition
          DO NOT USE IF YOU HAVE SCREEN INPUT - For any 
@@ -227,7 +230,7 @@ TCP:<Server:Port> - Checks if a TCP Server:Port is Open & Sets &RCD
                   (Can be used to check if an Upload Server is online)
 UDP:<Server:Port> - Checks if a UDP Server:Port is Open & Sets &RCD
                   (Not Recommended - UDP is connectionless)
-ZIP:<Input File> <Dest Zip> - Zip A file into a Zip Archive.  
+ZIP:<Input File> Zip A file into the Current Zip Archive.  
          Note: use FOR:/&FOR to Zip a set of files into a Zip Archive
                ZIP: does not yet support WildCards.     
 UNZ:<Zip File> <Dest Dir> - Unzip a Zip File into the Destination Dir
