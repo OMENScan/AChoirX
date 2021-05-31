@@ -1,11 +1,11 @@
 *******************************************************************************************
 * Achoir - Endpoint Artifact Acquisistion - Remote Endpoint Check                         *
 *   /VR0:<Endpoint> /VR1:<Script>                                                         *
-*    VR2 = "S3" or "SFTP"                                                                 *
-*    VR3 = S3 Bucket or SFTP Server                                                       *
-*    VR4 = S3 AWS ID or SFTP UserID                                                       *
-*    VR5 = S3 AWS Key or SFTP Password                                                    *
-*    VR6 = S3 Region          
+*   /VR2 = "S3" or "SFTP"                                                                 *
+*   /VR3 = S3 Bucket or SFTP Server                                                       *
+*   /VR4 = S3 Region                                                                      *
+*   /USR = S3 AWS ID or SFTP UserID                                                       *
+*   /PWD = S3 AWS Key or SFTP Password                                                    *
 *******************************************************************************************
 LBL:ChkLoop
 Say:
@@ -33,4 +33,4 @@ Say:Loading AChoir on Remote Computer
 * Important: 1. All the Parameters are in quotes to make sure they are separated.         *
 *            2. The working directory is set to %temp% to ensure permissons are OK        *
 *******************************************************************************************
-EXE:\SYS\PSexec.exe \\&VR0 -h -e -c -f -w c:\windows\temp "A-AchoirX.exe" "/ini:&Vr1" "/VR0:&VR2" "/VR1:&VR3" "/VR2:&VR4" "/VR3:&VR5" "/VR4:&VR6" 
+EXE:\SYS\PSexec.exe \\&LST -h -e -c -f -w c:\windows\temp "A-AchoirX.exe" "/ini:&VR1" "/VR0:&VR2" "/VR1:&VR3" "/USR:&USR" "/PWD:&PWD" "/VR4:&VR4" 

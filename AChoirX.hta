@@ -99,11 +99,11 @@ function RunLRACh(Bits)
 
   if (Server2Region.value == "") 
   {
-    ScrName = ScrBits + ScrName + " /VR0:" + SFTP2orS3.value + " /VR1:" + Server2Name.value + " /VR2:" + Serv2Usr.value + " /VR3:" + Serv2Pwd.value + " /VR4:none" ; 
+    ScrName = ScrBits + ScrName + " /VR0:" + SFTP2orS3.value + " /VR1:" + Server2Name.value + " /USR:" + Serv2Usr.value + " /PWD:" + Serv2Pwd.value + " /VR2:none" ; 
   }
   else
   {
-    ScrName = ScrBits + ScrName + " /VR0:" + SFTP2orS3.value + " /VR1:" + Server2Name.value + " /VR2:" + Serv2Usr.value + " /VR3:" + Serv2Pwd.value + " /VR4:" + Server2Region.value ; 
+    ScrName = ScrBits + ScrName + " /VR0:" + SFTP2orS3.value + " /VR1:" + Server2Name.value + " /USR:" + Serv2Usr.value + " /PWD:" + Serv2Pwd.value + " /VR2:" + Server2Region.value ; 
   }
 
   WshShell = new ActiveXObject("WScript.Shell");
@@ -149,11 +149,11 @@ function RunRRACh(Bits)
 
   if (Server4Region.value == "") 
   {
-    ScrName = ScrBits + ScrName + " /VR0:" + Host4Name.value + " /VR1:" + Run4ACQ.value + " /VR2:" + SFTP4orS3.value + " /VR3:" + Server4Name.value + " /VR4:" + Serv4Usr.value + " /VR5:" + Serv4Pwd.value + " /VR6:none" ; 
+    ScrName = ScrBits + ScrName + " /VR0:" + Host4Name.value + " /VR1:" + Run4ACQ.value + " /VR2:" + SFTP4orS3.value + " /VR3:" + Server4Name.value + " /USR:" + Serv4Usr.value + " /PWD:" + Serv4Pwd.value + " /VR4:none" ; 
   }
   else 
   {
-    ScrName = ScrBits + ScrName + " /VR0:" + Host4Name.value + " /VR1:" + Run4ACQ.value + " /VR2:" + SFTP4orS3.value + " /VR3:" + Server4Name.value + " /VR4:" + Serv4Usr.value + " /VR5:" + Serv4Pwd.value + " /VR6:" + Server4Region.value ; 
+    ScrName = ScrBits + ScrName + " /VR0:" + Host4Name.value + " /VR1:" + Run4ACQ.value + " /VR2:" + SFTP4orS3.value + " /VR3:" + Server4Name.value + " /USR:" + Serv4Usr.value + " /PWD:" + Serv4Pwd.value + " /VR6:" + Server4Region.value ; 
   }
 
 
@@ -178,11 +178,11 @@ function RunMRACh(Bits)
 
   if (Server5Region.value == "") 
   {
-    ScrName = ScrBits + ScrName + " /VR0:" + File5Name.value + " /VR1:" + Run5ACQ.value + " /VR2:" + SFTP5orS3.value + " /VR3:" + Server5Name.value + " /VR4:" + Serv5Usr.value + " /VR5:" + Serv5Pwd.value + " /VR6:none" ; 
+    ScrName = ScrBits + ScrName + " /VR0:" + File5Name.value + " /VR1:" + Run5ACQ.value + " /VR2:" + SFTP5orS3.value + " /VR3:" + Server5Name.value + " /USR:" + Serv5Usr.value + " /PWD:" + Serv5Pwd.value + " /VR4:none" ; 
   } 
   else
   {
-    ScrName = ScrBits + ScrName + " /VR0:" + File5Name.value + " /VR1:" + Run5ACQ.value + " /VR2:" + SFTP5orS3.value + " /VR3:" + Server5Name.value + " /VR4:" + Serv5Usr.value + " /VR5:" + Serv5Pwd.value + " /VR6:" + Server5Region.value ; 
+    ScrName = ScrBits + ScrName + " /VR0:" + File5Name.value + " /VR1:" + Run5ACQ.value + " /VR2:" + SFTP5orS3.value + " /VR3:" + Server5Name.value + " /USR:" + Serv5Usr.value + " /PWD:" + Serv5Pwd.value + " /VR4:" + Server5Region.value ; 
   } 
 
 

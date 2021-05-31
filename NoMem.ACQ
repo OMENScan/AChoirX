@@ -61,7 +61,7 @@ VER:Windows
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SOFTWARE \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SOFTWARE
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SAM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SAM
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SYSTEM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SYSTEM
- CPY:"&Win\AppCompat\Programs\Amcache.hve" "&Acq"
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/AppCompat/Programs/Amcache.hve \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\Amcache.hve
  SAY:
  SAY: 6. Copying (System32) EventViewer Logs...
  SAY:
@@ -167,7 +167,7 @@ VER:Windows
  SAY:
  SAY: 22b. Gathering All User Registries...
  SAY:
- FOR:C:\Users\*\ntuser.dat
+ FOR:C:\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
  ACQ:\Reg\&FO2
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
  SAY:

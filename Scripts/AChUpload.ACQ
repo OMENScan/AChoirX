@@ -1,10 +1,11 @@
 *******************************************************
 * AChUpload - Flexible Upload Script                  *
-* - VR0 = "S3" or "SFTP"                              *
-* - VR1 = S3 Bucket or SFTP Server                    *
-* - VR2 = S3 AWS ID or SFTP UserID                    *
-* - VR3 = S3 AWS Key or SFTP Password                 *
-* - VR4 = S3 Region                                   *
+*  Version 2 - Uses internal Zip to improve collection*
+* - /VR0 = "S3" or "SFTP"                             *
+* - /VR1 = S3 Bucket or SFTP Server                   *
+* - /VR2 = S3 Region                                  *
+* - /PWD = S3 AWS Key or SFTP Passwor                 *
+* - /USR = S3 AWS ID or SFTP UserID                   *
 *******************************************************
 SET:CopyPath=Part
 SAY:
@@ -44,33 +45,33 @@ EQU:&VR0 S3
   SAY:[!] S3 Bucket Not Specified (/VR1:)
   CN0:++
  END:
- EQU:&VR2. .
-  SAY:[!] S3 AWS ID Not Specified (/VR2:)
+ EQU:&Usr none
+  SAY:[!] S3 AWS ID Not Specified (/USR:)
   CN0:++
  END:
- EQU:&VR3. .
-  SAY:[!] S3 Secret Key Not Specified (/VR3:)
+ EQU:&Pwd none
+  SAY:[!] S3 Secret Key Not Specified (/PWD:)
   CN0:++
  END:
- EQU:&VR4. .
-  SAY:[!] S3 Region Not Specified (/VR4:)
+ EQU:&Usr none
+  SAY:[!] S3 Region Not Specified (/VR2:)
   CN0:++
  END:
  N>>:&CN0 0
   SAY:[!] Not Enough Information for S3 Upload:
-  SAY:[!] S3 Upload requires /VR1:S3Bucket /VR2:S3AWSId /VR3:AWSSecretKey /VR4:AWSRegion
+  SAY:[!] S3 Upload requires /VR1:S3Bucket /USR:S3AWSId /PWD:AWSSecretKey /VR2:AWSRegion
   SAY:[!] S3 Upload - Not Enough Information... Exiting...
   BYE:
  END:
  *******************************************************
  * Start the S3 Session                                *
  *******************************************************
- Set:S3Region=&VR4
+ Set:S3Region=&VR2
  Set:S3Bucket=&VR1
  Set:S3AWSId=&VR2
- Set:S3AWSKey=&VR3
- SAY:[+] S3 Upload invoked - Region:&VR4, Bucket:&VR1, AWS User:&VR2, AWS Secret Key: <Redacted>
- S3S:&VR2 &VR3
+ Set:S3AWSKey=&Pwd
+ SAY:[+] S3 Upload invoked - Region:&VR2, Bucket:&VR1, AWS User:&Usr, AWS Secret Key: <Redacted>
+ S3S:&Usr &Pwd
  RC!:0
   SAY:[!] Could Not Connect to S3 Bucket. Exiting...
   BYE:
@@ -84,17 +85,17 @@ EQU:&VR0 SFTP
   SAY:[!] SFTP Server Not Specified (/VR1:)
   CN0:++
  END:
- EQU:&VR2. .
-  SAY:[!] SFTP UserID Not Specified (/VR2:)
+ EQU:&Usr none
+  SAY:[!] SFTP UserID Not Specified (/USR:)
   CN0:++
  END:
- EQU:&VR3. .
-  SAY:[!] SFTP Password Not Specified (/VR3:)
+ EQU:&Pwd none
+  SAY:[!] SFTP Password Not Specified (/PWD:)
   CN0:++
  END:
  N>>:&CN0 0
   SAY:[!] Not Enough Information for SFTP Upload:
-  SAY:[!] SFTP Upload requires /VR1:SFTPServer /VR2:SFTPUserId /VR3:SFTPPassword
+  SAY:[!] SFTP Upload requires /VR1:SFTPServer /USR:SFTPUserId /PWD:SFTPPassword
   SAY:[!] SFTP Upload - Not Enough Informaiton... Exiting...
   BYE:
  END:
@@ -102,14 +103,14 @@ EQU:&VR0 SFTP
  * Start the SFTP Session                              *
  *******************************************************
  SET:SFTPServ=&VR1
- SAY:[+] SFTP Upload invoked - Server:&VR1, UserID:&VR2, SFTP PassWord: <Redacted>
- SFS:&VR2 &VR3
+ SAY:[+] SFTP Upload invoked - Server:&VR1, UserID:&Usr, SFTP PassWord: <Redacted>
+ SFS:&Usr &Pwd
  RC!:0
   SAY:[!] Could Not Connect to SFTP Server. Exiting...
   BYE:
  END:
 END:
-PZZ: Press Any Key to Continue, or q to QUIT
+*PZZ: Press Any Key to Continue, or q to QUIT
 SAY:
 SAY: 1. Now Dumping Memory (Split into 2Gb Sections for upload)...
 SAY:
@@ -137,18 +138,24 @@ VER:Windows
  SAY: 1b. Deleting Local Copy...
  CLN:&acn\MemDump
  SAY:
- SAY: 2. Extracting Prefetch Directory...
+ SAY: 2. Extracting and Zipping Prefetch Directory...
  ACQ:\Prf
+ SET:ZipFileName=&Acq\Prf.zip
+ SET:ZipFileRoot=Prf
+ FOR:&Win\prefetch\**\*
+ ZIP:&For
+ SET:ZipFileName=close
  EQU:&VR0 S3
   SAY:
   SAY: 2a. Uploading Prefetch to S3...
-  S3U:&Win\prefetch\**\* \&Acn\Prefetch
+  S3U:&Acq\Prf.zip \&Acn\Prf
  END:
  EQU:&VR0 SFTP
   SAY:
   SAY: 2a. Uploading Prefetch to SFTP...
-  SFU:&Win\prefetch\**\* \&Acn\Prefetch
+  SFU:&Acq\Prf.zip \&Acn\Prf
  END:
+ CLN:&Acn\Prf
  SAY:
  SAY: 3a. Copy Raw $MFT(s)...
  SAY:
@@ -218,7 +225,7 @@ VER:Windows
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SOFTWARE \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SOFTWARE
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SAM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SAM
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SYSTEM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SYSTEM
- CPY:"&Win\AppCompat\Programs\Amcache.hve" "&Acq"
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/AppCompat/Programs/Amcache.hve \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\Amcache.hve
  SAY:
  EQU:&VR0 S3
   SAY: 5a. Uploading Registry to S3...
@@ -231,25 +238,26 @@ VER:Windows
  SAY: 5b. Deleting Local Copy...
  CLN:&Acn\Reg
  SAY:
- SAY: 6. Copying (System32) EventViewer Logs...
+ SAY: 6. Copying/Zipping (System32) EventViewer Logs...
  SAY:
  ACQ:\Evt
- ACQ:\Evt\Sys32
- CPY:"&Win\System32\winevt\Logs\*" "&Acq"
- SAY:
- SAY: 6a. Copying (Sysnative) EventViewer Logs...
- SAY:
- ACQ:\Evt\Nativ
- CPY:"&Win\sysnative\winevt\Logs\*" "&Acq"
- ACQ:\Evt
- SAY:
+ SET:ZipFileName=&Acq\Evt.zip
+ SET:ZipFileRoot=Evt\Sys32
+ FOR:&Win\System32\winevt\Logs\**\*
+ ZIP:&For
+ SET:ZipFileRoot=Evt\Nativ
+ FOR:&Win\sysnative\winevt\Logs\**\*
+ ZIP:&For
+ SET:ZipFileName=close
  EQU:&VR0 S3
+  SAY:
   SAY: 6a. Uploading Event Logs to S3...
-  S3U:&Acq\**\* \&Acn\Evt
+  S3U:&Acq\Evt.zip \&Acn\Evt
  END:
  EQU:&VR0 SFTP
+  SAY:
   SAY: 6a. Uploading Event Logs to SFTP...
-  SFU:&Acq\**\* \&Acn\Evt
+  SFU:&Acq\Evt.zip \&Acn\Evt
  END:
  SAY: 6b. Deleting Local Copy...
  CLN:&Acn\Evt
@@ -331,15 +339,24 @@ VER:Windows
  SAY:
  EXE:\SYS\UserAssistView.exe /scomma &Acq\UserAssist.csv
  SAY:
+ SAY: 20a. Copying/Zipping Collected System Data...
+ SAY:
+ SET:ZipFileName=&Acq\Sys.zip
+ SET:ZipFileRoot=Sys
+ FOR:&Acq\**\*
+ ZIP:&For
+ SET:ZipFileName=close
  EQU:&VR0 S3
-  SAY: 20a. Uploading System Data to S3...
-  S3U:&Acq\* \&Acn\Sys
+  SAY:
+  SAY: 20b. Uploading System Data to S3...
+  S3U:&Acq\Sys.zip \&Acn\Sys
  END:
  EQU:&VR0 SFTP
-  SAY: 20a. Uploading System Data to SFTP...
-  SFU:&Acq\* \&Acn\Sys
+  SAY:
+  SAY: 20b. Uploading System Data to SFTP...
+  SFU:&Acq\Sys.zip \&Acn\Sys
  END:
- SAY: 20b. Deleting Local Copy...
+ SAY: 21b. Deleting Local Copy...
  CLN:&Acn\Sys
  SAY:
  SAY: 21. Gathering AutoRun Information...
@@ -351,13 +368,22 @@ VER:Windows
  LST:&acn\Arn\AutoRun.cpy
  CPY:"&LS8" "&ACQ"
  SAY:
+ SAY: 21a. Copying/Zipping Autorun Data...
+ SAY:
+ SET:ZipFileName=&Acq\Arn.zip
+ SET:ZipFileRoot=Arn
+ FOR:&Acq\**\*
+ ZIP:&For
+ SET:ZipFileName=close
  EQU:&VR0 S3
-  SAY: 21a. Uploading Autoruns to S3...
-  S3U:&Acq\**\* \&Acn\Arn
+  SAY:
+  SAY: 21b. Uploading Autoruns to S3...
+  S3U:&Acq\Arn.zip \&Acn\Arn
  END:
  EQU:&VR0 SFTP
-  SAY: 21a. Uploading Autoruns to SFTP...
-  SFU:&Acq\**\* \&Acn\Arn
+  SAY:
+  SAY: 21b. Uploading Autoruns to SFTP...
+  SFU:&Acq\Arn.zip \&Acn\Arn
  END:
  SAY: 21b. Deleting Local Copy...
  CLN:&Acn\Arn
@@ -369,7 +395,7 @@ VER:Windows
  SAY:
  SAY: 22a. Gathering All User Registries...
  SAY:
- FOR:C:\Users\*\ntuser.dat
+ FOR:C:\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
  ACQ:\Reg\&FO2
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
  SAY:
@@ -424,33 +450,39 @@ VER:Windows
  SAY: Now Hashing Artifacts...
  HSH:ACQ
  SAY:
+ SAY: 25a. Zipping Final Collection Files ...
  ACQ:\
+ SET:ZipFileName=&Acq\Final.zip
+ SET:ZipFileRoot=
+ FOR:&Acq\*
+ ZIP:&For
+ SET:ZipFileRoot=Ranprog
+ FOR:&Acq\Ranprog\*
+ ZIP:&For
+ SET:ZipFileName=close
  EQU:&VR0 S3
-  SAY: 25a. Final Uploading to S3...
+  SAY: 25b. Final Uploading to S3...
   S3U:&Dir\Logs\&Acn.log \&Acn
-  S3U:&Acq\RanProg\* \&Acn\RanProg
-  S3U:&Acq\* \&Acn
+  S3U:&Acq\Final.zip \&Acn
  END:
  EQU:&VR0 SFTP
-  SAY: 25a. Final Uploading to SFTP...
+  SAY: 25b. Final Uploading to SFTP...
   SFU:&Dir\Logs\&Acn.log \&Acn
-  SFU:&Acq\RanProg\* \&Acn\RanProg
-  SFU:&Acq\* \&Acn
+  SFU:&Acq\Final.zip \&Acn
  END:
- SAY: 25b. Deleting All Remaining Files...
+ SAY: 25c. Deleting All Remaining Files...
  CLN:&Acn
- PZZ: All Done!  Press Any Key to Finish.
  BYE:
 END:
 Ver:Linux
  SAY:Linux Acquisition Not Available Yet (Coming Soon)...
  SAY:
- PZZ: All Done!  Press Any Key to Finish.
+ *PZZ: All Done!  Press Any Key to Finish.
  BYE:
 END:
 Ver:OSX
  SAY:OSX Acquisition Not Available Yet (Coming Soon)...
  SAY:
- PZZ: All Done!  Press Any Key to Finish.
+ *PZZ: All Done!  Press Any Key to Finish.
  BYE:
 END:
