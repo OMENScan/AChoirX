@@ -362,16 +362,27 @@ Ver:OSX
  ACQ:/Cron
  cpy:/etc/crontab &Acq
  ACQ:/Cron/Usr
- cpy:/usr/lib/cron/tabs/**/*
+ cpy:/usr/lib/cron/tabs/**/* &Acq
  SAY:
- SAY: 17. Gathering System Logon Information...
+ SAY: 17. Gathering Scheduled Task (launchd) Information...
+ SAY:
+ ACQ:/Launchd/Library/LaunchDaemons
+ CPY:/Library/LaunchDaemons/**/* &Acq
+ ACQ:/Launchd/Library/LaunchAgents
+ CPY:/Library/LaunchAgents/**/* &Acq
+ ACQ:/Launchd/System/Library/LaunchDaemons
+ CPY:/System/Library/LaunchDaemons/**/* &Acq
+ ACQ:/Launchd/System/Library/LaunchAgents
+ CPY:/System/Library/LaunchAgents/**/* &Acq
+ SAY:
+ SAY: 18. Gathering System Logon Information...
  SAY:
  ACQ:/Sys
  SYS:who --exestdout=&acn/Sys/Logon.dat
  SYS:last --exestdout=&acn/Sys/Last.dat
  SAY:
  SAY:
- SAY: 18. Gathering Services Information...
+ SAY: 19. Gathering Services Information...
  SAY:
  ACQ:/Sys
  SYS:launchctl list --exestdout=&acn/Sys/Services.dat
@@ -382,7 +393,7 @@ Ver:OSX
  SYS:whoami --exestdout=&acn/UserInfo/Whoami.dat
  SYS:logname --exestdout=&acn/UserInfo/Logname.dat
  SAY:
- SAY: 22. Gathering Current User Config Files...
+ SAY: 21. Gathering Current User Config Files...
  SAY:
  ACQ:/Home
  cpy:/users/**/.* &Acq

@@ -40,11 +40,11 @@ VER:Windows
  SAY:
  DSK:Fixed
  ACQ:\RawData
- EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe $MFT \\.\&dsk: --exestdout=&acn\RawData\MFT-&Dsk
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe -f ntfs $MFT \\.\&dsk: --exestdout=&acn\RawData\MFT-&Dsk
  SAY:
  SAY: 3b. Copy Raw $LogFile...
  SAY:
- EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe $LogFile \\.\&dsk: --exestdout=&acn\RawData\LogFile-&Dsk
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe -f ntfs $LogFile \\.\&dsk: --exestdout=&acn\RawData\LogFile-&Dsk
  SAY:
  SAY: 3c. Now Extracting USNJrnl...
  SAY:
@@ -75,7 +75,7 @@ VER:Windows
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SOFTWARE \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SOFTWARE
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SAM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SAM
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/System32/Config/SYSTEM \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\SYSTEM
- CPY:"&Win\AppCompat\Programs\Amcache.hve" "&Acq"
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /Windows/AppCompat/Programs/Amcache.hve \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\Amcache.hve
  SAY:
  SAY: 6. Copying (System32) EventViewer Logs...
  SAY:
@@ -181,7 +181,7 @@ VER:Windows
  SAY:
  SAY: 22b. Gathering All User Registries...
  SAY:
- FOR:C:\Users\*\ntuser.dat
+ FOR:C:\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
  ACQ:\Reg\&FO2
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
  SAY:
@@ -383,16 +383,27 @@ Ver:OSX
  ACQ:/Cron
  cpy:/etc/crontab &Acq
  ACQ:/Cron/Usr
- cpy:/usr/lib/cron/tabs/**/*
+ cpy:/usr/lib/cron/tabs/**/* &Acq
  SAY:
- SAY: 17. Gathering System Logon Information...
+ SAY: 17. Gathering Scheduled Task (launchd) Information...
+ SAY:
+ ACQ:/Launchd/Library/LaunchDaemons
+ CPY:/Library/LaunchDaemons/**/* &Acq
+ ACQ:/Launchd/Library/LaunchAgents
+ CPY:/Library/LaunchAgents/**/* &Acq
+ ACQ:/Launchd/System/Library/LaunchDaemons
+ CPY:/System/Library/LaunchDaemons/**/* &Acq
+ ACQ:/Launchd/System/Library/LaunchAgents
+ CPY:/System/Library/LaunchAgents/**/* &Acq
+ SAY:
+ SAY: 18. Gathering System Logon Information...
  SAY:
  ACQ:/Sys
  SYS:who --exestdout=&acn/Sys/Logon.dat
  SYS:last --exestdout=&acn/Sys/Last.dat
  SAY:
  SAY:
- SAY: 18. Gathering Services Information...
+ SAY: 19. Gathering Services Information...
  SAY:
  ACQ:/Sys
  SYS:launchctl list --exestdout=&acn/Sys/Services.dat
@@ -403,7 +414,7 @@ Ver:OSX
  SYS:whoami --exestdout=&acn/UserInfo/Whoami.dat
  SYS:logname --exestdout=&acn/UserInfo/Logname.dat
  SAY:
- SAY: 22. Gathering Current User Config Files...
+ SAY: 21. Gathering Current User Config Files...
  SAY:
  ACQ:/Home
  cpy:/users/**/.* &Acq

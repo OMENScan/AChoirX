@@ -173,7 +173,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.57"                       // AChoir Version
+var Version = "v10.00.58"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
