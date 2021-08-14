@@ -26,7 +26,8 @@ VER:Windows
  END:
  N>>:&Dsa &Mem
   ACQ:\MemDump
-  EXE:\MEM\winpmem_3.3rc3.exe --output &Acq\WinPmemDump.Raw --logfile &Acq\WinPmemDump.Log --volume_format raw -dd -t
+  EXE:\MEM\winpmem_mini_x64_rc2.exe &Acq\WinPmemDump.Raw
+  ***:\MEM\winpmem_3.3rc3.exe --output &Acq\WinPmemDump.Raw --logfile &Acq\WinPmemDump.Log --volume_format raw -dd -t
   ***:Use AFF format with --split for creating smaller files for more reliable Transfer if needed
   ***:EXE:\MEM\WinPmem_3.3rc3.exe --output &Acq\WinPmemDump.Aff --split 2000m --logfile &Acq\WinPmemDump.Log -dd -t
   END:

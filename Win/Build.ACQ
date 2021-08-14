@@ -33,6 +33,8 @@ SAY:
 SAY: --- Getting WinPMem (from GitHub/Rekall & Velocidex) ---
 SAY:
 DIR:\MEM
+GET:https://github.com/Velocidex/c-aff4/releases/download/v4.0.rc1/winpmem_mini_x64_rc2.exe &Dir\winpmem_mini_x64_rc2.exe
+GET:https://github.com/Velocidex/c-aff4/releases/download/v4.0.rc1/winpmem_mini_x86_rc2.exe &Dir\winpmem_mini_x86_rc2.exe
 GET:https://github.com/Velocidex/c-aff4/releases/download/v3.3.rc3/winpmem_v3.3.rc3.exe &Dir\winpmem_3.3rc3.exe
 GET:https://github.com/Velocidex/c-aff4/releases/download/3.2/winpmem_3.2.exe &Dir\winpmem_3.2.exe
 GET:https://github.com/google/rekall/releases/download/v1.3.2/winpmem_2.0.1.exe &Dir\winpmem_2.0.1.exe

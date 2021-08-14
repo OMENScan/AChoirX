@@ -47,7 +47,11 @@ func winFreeDisk() (uint64, uint64) {
     var uinRoot *uint16
     var uinCallerFreeBytes, uinTotalBytes, uinTotalFree uint64
 
-    uinRoot, _ = windows.UTF16PtrFromString("C:\\")
+    // What is our Base Directory Drive Root
+    BaseDrive := fmt.Sprintf("%c:\\", BaseDir[0])
+    uinRoot, _ = windows.UTF16PtrFromString(BaseDrive)
+
+    //uinRoot, _ = windows.UTF16PtrFromString("C:\\")
     _ = windows.GetDiskFreeSpaceEx(uinRoot, &uinCallerFreeBytes, &uinTotalBytes, &uinTotalFree)
 
    return uinTotalBytes, uinTotalFree

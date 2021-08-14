@@ -1,4 +1,4 @@
-AChoirX - v10.00.58 (RC2)
+AChoirX - v10.00.59 (RC2)
 
 AChoirX
 =======

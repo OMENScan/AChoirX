@@ -111,6 +111,9 @@
 // AChoirX v10.00.58 - Expand and Improve Zip Routine: Allow Multiple Additions, Change
 //                     Output Zip File Naming routines, and Add WildCards. 
 //
+// AChoirX v10.00.59 - Small bug fix for determining current Disk Available (&DSA) if the
+//                     Drive is not C: (Windows Only)
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -173,7 +176,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.58"                       // AChoir Version
+var Version = "v10.00.59"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])

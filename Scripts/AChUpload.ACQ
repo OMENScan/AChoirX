@@ -124,7 +124,8 @@ VER:Windows
   SAY: Bypassing Memory Capture!
  END:
  N>>:&Dsa &Mem
-  EXE:\MEM\winpmem_3.3rc3.exe --output &Acq\WinPmemDump.Aff --split 2000m --logfile &Acq\WinPmemDump.Log -dd -t
+  EXE:\MEM\winpmem_mini_x64_rc2.exe &Acq\WinPmemDump.Raw
+  ***:\MEM\winpmem_3.3rc3.exe --output &Acq\WinPmemDump.Aff --split 2000m --logfile &Acq\WinPmemDump.Log -dd -t
  END:
  SAY:
  EQU:&VR0 S3

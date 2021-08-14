@@ -20,7 +20,8 @@ SAY:  You've been warned ;-)
 SAY:
 VER:Windows
  ACQ:\MemDump
- EXE:\MEM\WinPmem_3.3.rc3.exe --output &Acq\WinPmemDump.Aff --split 2000m --logfile &Acq\WinPmemDump.Log -dd -t
+ EXE:\MEM\winpmem_mini_x64_rc2.exe &Acq\WinPmemDump.Raw
+ ***:\MEM\WinPmem_3.3.rc3.exe --output &Acq\WinPmemDump.Aff --split 2000m --logfile &Acq\WinPmemDump.Log -dd -t
  SAY:
  SAY: 1a. Uploading to S3...
  Set:S3Region=<Your Region Goes Here>
