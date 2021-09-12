@@ -68,3 +68,14 @@ HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a sing
 
 05/01/2021 - Beta 54(RC2) - Add File and Directory Delete Functions. DEL:<File To Delete> (Accepts WildCards) - Only Files in Subdirectories (Off of The AChoirX Root). CLN:<AChoirX Sub-Directory to Clean and Delete> - Only Subdirectories (Off of The AChoirX Root). This is to prevent accidental Deletion of files not related to the acquisition or toolkit
 
+05/20/2021 - Beta 55(RC2) - Attempting to fix occasional Hang on Threads in the Wait Chain. The problem only happens on many small files. It may be related to deferring the Close.  Added Counters to troubleshoot the issue. Make Console Message and Log Levels the same.                     
+
+05/21/2021 - Beta 56(RC2) - Separate the Debugging Counters to Isolate Better. Add Debug command Line Option - /DBG:<min>, <std>, <max>, <debug>
+
+05/28/2021 - Beta 57(RC2) - Add Context and Timeout to AWS S3 upload for Upload hangs. Add Rudimentary Zip Routine - Must Use &FOR and cannot add to Zip.
+
+05/30/2021 - Beta 58(RC2) - Expand and Improve Zip Routine: Allow Multiple Additions, Change Output Zip File Naming routines, and Add WildCards. 
+
+08/15/2021 - Beta 59(RC2) - Small bug fix for determining current Disk Available (&DSA) if the Drive is not C: (Windows Only)
+
+09/12/2021 - Beta 90(RC3) - Small bug fix for Delims. Add REX: Load Regular Expression Table. Add HST: Load Hash Table. Add Regular Expression Searching to CPS: (Copy by Signature). Add Hash Searching to CPS: (Copy by Signature)
