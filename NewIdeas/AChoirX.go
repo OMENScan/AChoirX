@@ -115,7 +115,10 @@
 //                     Drive is not C: (Windows Only)
 //
 // AChoirX v10.00.90 - Small bug fix for Delims 
+//                   - Add REX: Load Regular Expression Table
+//                   - Add HST: Load Hash Table
 //                   - Add Regular Expression Searching to CPS: (Copy by Signature)
+//                   - Add Hash Searching to CPS: (Copy by Signature)
 //                   - Call This v10.00.90 RC3 - Almost ready for v1.0
 //
 // Other Libraries and code I use:
@@ -447,6 +450,12 @@ var TypTabl [100]string
 var iRexCount = 0
 var iRexTMax = 100
 var RexTabl [100]string
+
+// File HASH Copy Table Variables
+var iHstCount = 0
+var iHstTMax = 100
+var HstTabl [100]string
+
 
 // Main Line
 func main() {
@@ -1996,6 +2005,25 @@ func main() {
                                     ConsLogSys(ConsOut, 1, 1)
                                 }
                             }
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "HST:") {
+                    /****************************************************************/
+                    /* Clear the File HASH Signature Table, or Load a HASH          */
+                    /****************************************************************/
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "HST:CLEAR") {
+                        iHstCount = 0
+                    } else {
+                        HstTabl[iHstCount] = Inrec[4:]
+
+                        // Max Signatures?
+                        if iHstCount < iHstTMax {
+                            ConsOut = fmt.Sprintf("[+] Hash Added: %s, Count: %d/100\n", HstTabl[iHstCount], iHstCount+1)
+                            ConsLogSys(ConsOut, 1, 1)
+                            iHstCount++
+                        } else {
+                            ConsOut = fmt.Sprintf("[+] Hash Not Added. Maximum Hash Count is 100\n")
+                            ConsLogSys(ConsOut, 1, 1)
                         }
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "EQU:") {
@@ -3700,6 +3728,7 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     var iCPSFound = 0
     var iSig = 0
     var iRex = 0
+    var iHst = 0
 
     var FrmATime, FrmMTime, FrmCTime time.Time
     var TooATime, TooMTime, TooCTime time.Time
@@ -3854,16 +3883,6 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
             }
         }
 
-
-
-
-
-
-
-
-
-
-
         /****************************************************************/
         /* If we are doing an CPS - Look through the File For REGEX     */
         /*   Buffer = 2k - Read 1k at a time (sliding window)           */
@@ -3918,17 +3937,24 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
                 }
             }
         }
+
+        /****************************************************************/
+        /* If we are doing an CPS - Look through the File Hash Table    */
+        /****************************************************************/
+        // If iCPSFound is already set to 1 - Don't look any further
+        if iCPSFound != 1 {
+            CurrHash := GetMD5File(FrmFile)
+
+            for iHst = 0; iHst < iHstCount; iHst++ {
+                if HstTabl[iHst] == CurrHash {
+                    iCPSFound = 1
+                    ConsOut = fmt.Sprintf("[*] Hash Signature: %s Match Found in File: %s\n", HstTabl[iHst], FrmFile)
+                    ConsLogSys(ConsOut, 2, 2)
+                    break
+                }
+            }
+        }
     }
-
-
-
-
-
-
-
-
-
-
 
     if iCPSFound == 1 {
         FrmSource.Seek(0, 0)
