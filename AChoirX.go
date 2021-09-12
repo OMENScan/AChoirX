@@ -114,6 +114,13 @@
 // AChoirX v10.00.59 - Small bug fix for determining current Disk Available (&DSA) if the
 //                     Drive is not C: (Windows Only)
 //
+// AChoirX v10.00.90 - Small bug fix for Delims 
+//                   - Add REX: Load Regular Expression Table
+//                   - Add HST: Load Hash Table
+//                   - Add Regular Expression Searching to CPS: (Copy by Signature)
+//                   - Add Hash Searching to CPS: (Copy by Signature)
+//                   - Call This v10.00.90 RC3 - Almost ready for v1.0
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -438,6 +445,17 @@ var iSigCount = 0
 var iSigTMax = 100
 var SigTabl [100]string
 var TypTabl [100]string
+
+// File REGEX Copy Table Variables
+var iRexCount = 0
+var iRexTMax = 100
+var RexTabl [100]string
+
+// File HASH Copy Table Variables
+var iHstCount = 0
+var iHstTMax = 100
+var HstTabl [100]string
+
 
 // Main Line
 func main() {
@@ -1962,6 +1980,52 @@ func main() {
                             }
                         }
                     }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "REX:") {
+                    /****************************************************************/
+                    /* Clear the File REGEX Signature Table, or Load a REGEX        */
+                    /****************************************************************/
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "REX:CLEAR") {
+                        iRexCount = 0
+                    } else {
+                        if len(Inrec) > 4 {
+                            _, rex_err := regexp.Compile(Inrec[4:])
+                            if rex_err != nil {
+                                ConsOut = fmt.Sprintf("[!] REGEX Invalid and Ignored: %s\n", Inrec[4:])
+                                ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                RexTabl[iSigCount] = Inrec[4:]
+
+                                // Max Signatures?
+                                if iRexCount < iRexTMax {
+                                    ConsOut = fmt.Sprintf("[+] REGEX Added: %s, Count: %d/100\n", RexTabl[iSigCount], iRexCount+1)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                    iRexCount++
+                                } else {
+                                    ConsOut = fmt.Sprintf("[+] REGEX Not Added. Maximum REGEX Count is 100\n")
+                                    ConsLogSys(ConsOut, 1, 1)
+                                }
+                            }
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "HST:") {
+                    /****************************************************************/
+                    /* Clear the File HASH Signature Table, or Load a HASH          */
+                    /****************************************************************/
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "HST:CLEAR") {
+                        iHstCount = 0
+                    } else {
+                        HstTabl[iHstCount] = Inrec[4:]
+
+                        // Max Signatures?
+                        if iHstCount < iHstTMax {
+                            ConsOut = fmt.Sprintf("[+] Hash Added: %s, Count: %d/100\n", HstTabl[iHstCount], iHstCount+1)
+                            ConsLogSys(ConsOut, 1, 1)
+                            iHstCount++
+                        } else {
+                            ConsOut = fmt.Sprintf("[+] Hash Not Added. Maximum Hash Count is 100\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "EQU:") {
                     Cmprec = Inrec[4:]
                     splitString1, splitString2, SplitRC := twoSplit(Cmprec)
@@ -2676,7 +2740,7 @@ func main() {
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "BYE:") {
                     cleanUp_Exit(LastRC);
                     os.Exit(LastRC);
-                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:DELIMS=") {
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:DELIMS=") && len(Inrec) > 13 {
                     Delims = Inrec[11:]
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=NONE") {
                     setCPath = 0
@@ -2686,11 +2750,6 @@ func main() {
                     setCPath = 2
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYDEPTH=") {
                     setCDepth, _ = strconv.Atoi(Inrec[14:])
-
-
-
-
-
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:ZIPFILENAME=") {
                     // If we were already Writing A Zip File, Close it.
                     if iWasZipping == 1 {
@@ -2711,19 +2770,8 @@ func main() {
                         // Blank! So give it the Default Name.
                         setOutZipFName = fmt.Sprintf("%s%c%s-%d.zip", BACQDir, slashDelim, ACQName, ozipw_countr) 
                     }
-
-
-
-
-
-
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:ZIPFILEROOT=") {
                     setOutZipFRoot = Inrec[16:]
-
-
-
-
-
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:EXESTDOUT=") {
                     if strings.HasPrefix(strings.ToUpper(Inrec[14:]), "CONS") {
                         iSTDOut = 0
@@ -3679,6 +3727,8 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     var PathOnly = "/"
     var iCPSFound = 0
     var iSig = 0
+    var iRex = 0
+    var iHst = 0
 
     var FrmATime, FrmMTime, FrmCTime time.Time
     var TooATime, TooMTime, TooCTime time.Time
@@ -3830,6 +3880,78 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
                 ConsOut = fmt.Sprintf("[*] File Extension Match Found: %s\n", filetype)
                 ConsLogSys(ConsOut, 2, 2)
                 break
+            }
+        }
+
+        /****************************************************************/
+        /* If we are doing an CPS - Look through the File For REGEX     */
+        /*   Buffer = 2k - Read 1k at a time (sliding window)           */
+        /****************************************************************/
+        bufRexBytes := make([]byte, 2000)
+        tmpRexBytes := make([]byte, 1000)
+
+        FrmSource.Seek(0, 0)
+
+        for {
+            // If iCPSFoound is already set to 1 - Don't look any further
+            if iCPSFound == 1 { break }
+
+            // Get 1000 new Bytes
+            inSize, rexb_err := FrmSource.Read(tmpRexBytes)
+
+            if rexb_err != nil && rexb_err != io.EOF {
+                ConsOut = fmt.Sprintf("[!] Unable to read local file: %v\n", rexb_err)
+                ConsLogSys(ConsOut, 1, 1)
+                break
+            } else if inSize == 0 {
+                break
+            } else {
+                //If we got less than 1000, Pad with hex 00
+                for iPad := inSize; iPad < 1000; iPad++ {
+                    tmpRexBytes[iPad] = 0x00
+                }
+
+                // Move old bytes to beginning, and new bytes to end to create
+                // a 2000 byte buffer - For comparing across boundary of 1K bytes
+                // eventually I will find a better way to do this
+                for iMov := 0; iMov < 1000; iMov++ {
+                    bufRexBytes[iMov] = bufRexBytes[iMov+1000]
+                    bufRexBytes[iMov+1000] = tmpRexBytes[iMov]
+                }
+
+                for iRex = 0; iRex < iRexCount; iRex++ {
+                    rexc_regx, rexc_err := regexp.Match(RexTabl[iRex], bufRexBytes)
+
+                    if rexc_err != nil {
+                        ConsOut = fmt.Sprintf("[!] REGEX Signature Fatal Error: %s\n", RexTabl[iRex])
+                        ConsLogSys(ConsOut, 2, 2)
+                        break
+                    }
+
+                    if rexc_regx {
+                        iCPSFound = 1
+                        ConsOut = fmt.Sprintf("[*] REGEX Signature: %s Match Found in File: %s\n", RexTabl[iRex], FrmFile)
+                        ConsLogSys(ConsOut, 2, 2)
+                        break
+                    }
+                }
+            }
+        }
+
+        /****************************************************************/
+        /* If we are doing an CPS - Look through the File Hash Table    */
+        /****************************************************************/
+        // If iCPSFound is already set to 1 - Don't look any further
+        if iCPSFound != 1 {
+            CurrHash := GetMD5File(FrmFile)
+
+            for iHst = 0; iHst < iHstCount; iHst++ {
+                if HstTabl[iHst] == CurrHash {
+                    iCPSFound = 1
+                    ConsOut = fmt.Sprintf("[*] Hash Signature: %s Match Found in File: %s\n", HstTabl[iHst], FrmFile)
+                    ConsLogSys(ConsOut, 2, 2)
+                    break
+                }
             }
         }
     }

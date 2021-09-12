@@ -1,4 +1,4 @@
-AChoirX - v10.00.59 (RC2)
+AChoirX - v10.00.90 (RC3)
 
 AChoirX
 =======
@@ -276,10 +276,13 @@ LST:<FileName>
 CPY:     Copy Files (CPY:<FromFile> <ToFile>) - Supports Quotes
          Supports Wildcard. Important Note: CPY: WILL RECURSE THROuGH
          SUBDIRECTORIES ONLY IF A WILDCARD IS USED.
-CPS:     Copy Files (CPS:<FromFile> <ToFile>) by Signature 
-         (Loaded by the Sig: command)
-         Supports Wildcard. Important Note: CPY: WILL RECURSE THROuGH
-         SUBDIRECTORIES ONLY IF A WILDCARD IS USED.
+CPS:     Copy Files (CPS:<FromFile> <ToFile>) by Signature (Magic, Regex, or Hash)
+         (Loaded by the Sig: Rex: or Hst: commands)
+         Sig: Supports Wildcard. 
+         Important Note: CPY: WILL RECURSE THROUGH SUBDIRECTORIES 
+                         ONLY IF A WILDCARD IS USED.
+         Important Note: ANY match on Magic OR Regex OR Hash will 
+                         cause the Copy to happen. 
 DEL:<File To Delete> - Delete Files (Accepts WildCards)
          Only Files in Subdirectories (Off of The AChoirX Root) can be 
          deleted. This is to prevent accidental Deletion of files not 
@@ -293,13 +296,25 @@ VCK:<x:> Check if the Volume <x:> is NTFS, FAT32, CDFS, Other, None
          (Used for conditional execution if Vol is/not NTFS)
 Sig:Clear Clears out the AChoirX Signature Table 
 Sig:<Typ=xxxx> 
-         Loads a File Signature ino the Signature Table. The first 
+         Loads a File Signature into the Signature Table. The first 
          variable is the File Type, the second is the Hex Signature
          (must be in the form of XX).
          Signature Type can be up to 10 bytes (i.e JPG, JPEG, MOV, etc)
          Signatures can be up to 32 Chars (16 bytes)
-         There cane be up to 100 Active Signatures loaded.
+         There can be up to 100 Active Signatures loaded.
          (Sig:Clear - Clears the table back to 0)
+Rex:Clear Clears out the AChoirX Regex Signature Table 
+Rex:<Regular Expression> 
+         Loads a File Content REGEX into the Regex Signature Table. 
+         (must be a valid Regular Expression).
+         There can be up to 100 Active REGEX Signatures loaded.
+         (Rex:Clear - Clears the table back to 0)
+Hst:Clear Clears out the AChoirX MD5 Hash Signature Table 
+Hst:<MD5 Hash> 
+         Loads a File Hash into the Hash Signature Table. 
+         (must be a valid MD5 Hash).
+         There can be up to 100 Active MD5 Hash Signatures loaded.
+         (Hst:Clear - Clears the table back to 0)
 CKY:     Check if a File exists. If it does, run until an "END:" 
          action
 64B:     Check if 64 Bit AChoirX is Running - If so, run until an "END:" 
