@@ -79,3 +79,5 @@ HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a sing
 08/15/2021 - Beta 59(RC2) - Small bug fix for determining current Disk Available (&DSA) if the Drive is not C: (Windows Only)
 
 09/12/2021 - Beta 90(RC3) - Small bug fix for Delims. Add REX: Load Regular Expression Table. Add HST: Load Hash Table. Add Regular Expression Searching to CPS: (Copy by Signature). Add Hash Searching to CPS: (Copy by Signature)
+
+09/19/2021 - Beta 91(RC3) - Add /B64:<Base64SEncodedIniFileOfAChoirCommands> - Allows a Base64 Encoded string to create an Ini File - work like the PowerShell -enc Parameter 

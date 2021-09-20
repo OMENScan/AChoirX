@@ -121,6 +121,9 @@
 //                   - Add Hash Searching to CPS: (Copy by Signature)
 //                   - Call This v10.00.90 RC3 - Almost ready for v1.0
 //
+// AChoirX v10.00.91 - Add /B64:<Base64SEncodedIniFileOfAChoirCommands> - Allows a Base64 Encoded
+//                     string to create an Ini File - work like the PowerShell -enc Parameter 
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -155,6 +158,7 @@ import (
     "text/scanner"
     "encoding/csv"
     "encoding/hex"
+    "encoding/base64"
     "archive/zip"
     "regexp"
     "runtime"
@@ -183,7 +187,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.59"                       // AChoir Version
+var Version = "v10.00.91"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -248,6 +252,7 @@ var LastHash = "none"                           // Last Single File Hash
 var NotFound = 0                                // Flag for ensuring that only one Found Rec Increments RunMe
 var YesFound = 0                                // Flag for ensuring that only one Found Rec Increments RunMe
 var isInstalled = 0                             // AChoirX Install Has Not been Run Yet (0)
+var isB64Ini = 0                                // /B64: parameter on Command Line (B64 encoded INI File)
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -354,6 +359,7 @@ var iSyslogLvl = 0                              // Syslog Level - Default=0 (Off
 
 // Global File Names
 var IniFile = "C:\\AChoir\\AChoir.Acq"          // AChoir Script File
+var B64File = "C:\\AChoir\\AChoirB64.Acq"       // AChoir Decoded B64 Script File
 var LogFile = "C:\\AChoir\\LogFile.dat"         // AChoir Log File
 var CpyFile = "C:\\AChoir\\LogFile.dat"         // Copy To this File
 var HtmFile = "C:\\AChoir\\Index.htm"           // AChoir HTML Output File
@@ -677,6 +683,20 @@ func main() {
                     }
                 }
             }
+        } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/B64:") {
+            isB64Ini = 1 
+            inB64Code := os.Args[i][5:]
+
+            outB64, b64_err := base64.StdEncoding.DecodeString(inB64Code)
+            if b64_err != nil {
+                ConsOut = fmt.Sprintf("[!] Error Decoding Base64 Ini: %s\n", b64_err.Error())
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                B64File = fmt.Sprintf("%s%cAChoirB64.ACQ", BaseDir, slashDelim)
+                b64FileName, _ := os.Create(B64File)
+                defer b64FileName.Close()
+                b64FileName.Write(outB64)
+            }
 	} else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/USR:") {
             if (os.Args[i][5] =='?') {
                 cons_readr := bufio.NewReader(os.Stdin)
@@ -846,6 +866,15 @@ func main() {
             ConsLogSys(ConsOut, 1, 2)
             UnEmbed(embdata)
         }
+ 
+        // If we Decoded a /B64: IniFile file, set it as the new INI.  This routine comes AFTER the unembed check
+        //  so that the unembed will happen for the other components even when the base64 decoded Ini is created.
+        if isB64Ini == 1 {
+            IniFile = fmt.Sprintf("%s%cAChoirB64.ACQ", BaseDir, slashDelim)
+            ConsOut = fmt.Sprintf("[*] Using Decoded B64 as INI: %s\n", IniFile)
+            ConsLogSys(ConsOut, 1, 2)
+        }
+
 
         IniHndl, ini_err = os.Open(IniFile)
         if ini_err != nil {

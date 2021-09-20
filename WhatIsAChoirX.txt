@@ -1,4 +1,4 @@
-AChoirX - v10.00.90 (RC3)
+AChoirX - v10.00.91 (RC3)
 
 AChoirX
 =======
@@ -428,6 +428,11 @@ Here are the Command Line Options:
       Set the &VR0 - &VR9 variables from the command line.  These can be used 
       to pass variables to the AChoirX Scripts.
 /DBG:<min>, <std>, <max>, <debug> - Set inital Console Output Message Level
+/B64:<Base64SEncodedIniFileOfAChoirCommands> - Allows a Base64 Encoded string 
+     to create an Ini File - work like the PowerShell -enc Parameter 
+     Note: By Default the embeded toolkit will be unzipped.  If you do not want this
+           specify the decoded ini file name (/INI:AChoirB64.ACQ) and AChoirX will
+           not unembed the default tool kit - This is by design.
 
 
 A note about Conditonal Logic 
