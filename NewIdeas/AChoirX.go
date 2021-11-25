@@ -124,6 +124,8 @@
 // AChoirX v10.00.91 - Add /B64:<Base64SEncodedIniFileOfAChoirCommands> - Allows a Base64 Encoded
 //                     string to create an Ini File - work like the PowerShell -enc Parameter 
 //
+// AChoirX v10.00.92 - Add Upload Retry Count (Default is 3)
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -187,7 +189,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.91"                       // AChoir Version
+var Version = "v10.00.92"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -317,6 +319,7 @@ var S3_AWS_SplitRC = 0                          // AWS Split Return Code
 var iS3Login = 0                                // Default is NOT logged in
 var upS3_err error                              // Upload (S3 Only) Errors
 var upld_err error                              // Upload (S3 & SFTP) Errors
+var upld_retry = 3                              // Upload (S3 & SFTP) Retry Counter
 
 var procf_countr = 0                            // File/Network File Processing Counter for Tracking
 var readf_countr = 0                            // File/Network Read Close Counter for Tracking
@@ -5411,22 +5414,31 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
             MCpPath  = strings.Replace(MCpPath , "\\", "/", -1) 
             MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
 
-            if UpType == "S3" {
-                proc3_countr++
-                ConsOut = fmt.Sprintf("[+] S3 Multi-Upload File (%d): %s\n    To: %s\n", proc3_countr, file_found, MCprcO)
-                ConsLogSys(ConsOut, 1, 1)
-                upld_err = uploadFileToS3(S3_Session, file_found, MCprcO)
-            } else {
-                procs_countr++
-                ConsOut = fmt.Sprintf("[+] SFTP Multi-Upload File (%d): %s\n    To: %s\n", procs_countr, file_found, MCprcO)
-                ConsLogSys(ConsOut, 1, 1)
-                upld_err = uploadFileToSF(*SF_Client, file_found, MCprcO)
-            }
+            // Upload Files - Allow 3 Attempts
+            upld_retry = 3
+            for upld_retry > 0 {
+                if UpType == "S3" {
+                    proc3_countr++
+                    ConsOut = fmt.Sprintf("[+] S3 Multi-Upload File (%d): %s\n    To: %s\n", proc3_countr, file_found, MCprcO)
+                    ConsLogSys(ConsOut, 1, 1)
+                    upld_err = uploadFileToS3(S3_Session, file_found, MCprcO)
+                } else {
+                    procs_countr++
+                    ConsOut = fmt.Sprintf("[+] SFTP Multi-Upload File (%d): %s\n    To: %s\n", procs_countr, file_found, MCprcO)
+                    ConsLogSys(ConsOut, 1, 1)
+                    upld_err = uploadFileToSF(*SF_Client, file_found, MCprcO)
+                }
 
-            if upld_err != nil {
-                ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n", UpType, Inrec[4:], upld_err)
-                ConsLogSys(ConsOut, 1, 1)
-                LastRC = 1
+                if upld_err != nil {
+                    upld_retry--
+                    ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n    Retry Count: %d\n", UpType, Inrec[4:], upld_err, upld_retry)
+                    ConsLogSys(ConsOut, 1, 1)
+                    LastRC = 1
+                } else {
+                    ConsOut = fmt.Sprintf("[+] Upload Completed.\n")
+                    ConsLogSys(ConsOut, 1, 1)
+                    upld_retry = 0
+                }
             }
         }
 
@@ -5499,22 +5511,31 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                     MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
 
 
-                    if UpType == "S3" {
-                        proc3_countr++
-                        ConsOut = fmt.Sprintf("[+] S3 Multi-Upload Redir File (%d): %s\n    To: %s\n", proc3_countr, file_found, MCprcO)
-                        ConsLogSys(ConsOut, 1, 1)
-                        upld_err = uploadFileToS3(S3_Session, file_found, MCprcO)
-                    } else {
-                        procs_countr++
-                        ConsOut = fmt.Sprintf("[+] SFTP Multi-Upload Redir File (%d): %s\n    To: %s\n", procs_countr, file_found, MCprcO)
-                        ConsLogSys(ConsOut, 1, 1)
-                        upld_err = uploadFileToSF(*SF_Client, file_found, MCprcO)
-                    }
+                    // Upload Files - Allow 3 Attempts
+                    upld_retry = 3
+                    for upld_retry > 0 {
+                        if UpType == "S3" {
+                            proc3_countr++
+                            ConsOut = fmt.Sprintf("[+] S3 Multi-Upload Redir File (%d): %s\n    To: %s\n", proc3_countr, file_found, MCprcO)
+                            ConsLogSys(ConsOut, 1, 1)
+                            upld_err = uploadFileToS3(S3_Session, file_found, MCprcO)
+                        } else {
+                            procs_countr++
+                            ConsOut = fmt.Sprintf("[+] SFTP Multi-Upload Redir File (%d): %s\n    To: %s\n", procs_countr, file_found, MCprcO)
+                            ConsLogSys(ConsOut, 1, 1)
+                            upld_err = uploadFileToSF(*SF_Client, file_found, MCprcO)
+                        }
 
-                    if upld_err != nil {
-                        ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n", UpType, Inrec[4:], upld_err)
-                        ConsLogSys(ConsOut, 1, 1)
-                        LastRC = 1
+                        if upld_err != nil {
+                            upld_retry--
+                            ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n    Retry Count: %d\n", UpType, Inrec[4:], upld_err, upld_retry)
+                            ConsLogSys(ConsOut, 1, 1)
+                            LastRC = 1
+                        } else {
+                            ConsOut = fmt.Sprintf("[+] Upload Completed.\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                            upld_retry = 0
+                        }
                     }
                 }
             }
@@ -5543,22 +5564,31 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
         //****************************************************************
         MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
 
-        if UpType == "S3" {
-            proc3_countr++
-            ConsOut = fmt.Sprintf("[+] S3 Singl-Upload File (%d): %s\n    To: %s\n", proc3_countr, splitString1, MCprcO)
-            ConsLogSys(ConsOut, 1, 1)
-            upld_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
-        } else {
-            procs_countr++
-            ConsOut = fmt.Sprintf("[+] SFTP Singl-Upload File (%d): %s\n    To: %s\n", procs_countr, splitString1, MCprcO)
-            ConsLogSys(ConsOut, 1, 1)
-            upld_err = uploadFileToSF(*SF_Client, splitString1, MCprcO)
-        }
+        // Upload Files - Allow 3 Attempts
+        upld_retry = 3
+        for upld_retry > 0 {
+            if UpType == "S3" {
+                proc3_countr++
+                ConsOut = fmt.Sprintf("[+] S3 Singl-Upload File (%d): %s\n    To: %s\n", proc3_countr, splitString1, MCprcO)
+                ConsLogSys(ConsOut, 1, 1)
+                upld_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
+            } else {
+                procs_countr++
+                ConsOut = fmt.Sprintf("[+] SFTP Singl-Upload File (%d): %s\n    To: %s\n", procs_countr, splitString1, MCprcO)
+                ConsLogSys(ConsOut, 1, 1)
+                upld_err = uploadFileToSF(*SF_Client, splitString1, MCprcO)
+            }
 
-        if upld_err != nil {
-            ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n", UpType, splitString1, upld_err)
-            ConsLogSys(ConsOut, 1, 1)
-            LastRC = 1
+            if upld_err != nil {
+                upld_retry--
+                ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n    Retry Count: %d\n", UpType, splitString1, upld_err, upld_retry)
+                ConsLogSys(ConsOut, 1, 1)
+                LastRC = 1
+            } else {
+                ConsOut = fmt.Sprintf("[+] Upload Completed.\n")
+                ConsLogSys(ConsOut, 1, 1)
+                upld_retry = 0
+            }
         }
 
 
@@ -5598,25 +5628,32 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                 //****************************************************************
                 MCprcO  = strings.Replace(MCprcO , "\\", "/", -1) 
 
+                // Upload Files - Allow 3 Attempts
+                upld_retry = 3
+                for upld_retry > 0 {
+                    if UpType == "S3" {
+                        proc3_countr++
+                        ConsOut = fmt.Sprintf("[+] S3 Singl-Upload Redir File(%d): %s\n    To: %s\n", proc3_countr, splitString1, MCprcO)
+                        ConsLogSys(ConsOut, 1, 1)
+                        upld_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
+                    } else {
+                        procs_countr++
+                        ConsOut = fmt.Sprintf("[+] SFTP Singl-Upload Redir File(%d): %s\n    To: %s\n", procs_countr, splitString1, MCprcO)
+                        ConsLogSys(ConsOut, 1, 1)
+                        upld_err = uploadFileToSF(*SF_Client, splitString1, MCprcO)
+                    }
 
-                if UpType == "S3" {
-                    proc3_countr++
-                    ConsOut = fmt.Sprintf("[+] S3 Singl-Upload Redir File(%d): %s\n    To: %s\n", proc3_countr, splitString1, MCprcO)
-                    ConsLogSys(ConsOut, 1, 1)
-                    upld_err = uploadFileToS3(S3_Session, splitString1, MCprcO)
-                } else {
-                    procs_countr++
-                    ConsOut = fmt.Sprintf("[+] SFTP Singl-Upload Redir File(%d): %s\n    To: %s\n", procs_countr, splitString1, MCprcO)
-                    ConsLogSys(ConsOut, 1, 1)
-                    upld_err = uploadFileToSF(*SF_Client, splitString1, MCprcO)
+                    if upld_err != nil {
+                        upld_retry--
+                        ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n    Retry Count: %d\n", UpType, splitString1, upld_err, upld_retry)
+                        ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
+                    } else {
+                        ConsOut = fmt.Sprintf("[+] Upload Completed.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        upld_retry = 0
+                    }
                 }
-
-                if upld_err != nil {
-                    ConsOut = fmt.Sprintf("[!] Error Uploading File to %s: %s\n    %s\n", UpType, splitString1, upld_err)
-                    ConsLogSys(ConsOut, 1, 1)
-                    LastRC = 1
-                }
-
             }
         }
     }
