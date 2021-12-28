@@ -126,6 +126,8 @@
 //
 // AChoirX v10.00.92 - Add Upload Retry Count (Default is 3)
 //
+// AChoirX v10.00.93 - Escape percent signs
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -189,7 +191,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.92"                       // AChoir Version
+var Version = "v10.00.93"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -3512,6 +3514,9 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
     // thisSyslog == Should we send to Syslog                       *
     //  0==None, 1==Min, 2==Standard, 3==Max, 4==Debug              *
     //***************************************************************
+    // Escape out Percent Signs to prevent fmt error
+    ConLogMSG = strings.Replace(ConLogMSG, "%", "%%", -1) 
+
     if (setMSGLvl >= thisMSGLvl) && setMSGLvl > 0 {
         fmt.Printf (ConLogMSG)
     }
@@ -3519,6 +3524,7 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
     SyslogCount++
     timenow := time.Now().UTC()
     timefmt := timenow.Format("Jan _2 15:04:05")
+
     LogLogMSG := fmt.Sprintf("%s %s AChoirX %d ID%d %s", timefmt, cName, MyPID, SyslogCount, ConLogMSG)
 
     if iLogOpen == 1 && (setMSGLvl >= thisMSGLvl) && setMSGLvl > 0 {
