@@ -221,6 +221,8 @@ Ver:Linux
  SYS:uname -a --exestdout=&acn/Sys/Uname.dat
  SYS:cat /proc/version --exestdout=&acn/Sys/Version.dat
  SAY:
+ SAY: 5. Gathering IPTables Firewall Rules...
+ SYS:iptables -L --exestdout=&acn/Sys/IPTables.dat
  SAY: 6. Copying var/log Directory...
  SAY:
  ACQ:/Var/Log
@@ -247,6 +249,10 @@ Ver:Linux
  SYS:ps aux --forest --exestdout=&acn/Sys/PSList.dat
  SYS:pstree -ah --exestdout=&acn/Sys/PSTree.dat
  SYS:top -b-n 1 --exestdout=&acn/Sys/PSTop.dat
+ SYS:sh -c "find /proc/[0-9]*/cmdline | xargs head" --exestdout=&acn/Sys/proc-CommandLines.dat
+ SYS:sh -c "find /proc/[0-9]*/exe -print0 | xargs -0 ls -lh" --exestdout=&acn/Sys/proc-Executables.dat
+ SYS:sh -c "find /proc/[0-9]*/fd -print0 | xargs -0 ls -lh" --exestdout=&acn/Sys/proc-FDLinks.dat
+ SYS:sh -c "find -L /proc/[0-9]*/exe -print0 | xargs -0 sha1sum" --exestdout=&acn/Sys/proc-Hashes.dat
  SAY:
  SAY: 11. Gathering Connection Information...
  SAY:
@@ -300,6 +306,9 @@ Ver:Linux
  SAY:
  ACQ:/Sys
  SYS:service --status-all --exestdout=&acn/Sys/Services.dat
+ SAY: 19. Gathering Persistence Information...
+ SYS:sh -c "find /etc/systemd/ -name '*.service' -print0 | xargs -0 cat" --exestdout=&acn/Sys/SystemD.dat
+ SYS:systemctl list-unit-files --exestdout=&acn/Sys/SystemCTL.dat
  SAY:
  SAY: 20. Gathering User Information...
  SAY:
@@ -311,6 +320,9 @@ Ver:Linux
  SAY:
  ACQ:/Home
  cpy:/home/**/.* &Acq
+ SAY:Enumerating All Files...
+ ACQ:/Disk
+ SYS: find / -printf "%i, %d, %b, %A+ %AZ, %C+ %CZ, %T+ %TZ, %M, %u, %g, %p\n" --exestdout=&Acn/Disk/AllFiles.csv
  HSH:ACQ
  SAY:
  PZZ: All Done!  Press Any Key to Finish.
