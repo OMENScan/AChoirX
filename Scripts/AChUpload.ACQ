@@ -396,7 +396,7 @@ VER:Windows
  SAY:
  SAY: 22a. Gathering All User Registries...
  SAY:
- FOR:C:\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
+ FOR:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
  ACQ:\Reg\&FO2
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
  SAY:
@@ -446,12 +446,61 @@ VER:Windows
  SAY: 24b. Deleting Local Copy...
  CLN:&Acn\RBin
  SAY:
+ SAY: 25. Copying all User PowerShell Logs...
+ SAY:
+ ACQ:\Psh
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\*" "&Acq"
+ SAY: 25a. Copying/Zipping Powershell Logs...
+ SAY:
+ SET:ZipFileName=&Acq\Psh.zip
+ SET:ZipFileRoot=Psh
+ FOR:&Acq\**\*
+ ZIP:&For
+ SET:ZipFileName=close
+ EQU:&VR0 S3
+  SAY:
+  SAY: 25b. Uploading PowerShell Logs to S3...
+  S3U:&Acq\Psh.zip \&Acn\Psh
+ END:
+ EQU:&VR0 SFTP
+  SAY:
+  SAY: 25b. Uploading PowerShell Logs to SFTP...
+  SFU:&Acq\Psh.zip \&Acn\Psh
+ END:
+ SAY: 25b. Deleting Local Copy...
+ CLN:&Acn\Psh
+ SAY:
+ SAY: 26. Copying all User Recent LNK files...
+ SAY:
+ ACQ:\Lnk
+ CPY:"${SYSTEMDRIVE}\Users\*\Desktop\*.lnk" "&Acq"
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk" "&Acq"
+ SAY: 26a. Copying/Zipping LNK Files...
+ SAY:
+ SET:ZipFileName=&Acq\Lnk.zip
+ SET:ZipFileRoot=Lnk
+ FOR:&Acq\**\*
+ ZIP:&For
+ SET:ZipFileName=close
+ EQU:&VR0 S3
+  SAY:
+  SAY: 26b. Uploading LNK Files to S3...
+  S3U:&Acq\Lnk.zip \&Acn\Lnk
+ END:
+ EQU:&VR0 SFTP
+  SAY:
+  SAY: 26b. Uploading LNK Files to SFTP...
+  SFU:&Acq\Lnk.zip \&Acn\Lnk
+ END:
+ SAY: 26b. Deleting Local Copy...
+ CLN:&Acn\Lnk
+ SAY:
  SAY: Acquisition Complete...
  SAY:
  SAY: Now Hashing Artifacts...
  HSH:ACQ
  SAY:
- SAY: 25a. Zipping Final Collection Files ...
+ SAY: 27a. Zipping Final Collection Files ...
  ACQ:\
  SET:ZipFileName=&Acq\Final.zip
  SET:ZipFileRoot=
@@ -462,16 +511,16 @@ VER:Windows
  ZIP:&For
  SET:ZipFileName=close
  EQU:&VR0 S3
-  SAY: 25b. Final Uploading to S3...
+  SAY: 27b. Final Uploading to S3...
   S3U:&Dir\Logs\&Acn.log \&Acn
   S3U:&Acq\Final.zip \&Acn
  END:
  EQU:&VR0 SFTP
-  SAY: 25b. Final Uploading to SFTP...
+  SAY: 27b. Final Uploading to SFTP...
   SFU:&Dir\Logs\&Acn.log \&Acn
   SFU:&Acq\Final.zip \&Acn
  END:
- SAY: 25c. Deleting All Remaining Files...
+ SAY: 27c. Deleting All Remaining Files...
  CLN:&Acn
  BYE:
 END:

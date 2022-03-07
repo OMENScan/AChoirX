@@ -182,7 +182,7 @@ VER:Windows
  SAY:
  SAY: 22b. Gathering All User Registries...
  SAY:
- FOR:C:\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
+ FOR:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
  ACQ:\Reg\&FO2
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
  SAY:
@@ -197,6 +197,17 @@ VER:Windows
  DSK:Fixed
  ACQ:\RBin
  CPY:"&Dsk:\$Recycle.Bin\**\*" "&Acq"
+ SAY:
+ SAY: 25. Copying all User PowerShell Logs...
+ SAY:
+ ACQ:\Psh
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\*" "&Acq"
+ SAY:
+ SAY: 26. Copying all User Recent LNK files...
+ SAY:
+ ACQ:\Lnk
+ CPY:"${SYSTEMDRIVE}\Users\*\Desktop\*.lnk" "&Acq"
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk" "&Acq"
  SAY:
  SAY: Acquisition Complete...
  SAY:
