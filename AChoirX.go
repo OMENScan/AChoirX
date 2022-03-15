@@ -128,6 +128,8 @@
 //
 // AChoirX v10.00.93 - Escape percent signs
 //
+// AChoirX v10.00.94 - Add Echo command
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -191,7 +193,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.93"                       // AChoir Version
+var Version = "v10.00.94"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -2550,6 +2552,14 @@ func main() {
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SAY:") {
                     ConsOut = fmt.Sprintf("%s\n", Inrec[4:])
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    //After writing, force the Log to be written to disk.
+                    if iLogOpen == 1 {
+                        LogHndl.Sync()
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "ECHO ") {
+                    ConsOut = fmt.Sprintf("%s\n", Inrec[5:])
                     ConsLogSys(ConsOut, 1, 1)
 
                     //After writing, force the Log to be written to disk.
