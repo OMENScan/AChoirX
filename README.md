@@ -81,3 +81,11 @@ HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a sing
 09/12/2021 - Beta 90(RC3) - Small bug fix for Delims. Add REX: Load Regular Expression Table. Add HST: Load Hash Table. Add Regular Expression Searching to CPS: (Copy by Signature). Add Hash Searching to CPS: (Copy by Signature)
 
 09/19/2021 - Beta 91(RC3) - Add /B64:<Base64SEncodedIniFileOfAChoirCommands> - Allows a Base64 Encoded string to create an Ini File - work like the PowerShell -enc Parameter 
+
+11/25/2021 - Beta 92(RC3) - Add Upload Retry Count (Default is 3)
+
+12/27/2021 - Beta 93(RC3) - Escape percent signs
+
+05/15/2022 - Beta 94(RC3) - Add Echo command
+
+09/22/2022 - Beta 95(RC3) - Add CPU Limit Throttling
