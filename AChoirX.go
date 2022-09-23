@@ -130,6 +130,8 @@
 //
 // AChoirX v10.00.94 - Add Echo command
 //
+// AChoirX v10.00.95 - Add CPU Limit Throttling
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -138,6 +140,7 @@
 //  S3:     go get github.com/aws/aws-sdk-go/...
 //  SFTP:   go get github.com/pkg/sftp
 //  SFTP:   go get golang.org/x/crypto/ssh
+//  cpu:    go get github.com/shirou/gopsutil/cpu
 //
 // Changes from AChoir:
 //  Environment Variable Expansion now uses GoLang $Var or ${Var} 
@@ -187,6 +190,8 @@ import (
     "github.com/aws/aws-sdk-go/aws/credentials"
     "github.com/aws/aws-sdk-go/aws/session"
     "github.com/aws/aws-sdk-go/service/s3"
+
+    "github.com/shirou/gopsutil/cpu"
 
     syslog "github.com/NextronSystems/simplesyslog")
 
@@ -469,6 +474,8 @@ var iHstCount = 0
 var iHstTMax = 100
 var HstTabl [100]string
 
+// Max CPU for Throttleing
+var cpu_max float64 = 999
 
 // Main Line
 func main() {
@@ -902,6 +909,12 @@ func main() {
         if strings.HasPrefix(Tmprec, "*") {
             continue
         }
+
+
+        //****************************************************************
+        //* Check User CPU Utilization                                   *
+        //****************************************************************
+        cpuThrotl()
 
 
         //****************************************************************
@@ -2911,6 +2924,14 @@ func main() {
 
                     ConsOut = fmt.Sprintf("[*] SFTP Password Set: <Redacted>\n")
                     ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:CPUTHROTTLE=NONE") {
+                    cpu_max = 999
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:CPUTHROTTLE=LOW") {
+                    cpu_max = 25
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:CPUTHROTTLE=MED") {
+                    cpu_max = 50
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:CPUTHROTTLE=HIGH") {
+                    cpu_max = 75
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "XIT:") && len(Inrec) > 4 {
                     iXitCmd = 1
 
@@ -5859,5 +5880,26 @@ func scanPort(scanProto string, scanHostPort string) bool {
     }
     defer scan_conn.Close()
     return true
+}
+
+
+
+//***************************************************************************
+// Check for CPU Throttleing                                                *
+//***************************************************************************
+func cpuThrotl() {
+    for pctloop := 0; pctloop < 10; pctloop++ {
+        //Percent calculates the percentage of cpu used either per CPU or combined.
+        cpu_percent, _ := cpu.Percent(time.Second,false)
+        //fmt.Printf("[+] Total CPU Utilization: %.2f\n", cpu_percent[0])
+        ConsOut = fmt.Sprintf("[+] Total CPU Utilization: %.2f\n", cpu_percent[0])
+        ConsLogSys(ConsOut, 3, 3)
+        if cpu_percent[0] > cpu_max {
+            ConsOut = fmt.Sprintf("[!] CPU Throttling Invoked...\n")
+            ConsLogSys(ConsOut, 1, 1)
+        } else {
+            pctloop = 10
+        }
+    }
 }
 
