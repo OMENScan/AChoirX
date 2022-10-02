@@ -6,7 +6,7 @@ SET:CopyPath=Part
 VER:Windows
  SAY: Beginning Windows Packet Capture...
  ACQ:\PCAP
- SYS:PktMon start -c --comp nics --pkt-size 0 --file-name &Acq\PktMon.etl
+ SYS:PktMon start --etw --pkt-size 0 --file-name &Acq\PktMon.etl
  SLP:30
  SYS:PktMon stop
  BYE:
