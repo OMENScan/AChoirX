@@ -1,0 +1,125 @@
+***************************************************
+* Mount an EWF (.E01) File and Pull Artifacts     *
+* - Created by D0n Quixote/OMENScan (Jan 2016)    *
+*   - Requires Admin                              *
+*   - Requires 64 Bit Windows                     *
+*     If you are using 32 Bit Windows:            *
+*     Use the EWF32.Acq Script instead            *
+*                                                 *
+* - IMPORTANT NOTE: IT IS BEST TO MOUNT THE E01   *
+*   AS TEMPORARY WRITE - MANY UTILS FAIL on R/O   *
+*                                                 *
+***************************************************
+SET:CopyPath=Part
+SAY:
+SAY:[+] AChoirX will run OSFMount to allow you to mount the Evidence File
+SAY:
+SAY:[+] Important: Mounting the entire drive does not always work - So please mount
+SAY:[+] Only the Windows System Partition you want to extract artifacts from.
+SAY:
+SAY:[+] Once you mount the drive EXIT OSFMount to continue the artifact extraction script.
+SAY:
+SAY: * * *   Please MAKE SURE you are running this as an Administrator  * * * 
+SAY:
+PZZ: Press Any Key to Continue, or q to QUIT
+SAY:
+ADM:Force
+SAY:
+SAY:[+] Calling OSFMount... Remember to Exit OSFMount once you mount the drive... 
+EXE:\EWF\64Bit\osfmount.exe
+SAY:
+SAY:[+] Now that you have mounted the Evidence file, Please enter the 
+INP: Drive Letter that has been assigned (ie. X:):
+DRV:&Inp
+SAY:
+SAY:[+] Checking for the presence of Windows on the Mounted Drive:
+SAY: &Drv\Windows\System32\ntoskrnl.exe
+SAY:
+REQ:&Drv\Windows\System32\ntoskrnl.exe
+SAY:
+PZZ: Press Any Key to Continue Extraction, or q to QUIT
+SAY:
+SAY:[+] Extracting Prefetch Directory...
+SAY:
+ACQ:\Prf
+CPY:"&Drv\Windows\prefetch\**\*" "&Acq"
+SAY:
+SAY:[+] Copy Raw $MFT(s)...
+SAY:
+ACQ:\RawData
+EXE:\TSK\fcat.exe -f ntfs $MFT \\.\&Drv --exestdout=&acn\RawData\MFT-C
+SAY:
+SAY:[+] Copy Raw $LogFile...
+SAY:
+EXE:\TSK\fcat.exe -f ntfs $LogFile \\.\&Drv --exestdout=&acn\RawData\LogFile-C
+SAY:
+SAY:[+] Now Extracting USNJrnl...
+SAY:
+EXE:\DSK\ExtractUSNJrnl64.exe /DevicePath:&Drv /OutputPath:&Acq
+SAY:[+] Copying Registry Hives...
+SAY:
+SET:CopyPath=None
+ACQ:\Reg
+CPY:"&Drv\Windows\System32\Config\SECURITY" "&Acq"
+CPY:"&Drv\Windows\System32\Config\SOFTWARE" "&Acq"
+CPY:"&Drv\Windows\System32\Config\SAM" "&Acq"
+CPY:"&Drv\Windows\System32\Config\SYSTEM" "&Acq"
+CPY:"&Drv\Windows\AppCompat\Programs\Amcache.hve" "&Acq"
+SET:CopyPath=Part
+SAY:
+SAY:[+] Copying (System32) EventViewer Logs...
+SAY:
+ACQ:\Evt
+ACQ:\Evt\Sys32
+CPY:"&Drv\Windows\System32\winevt\Logs\*" "&Acq"
+SAY:
+SAY:[+] Copying (Sysnative) EventViewer Logs...
+SAY:
+ACQ:\Evt\Nativ
+CPY:"&Drv\Windows\sysnative\winevt\Logs\*" "&Acq"
+SAY:
+SAY:[+] Parsing (System32) Etc Directory, and SRUM...
+SAY:
+ACQ:\SYS
+ACQ:\SYS\Sys32
+CPY:"&Drv\Windows\System32\Drivers\Etc\*" "&Acq"
+CPY:"&Drv\Windows\System32\sru\SRUDB.dat" "&Acq"
+SAY:
+SAY:[+] Parsing (Sysnative) Hosts And Services Directory...
+SAY:
+ACQ:\SYS\Nativ
+CPY:"&Drv\Windows\sysnative\Drivers\Etc\*" "&Acq"
+CPY:"&Drv\Windows\sysnative\sru\SRUDB.dat" "&Acq"
+SAY:
+SAY:[+] Gathering Scheduled Task Information...
+SAY:
+ACQ:\TSK
+CPY:"&Drv\Windows\System32\Tasks\**\*" "&Acq"
+SAY:[+] Gathering All User Registries...
+SAY:
+FOR:&Drv\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
+ACQ:\Reg\&FO2
+CPY:"&Drv\&FO1\&FO2\&FO3" "&Acn\Reg\&FO2\&FNM"
+SAY:
+SAY:[+] Copying all User PowerShell Logs...
+SAY:
+ACQ:\Psh
+CPY:"&Drv\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\*" "&Acq"
+SAY:
+SAY:[+] Copying User Recent LNK files...
+SAY:
+ACQ:\Lnk
+CPY:"&Drv\Users\*\Desktop\*.lnk" "&Acq"
+CPY:"&Drv\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk" "&Acq"
+SAY:
+SAY:[+] Acquisition Complete... 
+SAY:
+SAY:[+] Calling OSFMount again to allow you to DISMOUNT the evidence drive
+SAY:
+EXE:\EWF\64Bit\osfmount.exe
+SAY:
+SAY:[+] Now Hashing Artifacts...
+HSH:ACQ
+SAY:
+PZZ: All Done!  Press Any Key to Finish.
+BYE:
