@@ -8,6 +8,7 @@
 *   AS TEMPORARY WRITE - MANY UTILS FAIL on R/O   *
 *                                                 *
 ***************************************************
+ACQ:\
 SET:CopyPath=Part
 SAY:
 SAY:[+] Please ensure you have already mounted the EWF Evidence File (.E01)
@@ -104,6 +105,11 @@ SAY:
 ACQ:\Lnk
 CPY:"&Drv\Users\*\Desktop\*.lnk" "&Acq"
 CPY:"&Drv\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk" "&Acq"
+SAY:
+SAY:[+] Now Extracting Browser History...
+SAY:
+ACQ:\BRW
+EXE:\SYS\BrowsingHistoryView.exe /HistorySource 3 /HistorySourceFolder "&Drv\Users" /VisitTimeFilterType 1 /scomma &Acq\BrowseHist.csv
 SAY:
 SAY:[+] Acquisition Complete...
 SAY:
