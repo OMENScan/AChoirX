@@ -100,7 +100,13 @@ SAY:[+] Gathering All User Registries...
 SAY:
 FOR:&Drv\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
 ACQ:\Reg\&FO2
-CPY:"&Drv\&FO1\&FO2\&FO3" "&Acn\Reg\&FO2\&FNM"
+CPY:"&Drv\&FO1\&FO2\&FO3" "&Acn\Reg"
+SAY:
+SAY:[+] Gathering Autoruns for each User Profile...
+SAY:
+ACQ:\Arn\&FO2
+ACQ:\Arn
+EXE:\SYS\Autorunsc64.exe /accepteula -a * -c -h -z &Drv\Windows &Drv\&FO1\&FO2 --exestdout=&Acn\Arn\&FO2\Autoruns.dat
 SAY:
 SAY:[+] Copying all User PowerShell Logs...
 SAY:
