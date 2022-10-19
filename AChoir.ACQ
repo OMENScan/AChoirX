@@ -209,6 +209,11 @@ VER:Windows
  CPY:"${SYSTEMDRIVE}\Users\*\Desktop\*.lnk" "&Acq"
  CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk" "&Acq"
  SAY:
+ SAY: 27. Copying WMI CIM database files...
+ SAY:
+ ACQ:\WMI
+ CPY:"${SYSTEMDRIVE}\Windows\System32\wbem\Repository\*" "&Acq"
+ SAY:
  SAY: Acquisition Complete...
  SAY:
  SAY: Now Hashing Artifacts...

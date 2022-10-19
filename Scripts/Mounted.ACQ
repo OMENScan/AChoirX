@@ -87,7 +87,7 @@ CPY:"&Drv\Windows\sysnative\sru\SRUDB.dat" "&Acq"
 SAY:
 SAY:[+] Gathering Scheduled Task Information...
 SAY:
-ACQ:\TSK
+ACQ:\Sch
 CPY:"&Drv\Windows\System32\Tasks\**\*" "&Acq"
 SAY:[+] Gathering All User Registries...
 SAY:
@@ -113,6 +113,11 @@ SAY:
 ACQ:\Lnk
 CPY:"&Drv\Users\*\Desktop\*.lnk" "&Acq"
 CPY:"&Drv\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk" "&Acq"
+SAY:
+SAY:[+] Copying WMI CIM database files...
+SAY:
+ACQ:\WMI
+CPY:"${SYSTEMDRIVE}\Windows\System32\wbem\Repository\*" "&Acq"
 SAY:
 SAY:[+] Now Extracting Browser History...
 SAY:
