@@ -132,6 +132,8 @@
 //
 // AChoirX v10.00.95 - Add CPU Limit Throttling
 //
+// AChoirX v10.00.96 - Improve CPU Limit Throttling
+//
 // Other Libraries and code I use:
 //  Syslog: go get github.com/NextronSystems/simplesyslog
 //  Sys:    go get golang.org/x/sys
@@ -198,7 +200,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.95"                       // AChoir Version
+var Version = "v10.00.96"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -5885,20 +5887,22 @@ func scanPort(scanProto string, scanHostPort string) bool {
 
 
 //***************************************************************************
-// Check for CPU Throttleing                                                *
+// Check for CPU Throttleing. cpu_max of 999 (default) is bypass checking   *
 //***************************************************************************
 func cpuThrotl() {
-    for pctloop := 0; pctloop < 10; pctloop++ {
-        //Percent calculates the percentage of cpu used either per CPU or combined.
-        cpu_percent, _ := cpu.Percent(time.Second,false)
-        //fmt.Printf("[+] Total CPU Utilization: %.2f\n", cpu_percent[0])
-        ConsOut = fmt.Sprintf("[+] Total CPU Utilization: %.2f\n", cpu_percent[0])
-        ConsLogSys(ConsOut, 3, 3)
-        if cpu_percent[0] > cpu_max {
-            ConsOut = fmt.Sprintf("[!] CPU Throttling Invoked...\n")
-            ConsLogSys(ConsOut, 1, 1)
-        } else {
-            pctloop = 10
+    if cpu_max != 999 {
+        for pctloop := 0; pctloop < 10; pctloop++ {
+            //Percent calculates the percentage of cpu used either per CPU or combined.
+            cpu_percent, _ := cpu.Percent(time.Second,false)
+            //fmt.Printf("[+] Total CPU Utilization: %.2f\n", cpu_percent[0])
+            ConsOut = fmt.Sprintf("[+] Total CPU Utilization: %.2f\n", cpu_percent[0])
+            ConsLogSys(ConsOut, 3, 3)
+            if cpu_percent[0] > cpu_max {
+                ConsOut = fmt.Sprintf("[!] CPU Throttling Invoked...\n")
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                pctloop = 10
+            }
         }
     }
 }
