@@ -126,7 +126,7 @@ VER:Windows
  SAY:
  SAY: 15. Gathering Open Files/Process Information...
  SAY:
- EXE:\SYS\Handle.exe /accepteula --exestdout=&acn\SYS\OpenFiles.dat
+ EXE:\SYS\Handle.exe -a -u -v /accepteula --exestdout=&acn\SYS\OpenFiles.dat
  SAY:
  SAY: 16. Gathering Scheduled Task Information...
  SAY:
