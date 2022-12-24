@@ -12,9 +12,11 @@ import (
     "unsafe"
     "os"
     "time"
+    "strings"
     "bytes"
     "archive/zip"
     "golang.org/x/sys/windows"
+    "golang.org/x/sys/windows/registry"
     "github.com/gonutz/w32/v2"
 )
 
@@ -200,3 +202,177 @@ func UnEmbed(embdata []byte) bool {
 
 }
 
+
+//****************************************************************
+// Accept a Key String and convert it to registry key            *
+//****************************************************************
+func makeKey(khive string) {
+    if strings.HasPrefix(strings.ToUpper(khive), "HKLM\\") {
+        subKey, err := registry.OpenKey(registry.LOCAL_MACHINE, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
+        if err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Opening Key: %s\n", err)
+            ConsLogSys(ConsOut, 1, 1)
+            return
+        }
+        walkKey(subKey, khive)
+    } else if strings.HasPrefix(strings.ToUpper(khive), "HKCR\\") {
+        subKey, err := registry.OpenKey(registry.CLASSES_ROOT, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
+        if err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Opening Key: %s\n", err)
+            ConsLogSys(ConsOut, 1, 1)
+            return
+        }
+        walkKey(subKey, khive)
+    } else if strings.HasPrefix(strings.ToUpper(khive), "HKCU\\") {
+        subKey, err := registry.OpenKey(registry.CURRENT_USER, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
+        if err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Opening Key: %s\n", err)
+            ConsLogSys(ConsOut, 1, 1)
+            return
+        }
+        walkKey(subKey, khive)
+    } else if strings.HasPrefix(strings.ToUpper(khive), "HKUS\\") {
+        subKey, err := registry.OpenKey(registry.USERS, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
+        if err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Opening Key: %s\n", err)
+            ConsLogSys(ConsOut, 1, 1)
+            return
+        }
+        walkKey(subKey, khive)
+    } else if strings.HasPrefix(strings.ToUpper(khive), "HKCC\\") {
+        subKey, err := registry.OpenKey(registry.CURRENT_CONFIG, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
+        if err != nil {
+            ConsOut = fmt.Sprintf("[!] Error Opening Key: %s\n", err)
+            ConsLogSys(ConsOut, 1, 1)
+            return
+        }
+        walkKey(subKey, khive)
+    }
+}
+
+//****************************************************************
+// Enumerate a Registry Key (entries and sub-keys)               *
+//****************************************************************
+func walkKey(k registry.Key, kname string) {
+
+    names, err := k.ReadValueNames(-1)
+    if err != nil {
+        ConsOut = fmt.Sprintf("[!] Reading Value Names of %s Failed: %v", kname, err)
+        ConsLogSys(ConsOut, 1, 1)
+        return
+    }
+
+    for _, name := range names {
+        _, valtype, err := k.GetValue(name, nil)
+        if err != nil {
+            ConsOut = fmt.Sprintf("[!] Reading Value Type of %s of %s Failed: %v", name, kname, err)
+            ConsLogSys(ConsOut, 1, 1)
+            return
+        }
+
+        switch valtype {
+        case registry.NONE:
+        case registry.SZ:
+            strVal, _, err := k.GetStringValue(name)
+            if err != nil {
+                ConsOut = fmt.Sprintf("[!] Registry Error: %s\n", err)
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                //ConsOut = fmt.Sprintf("REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
+                //ConsLogSys(ConsOut, 1, 1)
+                fmt.Fprintf(RegHndl, "REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
+            }
+        case registry.EXPAND_SZ:
+            strVal, _, err := k.GetStringValue(name)
+            if err != nil {
+                ConsOut = fmt.Sprintf("[!] Registry Error: %s\n", err)
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                //ConsOut = fmt.Sprintf("REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
+                //ConsLogSys(ConsOut, 1, 1)
+                fmt.Fprintf(RegHndl, "REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
+                expVal, err := registry.ExpandString(strVal)
+                if err != nil {
+                    ConsOut = fmt.Sprintf("[!] Registry Error: %s\n", err)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else {
+                    //ConsOut = fmt.Sprintf("REG_EXPAND_SZ, %s\\%s, `%s`\n", kname, name, expVal)
+                    //ConsLogSys(ConsOut, 1, 1)
+                    fmt.Fprintf(RegHndl, "REG_EXPAND_SZ, %s\\%s, `%s`\n", kname, name, expVal)
+                }
+            }
+        case registry.DWORD:
+            val64, _, err := k.GetIntegerValue(name)
+            if err != nil {
+                ConsOut = fmt.Sprintf("[!] Registry Error: %s\n", err)
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                //ConsOut = fmt.Sprintf("REG_DWORD, %s\\%s, %d\n", kname, name, val64)
+                //ConsLogSys(ConsOut, 1, 1)
+                fmt.Fprintf(RegHndl, "REG_DWORD, %s\\%s, %d\n", kname, name, val64)
+            }
+        case registry.QWORD:
+            val64, _, err := k.GetIntegerValue(name)
+            if err != nil {
+                ConsOut = fmt.Sprintf("[!] Registry Error: %s\n", err)
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                //ConsOut = fmt.Sprintf("REG_QWORD, %s\\%s, %d\n", kname, name, val64)
+                //ConsLogSys(ConsOut, 1, 1)
+                fmt.Fprintf(RegHndl, "REG_QWORD, %s\\%s, %d\n", kname, name, val64)
+            }
+        case registry.BINARY:
+            binVal, _, err := k.GetBinaryValue(name)
+            if err != nil {
+                ConsOut = fmt.Sprintf("[!] Registry Error: %s\n", err)
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                //ConsOut = fmt.Sprintf("REG_BINARY, %s\\%s, %v\n", kname, name, binVal)
+                //ConsLogSys(ConsOut, 1, 1)
+                fmt.Fprintf(RegHndl, "REG_BINARY, %s\\%s, %v\n", kname, name, binVal)
+            }
+        case registry.MULTI_SZ:
+            strVal, _, err := k.GetStringsValue(name)
+            if err != nil {
+                ConsOut = fmt.Sprintf("[!] Registry Error: %s\n", err)
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                //ConsOut = fmt.Sprintf("REG_MULTI_SZ, %s\\%s, `%s`\n", kname, name, strVal)
+                //ConsLogSys(ConsOut, 1, 1)
+                fmt.Fprintf(RegHndl, "REG_MULTI_SZ, %s\\%s, `%s`\n", kname, name, strVal)
+            }
+        case registry.FULL_RESOURCE_DESCRIPTOR, registry.RESOURCE_LIST, registry.RESOURCE_REQUIREMENTS_LIST:
+            // TODO: not implemented
+        default:
+            ConsOut = fmt.Sprintf("[!] Value Type %d of %s of %s Failed: %v", valtype, name, kname, err)
+            ConsLogSys(ConsOut, 1, 1)
+            return
+        }
+    }
+
+    names, err = k.ReadSubKeyNames(-1)
+    if err != nil {
+        ConsOut = fmt.Sprintf("[!] Reading Sub-Keys of %s Failed: %v", kname, err)
+        ConsLogSys(ConsOut, 1, 1)
+    }
+
+    for _, name := range names {
+        func() {
+            subk, err := registry.OpenKey(k, name, registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
+            if err != nil {
+                if err == syscall.ERROR_ACCESS_DENIED {
+                    // ignore error, if we are not allowed to access this key
+                    return
+                }
+
+                ConsOut = fmt.Sprintf("[!] Opening Sub-Keys %s of %s Failed: %v", name, kname, err)
+                ConsLogSys(ConsOut, 1, 1)
+                return
+            }
+
+            defer subk.Close()
+
+            walkKey(subk, kname+`\`+name)
+        }()
+    }
+}

@@ -63,6 +63,12 @@ func winConHideShow(HideOrShow int) {
     fmt.Printf("[+] Console Hide/Show not Implemented for Linux\n")
 }
 
+//****************************************************************
+// Accept a Key String and convert it to registry key            *
+//****************************************************************
+func makeKey(khive string) {
+    fmt.Printf("[+] Reistry Parser not Implemented for Linux\n")
+}
 
 // ****************************************************************
 // Windows Get Volume Information                                 *

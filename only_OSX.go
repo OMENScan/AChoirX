@@ -64,6 +64,13 @@ func winConHideShow(HideOrShow int) {
     fmt.Printf("[+] Console Hide/Show not Implemented for OSX\n")
 }
 
+//****************************************************************
+// Accept a Key String and convert it to registry key            *
+//****************************************************************
+func makeKey(khive string) {
+    fmt.Printf("[+] Reistry Parser not Implemented for OSX\n")
+}
+
 
 // ****************************************************************
 // Windows Get Volume Information                                 *

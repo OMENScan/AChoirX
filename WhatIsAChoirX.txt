@@ -1,4 +1,4 @@
-AChoirX - v10.00.93 (RC3)
+AChoirX - v10.00.97 (RC3)
 
 AChoirX
 =======
@@ -270,11 +270,22 @@ FOR:     Set the &FOR object.  This is a Looping object based on
 DSK:<typ>Set the &DSK object.  This is a Looping object based on 
          all attached/mounted disks that match the <typ>
          <typ> can be: Fixed, Remote, Remove, CDRom, RamDisk 
-LST:<FileName> 
+LST:<FileName>
          Set the &LST object.  This is a Looping object based on 
          Lines in the <FilName>. In this way a single command can
          be run iteratively replacing the &For variable with each
          entry in the <FileName>. 
+REG:<RegistryKey>
+         Natively extract a Registry Key and ALL Sub-Keys under
+         it.  The Key MUST BEGIN WITH ONE OF THE FOLLOWING:
+          HKLM, HKCR, HKCU, HKUS, HKCC
+         Example:
+          REG:REG:HKLM\Software\Microsoft\Windows\CurrentVersion\Run
+         REG: Only works for Windows Collections, and is disabled
+         For Linux and OSX.
+         The REgistry Extraction Output will be written to the 
+         Current Active ACQ: directory under a file named:
+          <RegistryKey>.csv
 CPY:     Copy Files (CPY:<FromFile> <ToFile>) - Supports Quotes
          Supports Wildcard. Important Note: CPY: WILL RECURSE THROuGH
          SUBDIRECTORIES ONLY IF A WILDCARD IS USED.

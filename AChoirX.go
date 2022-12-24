@@ -134,15 +134,18 @@
 //
 // AChoirX v10.00.96 - Improve CPU Limit Throttling
 //
+// AChoirX v10.00.97 - Add Native Registry Extraction
+//
 // Other Libraries and code I use:
-//  Syslog: go get github.com/NextronSystems/simplesyslog
-//  Sys:    go get golang.org/x/sys
-//  w32:    go get github.com/gonutz/w32 - Deprecated
-//  w32:    go get github.com/gonutz/w32/v2
-//  S3:     go get github.com/aws/aws-sdk-go/...
-//  SFTP:   go get github.com/pkg/sftp
-//  SFTP:   go get golang.org/x/crypto/ssh
-//  cpu:    go get github.com/shirou/gopsutil/cpu
+//  Syslog:   go get github.com/NextronSystems/simplesyslog
+//  Sys:      go get golang.org/x/sys
+//  w32:      go get github.com/gonutz/w32 - Deprecated
+//  w32:      go get github.com/gonutz/w32/v2
+//  S3:       go get github.com/aws/aws-sdk-go/...
+//  SFTP:     go get github.com/pkg/sftp
+//  SFTP:     go get golang.org/x/crypto/ssh
+//  cpu:      go get github.com/shirou/gopsutil/cpu
+//  Registry: go get golang.org/x/sys/windows/registry
 //
 // Changes from AChoir:
 //  Environment Variable Expansion now uses GoLang $Var or ${Var} 
@@ -200,7 +203,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.96"                       // AChoir Version
+var Version = "v10.00.97"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -377,6 +380,8 @@ var B64File = "C:\\AChoir\\AChoirB64.Acq"       // AChoir Decoded B64 Script Fil
 var LogFile = "C:\\AChoir\\LogFile.dat"         // AChoir Log File
 var CpyFile = "C:\\AChoir\\LogFile.dat"         // Copy To this File
 var HtmFile = "C:\\AChoir\\Index.htm"           // AChoir HTML Output File
+var RegFile = "Registry.csv"                    // AChoir REG: Output File Name
+var RegPath = "C:\\AChoir\\Registry.csv"        // AChoir REG: Full Path Output File
 var WGetFile = "C:\\AChoir\\Download.dat"       // Downloaded WGet File
 var LstFile = "C:\\AChoir\\Data.Lst"            // List of Data
 var ChkFile = "C:\\AChoir\\Data.Chk"            // Check For File Existence
@@ -414,6 +419,7 @@ var LstScan *bufio.Scanner                      // IO Reader for LstFile
 var DskScan *bufio.Scanner                      // IO Reader for DskFile
 var LogHndl *os.File                            // File Handle for the LogFile
 var HtmHndl *os.File                            // File Handle for the HtmFile
+var RegHndl *os.File                            // File Handle for the Registry Parse Output
 var IniHndl *os.File                            // File Handle for the IniFile
 var ForHndl *os.File                            // File Handle for the ForFile
 var LstHndl *os.File                            // File Handle for the LstFile
@@ -425,6 +431,7 @@ var STDOHndl *os.File                           // STDOut File Handle
 var STDEHndl *os.File                           // STDErr File Handle
 var log_err error                               // Logging Errors
 var htm_err error                               // HTML Writer Errors
+var reg_err error                               // Registry Writer Errors
 var ini_err error                               // Ini File Errors
 var for_err error                               // For File Errors
 var lst_err error                               // Lst File Errors
@@ -1546,6 +1553,22 @@ func main() {
                         ExpandDirs(TempDir)
 
                     }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "REG:") {
+                    RegFile = fmt.Sprintf("%s", Inrec[4:])
+                    RegFile = strings.Replace(RegFile, "\\", "-", -1) 
+                    RegPath = fmt.Sprintf("%s%c%s%c%s.csv", BACQDir, slashDelim, ACQDir, slashDelim, RegFile)
+
+                    ConsOut = fmt.Sprintf("[+] Extracting Registry Keys and Sub-Keys to: %s\n", RegPath)
+                    ConsLogSys(ConsOut, 1, 2)
+
+                    RegHndl, reg_err = os.Create(RegPath)
+                    if reg_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Opening Reg Output File: %s - Registry Parse Bypassed.\n", RegPath)
+                        ConsLogSys(ConsOut, 1, 2)
+                    } else {
+                        makeKey(Inrec[4:])
+                        RegHndl.Close()
+                    }                
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "DIR:") {
                     //****************************************************************
                     //* Set Current Directory                                        *
