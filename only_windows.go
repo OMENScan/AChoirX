@@ -252,6 +252,9 @@ func makeKey(khive string) {
 
 //****************************************************************
 // Enumerate a Registry Key (entries and sub-keys)               *
+//  Note: Since the REgistry Entry can contain almost anything   *
+//        this routing does TAB Separated instead of Comma       *
+//        Separated - which helps to ensure better parsing       *
 //****************************************************************
 func walkKey(k registry.Key, kname string) {
 
@@ -280,7 +283,8 @@ func walkKey(k registry.Key, kname string) {
             } else {
                 //ConsOut = fmt.Sprintf("REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
                 //ConsLogSys(ConsOut, 1, 1)
-                fmt.Fprintf(RegHndl, "REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
+                //fmt.Fprintf(RegHndl, "REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
+                fmt.Fprintf(RegHndl, "REG_SZ\t%s\\%s\t%s\n", kname, name, strVal)
             }
         case registry.EXPAND_SZ:
             strVal, _, err := k.GetStringValue(name)
@@ -290,7 +294,8 @@ func walkKey(k registry.Key, kname string) {
             } else {
                 //ConsOut = fmt.Sprintf("REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
                 //ConsLogSys(ConsOut, 1, 1)
-                fmt.Fprintf(RegHndl, "REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
+                //fmt.Fprintf(RegHndl, "REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
+                fmt.Fprintf(RegHndl, "REG_SZ\t%s\\%s\t%s\n", kname, name, strVal)
                 expVal, err := registry.ExpandString(strVal)
                 if err != nil {
                     ConsOut = fmt.Sprintf("[!] Registry Error: %s\n", err)
@@ -298,7 +303,8 @@ func walkKey(k registry.Key, kname string) {
                 } else {
                     //ConsOut = fmt.Sprintf("REG_EXPAND_SZ, %s\\%s, `%s`\n", kname, name, expVal)
                     //ConsLogSys(ConsOut, 1, 1)
-                    fmt.Fprintf(RegHndl, "REG_EXPAND_SZ, %s\\%s, `%s`\n", kname, name, expVal)
+                    //fmt.Fprintf(RegHndl, "REG_EXPAND_SZ, %s\\%s, `%s`\n", kname, name, expVal)
+                    fmt.Fprintf(RegHndl, "REG_EXPAND_SZ\t%s\\%s\t%s\n", kname, name, expVal)
                 }
             }
         case registry.DWORD:
@@ -309,7 +315,8 @@ func walkKey(k registry.Key, kname string) {
             } else {
                 //ConsOut = fmt.Sprintf("REG_DWORD, %s\\%s, %d\n", kname, name, val64)
                 //ConsLogSys(ConsOut, 1, 1)
-                fmt.Fprintf(RegHndl, "REG_DWORD, %s\\%s, %d\n", kname, name, val64)
+                //fmt.Fprintf(RegHndl, "REG_DWORD, %s\\%s, %d\n", kname, name, val64)
+                fmt.Fprintf(RegHndl, "REG_DWORD\t%s\\%s\t%d\n", kname, name, val64)
             }
         case registry.QWORD:
             val64, _, err := k.GetIntegerValue(name)
@@ -319,7 +326,8 @@ func walkKey(k registry.Key, kname string) {
             } else {
                 //ConsOut = fmt.Sprintf("REG_QWORD, %s\\%s, %d\n", kname, name, val64)
                 //ConsLogSys(ConsOut, 1, 1)
-                fmt.Fprintf(RegHndl, "REG_QWORD, %s\\%s, %d\n", kname, name, val64)
+                //fmt.Fprintf(RegHndl, "REG_QWORD, %s\\%s, %d\n", kname, name, val64)
+                fmt.Fprintf(RegHndl, "REG_QWORD\t%s\\%s\t%d\n", kname, name, val64)
             }
         case registry.BINARY:
             binVal, _, err := k.GetBinaryValue(name)
@@ -329,7 +337,8 @@ func walkKey(k registry.Key, kname string) {
             } else {
                 //ConsOut = fmt.Sprintf("REG_BINARY, %s\\%s, %v\n", kname, name, binVal)
                 //ConsLogSys(ConsOut, 1, 1)
-                fmt.Fprintf(RegHndl, "REG_BINARY, %s\\%s, %v\n", kname, name, binVal)
+                //fmt.Fprintf(RegHndl, "REG_BINARY, %s\\%s, %v\n", kname, name, binVal)
+                fmt.Fprintf(RegHndl, "REG_BINARY\t%s\\%s\t%v\n", kname, name, binVal)
             }
         case registry.MULTI_SZ:
             strVal, _, err := k.GetStringsValue(name)
@@ -339,7 +348,8 @@ func walkKey(k registry.Key, kname string) {
             } else {
                 //ConsOut = fmt.Sprintf("REG_MULTI_SZ, %s\\%s, `%s`\n", kname, name, strVal)
                 //ConsLogSys(ConsOut, 1, 1)
-                fmt.Fprintf(RegHndl, "REG_MULTI_SZ, %s\\%s, `%s`\n", kname, name, strVal)
+                //fmt.Fprintf(RegHndl, "REG_MULTI_SZ, %s\\%s, `%s`\n", kname, name, strVal)
+                fmt.Fprintf(RegHndl, "REG_MULTI_SZ\t%s\\%s\t%s\n", kname, name, strVal)
             }
         case registry.FULL_RESOURCE_DESCRIPTOR, registry.RESOURCE_LIST, registry.RESOURCE_REQUIREMENTS_LIST:
             // TODO: not implemented

@@ -286,6 +286,7 @@ REG:<RegistryKey>
          The REgistry Extraction Output will be written to the 
          Current Active ACQ: directory under a file named:
           <RegistryKey>.csv
+         The output is TAB Separated to make it more stable than CSV
 CPY:     Copy Files (CPY:<FromFile> <ToFile>) - Supports Quotes
          Supports Wildcard. Important Note: CPY: WILL RECURSE THROuGH
          SUBDIRECTORIES ONLY IF A WILDCARD IS USED.
