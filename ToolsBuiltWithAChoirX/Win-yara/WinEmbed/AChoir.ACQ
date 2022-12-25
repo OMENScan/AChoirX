@@ -1,14 +1,28 @@
 *******************************************************
 * AChoirX YARA Process Memory Scanner                 *
+*  /VR0:<Process Image Name>                          *
+*                                                     *
+*  Note1: Ommitting /VR0 will scan all Processes      *
+*  Note2: /VR0 accepts WildCards                      *
 *******************************************************
 SET:CopyPath=Part
 CON:MSGLevel=min
 *******************************************************
+* Are we looking at specific Processes?               *
+*******************************************************
+EQU:.&VR0 .
+ SAY:[+] Collecting FULL Processes List from Memory...
+ ACQ:\YARA
+ SYS:TaskList /NH /FO CSV --exestdout=&Acn\YARA\TaskList.txt
+END:
+*******************************************************
 * Run Tasklist to get Processes and their PIDs        *
 *******************************************************
-SAY:[+] Collecting Process List from Memory...
-ACQ:\YARA
-SYS:TaskList /NH /FO CSV --exestdout=&Acn\YARA\TaskList.txt
+NEQ:.&VR0 .
+ SAY:[+] Collecting &VR0 Process List from Memory...
+ ACQ:\YARA
+ SYS:TaskList /FI "IMAGENAME eq &VR0" /NH /FO CSV --exestdout=&Acn\YARA\TaskList.txt
+END:
 *******************************************************
 * Run YARA Against the list of PIDs                   *
 *******************************************************
