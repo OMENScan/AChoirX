@@ -124,7 +124,11 @@ SAY:
 SAY:[+] Copying WMI CIM database files...
 SAY:
 ACQ:\WMI
-CPY:"${SYSTEMDRIVE}\Windows\System32\wbem\Repository\*" "&Acq"
+CPY:"&Drv\Windows\System32\wbem\Repository\*" "&Acq"
+SAY:[+] Copying Program Compatibility Assistant files...
+SAY:
+ACQ:\PCA
+CPY:"&Drv\Windows\appcompat\pca\*.txt" "&Acq"
 SAY:
 SAY:[+] Now Extracting Browser History...
 SAY:

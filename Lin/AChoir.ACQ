@@ -141,7 +141,7 @@ VER:Windows
  SAY:
  SAY: 15. Gathering Open Files/Process Information...
  SAY:
- EXE:\SYS\Handle.exe /accepteula --exestdout=&acn\SYS\OpenFiles.dat
+ EXE:\SYS\Handle.exe -a -u -v /accepteula --exestdout=&acn\SYS\OpenFiles.dat
  SAY:
  SAY: 16. Gathering Scheduled Task Information...
  SAY:
@@ -208,6 +208,17 @@ VER:Windows
  ACQ:\Lnk
  CPY:"${SYSTEMDRIVE}\Users\*\Desktop\*.lnk" "&Acq"
  CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk" "&Acq"
+ SAY:
+ SAY: 27. Copying WMI CIM database files...
+ SAY:
+ ACQ:\WMI
+ CPY:"${SYSTEMDRIVE}\Windows\System32\wbem\Repository\*" "&Acq"
+ VER:Windows 10.0.2
+  SAY: 28. Windows 11 Detected... Copying Program Compatibility Assistant files...
+  SAY:
+  ACQ:\PCA
+  CPY:"${SYSTEMDRIVE}\Windows\appcompat\pca\*.txt" "&Acq"
+ END:
  SAY:
  SAY: Acquisition Complete...
  SAY:

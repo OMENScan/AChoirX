@@ -213,6 +213,12 @@ VER:Windows
  SAY:
  ACQ:\WMI
  CPY:"${SYSTEMDRIVE}\Windows\System32\wbem\Repository\*" "&Acq"
+ VER:Windows 10.0.2
+  SAY: 28. Windows 11 Detected... Copying Program Compatibility Assistant files...
+  SAY:
+  ACQ:\PCA
+  CPY:"${SYSTEMDRIVE}\Windows\appcompat\pca\*.txt" "&Acq"
+ END:
  SAY:
  SAY: Acquisition Complete...
  SAY:

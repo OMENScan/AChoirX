@@ -494,13 +494,62 @@ VER:Windows
  END:
  SAY: 26b. Deleting Local Copy...
  CLN:&Acn\Lnk
+ SAY: 27. Copying WMI CIM database files...
+ SAY:
+ ACQ:\WMI
+ CPY:"${SYSTEMDRIVE}\Windows\System32\wbem\Repository\*" "&Acq"
+ SAY: 27a. Copying/Zipping WMI Files...
+ SAY:
+ SET:ZipFileName=&Acq\WMI.zip
+ SET:ZipFileRoot=WMI
+ FOR:&Acq\**\*
+ ZIP:&For
+ SET:ZipFileName=close
+ EQU:&VR0 S3
+  SAY:
+  SAY: 27b. Uploading WMI Files to S3...
+  S3U:&Acq\WMI.zip \&Acn\WMI
+ END:
+ EQU:&VR0 SFTP
+  SAY:
+  SAY: 27b. Uploading WMI Files to SFTP...
+  SFU:&Acq\WMI.zip \&Acn\WMI
+ END:
+ SAY: 27b. Deleting Local Copy...
+ CLN:&Acn\WMI
+
+ VER:Windows 10.0.2
+  SAY: 28. Windows 11 Detected... Copying Program Compatibility Assistant files...
+  SAY:
+  ACQ:\PCA
+  CPY:"${SYSTEMDRIVE}\Windows\appcompat\pca\*.txt" "&Acq"
+  SAY: 28a. Copying/Zipping PCA Files...
+  SAY:
+  SET:ZipFileName=&Acq\PCA.zip
+  SET:ZipFileRoot=PCA
+  FOR:&Acq\**\*
+  ZIP:&For
+  SET:ZipFileName=close
+  EQU:&VR0 S3
+   SAY:
+   SAY: 28b. Uploading PCA Files to S3...
+   S3U:&Acq\PCA.zip \&Acn\PCA
+  END:
+  EQU:&VR0 SFTP
+   SAY:
+   SAY: 28b. Uploading PCA Files to SFTP...
+   SFU:&Acq\PCA.zip \&Acn\PCA
+  END:
+  SAY: 28b. Deleting Local Copy...
+  CLN:&Acn\PCA
+ END:
  SAY:
  SAY: Acquisition Complete...
  SAY:
  SAY: Now Hashing Artifacts...
  HSH:ACQ
  SAY:
- SAY: 27a. Zipping Final Collection Files ...
+ SAY: 29a. Zipping Final Collection Files ...
  ACQ:\
  SET:ZipFileName=&Acq\Final.zip
  SET:ZipFileRoot=
@@ -511,16 +560,16 @@ VER:Windows
  ZIP:&For
  SET:ZipFileName=close
  EQU:&VR0 S3
-  SAY: 27b. Final Uploading to S3...
+  SAY: 29b. Final Uploading to S3...
   S3U:&Dir\Logs\&Acn.log \&Acn
   S3U:&Acq\Final.zip \&Acn
  END:
  EQU:&VR0 SFTP
-  SAY: 27b. Final Uploading to SFTP...
+  SAY: 29b. Final Uploading to SFTP...
   SFU:&Dir\Logs\&Acn.log \&Acn
   SFU:&Acq\Final.zip \&Acn
  END:
- SAY: 27c. Deleting All Remaining Files...
+ SAY: 29c. Deleting All Remaining Files...
  CLN:&Acn
  BYE:
 END:
