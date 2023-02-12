@@ -1,0 +1,36 @@
+*******************************************************
+* AChoirX, TriageReport Runner Script                 *
+*******************************************************
+SET:CopyPath=Part
+SAY:{+} Processing Triage Collection: &VR1 (Full Path: &VR0)
+CKY:&Acq
+ SAY:{+} Processing Directory Already Exists: &Acq
+ BYE:
+END:
+ACQ:\Triage
+*******************************************************
+* If the Move Didnt work, its probably still writing  *
+* - Try 5 Times, Then Exit out                        *
+*******************************************************
+CN0:0
+LBL:CopyCol
+SYS:cmd.exe /c Move /Y "&VR0" "&Acq"
+CKN:&Acq\&VR1
+ CN0:++
+ N>>:&CN0 5
+  SAY:[!] Max Retries (&CN0) Error Copying Collection File - Exiting...
+  Bye:
+ END:
+SAY:[+] Retrying Copy (&CN0)...
+SLP:60
+JMP:CopyCol
+END:
+*******************************************************
+* Fell Through - Process the Triage Collection        *
+*******************************************************
+EXE:\Utils\7z\7za.exe x "&ACQ\&VR1" "-o&Acq" -r -pcapstone -y -aou
+EXE:\Utils\7z\7za.exe x "&ACQ\Data.zip" "-o&Acq" -r -y -aou
+ACQ:\
+SYS:py &Dir\TriageReport\TriageReport.py -d &Acq -c &Dir\TriageReport\AChReport.cfg
+SAY:{+} Running Plaso Timeliner
+INI:PlasoX.ACQ

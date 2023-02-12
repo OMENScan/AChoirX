@@ -1,0 +1,99 @@
+*******************************************************
+* AChoirX and Plaso Timeline an AChoirX collection    *
+* - Win Requires Plaso to be in &Dir\Plaso directory  *
+* - Lin Requires Plaso to be in /usr/bin directory    *
+* - OSX not yet implemented                           *
+*   - AChoirX will Check                              *
+* - Recognize:Windows, Linux, or OSX                  *
+*******************************************************
+SET:CopyPath=Part
+****************************************************************
+* Windows: Is Plaso in the AChoir directory? If not, Install   *
+****************************************************************
+VER:Windows
+  SAY:[+] Windows Timelining...
+  SAY:[+] Checking for Plaso in: &Dir\Plaso
+  CKN:&Dir\Plaso\log2timeline.exe
+    DIR:\Plaso
+    SAY:
+    SAY:[*] Log2TimeLine Not Found, Downloading it... 
+    SAY:
+    GET:https://github.com/OMENScan/AChoir/blob/master/Tools/plaso-20191203-py3.7-amd64.zip?raw=true &Dir\Plaso.zip
+    SAY:
+    SAY:[*] Unzipping Plaso...
+    SAY:
+    UNZ:&Dir\Plaso.zip &Dir
+    SAY:
+  END:
+  DIR:\
+  REQ:&Dir\Plaso\log2timeline.exe
+  REQ:&Dir\Plaso\psort.exe
+  SAY:
+  SAY:[+] Plaso (log2timeline, psort) has been found in: &Dir\Plaso\
+  *******************************************************
+  * Get the Collection To Timeline                      *
+  *******************************************************
+  ACQ:\
+  CKN:&ACQ\Triage
+    SAY:
+    SAY:[!] That Collection Does Not Exist.
+    BYE:
+  END:
+  SAY:[+] Now TimeLining &Dir\&Inp
+  *******************************************************
+  * Timeline MFT(s)                                     *
+  *******************************************************
+  ACQ:\TimeLine
+  ACQ:\
+  SAY:[+] Now TimeLining &ACQ\Triage\C\$MFT
+  SAY:
+  EXE:&Dir\Plaso\Log2TimeLine.exe -z UTC --parsers "mft" --status_view none --quiet --logfile "&Acq\Temp.Log" &Acq\Timeline\timeline.bodyfile "&ACQ\Triage\C\$MFT"
+  *******************************************************
+  * Timeline Event ViewerLogs                           *
+  *******************************************************
+  SAY:
+  SAY:[+] Now TimeLining &ACQ\Triage\C\Windows\System32\winevt\Logs\**\*.evtx
+  SAY:
+  FOR:&ACQ\Triage\C\Windows\System32\winevt\Logs\**\*.evtx
+  EXE:&Dir\Plaso\Log2TimeLine.exe -z UTC --parsers "winevt,winevtx" --status_view none --quiet --logfile "&Acq\Temp.Log" &Acq\Timeline\timeline.bodyfile "&For"
+  *******************************************************
+  * Timeline Prefetch                                   *
+  *******************************************************
+  SAY:
+  SAY:[+] Now TimeLining &ACQ\Triage\C\Windows\Prefetch\*.*
+  SAY:
+  FOR:&ACQ\Triage\C\Windows\Prefetch\*.*
+  EXE:&Dir\Plaso\Log2TimeLine.exe -z UTC --parsers "prefetch" --status_view none --quiet --logfile "&Acq\Temp.Log" &Acq\Timeline\timeline.bodyfile "&For"
+  *******************************************************
+  * Timeline System Registries                          *
+  *******************************************************
+  SAY:
+  SAY:[+] Now TimeLining &ACQ\Triage\C\Windows\System32\config\*.*
+  SAY:
+  FOR:&ACQ\Triage\C\Windows\System32\config\**\*
+  EXE:&Dir\Plaso\Log2TimeLine.exe -z UTC --parsers "winreg_default,winreg" --status_view none --quiet --logfile "&Acq\Temp.Log" &Acq\TimeLine\timeline.bodyfile "&For"
+  SAY:
+  SAY:[+] Timeline Generation Completed...
+  SAY:
+  *******************************************************
+  * Timeline User Registries                            *
+  *******************************************************
+  SAY:
+  SAY:[+] Now TimeLining &ACQ\Triage\C\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
+  SAY:
+  FOR:&ACQ\Triage\C\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
+  EXE:&Dir\Plaso\Log2TimeLine.exe -z UTC --parsers "winreg_default,winreg" --status_view none --quiet --logfile "&Acq\Temp.Log" &Acq\Timeline\timeline.bodyfile "&For"
+  SAY:
+  SAY:[+] Timeline Generation Completed...
+  SAY:
+  *******************************************************
+  * Convert BodyFile to CSV                             *
+  *******************************************************
+  SAY:[+] Coverting BodyFile to CSV
+  EXE:&Dir\Plaso\psort.exe -z UTC -o l2tcsv -w &Acq\Timeline\timeline.csv &Acq\Timeline\timeline.bodyfile
+END:
+****************************************************************
+* All Processing Complete                                      *
+****************************************************************
+SAY:
+SAY:[+] Processing Complete...  Bye...
