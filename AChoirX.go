@@ -136,6 +136,9 @@
 //
 // AChoirX v10.00.97 - Add Native Registry Extraction
 //
+// AChoirX v10.00.98 - Check for Collisions - Multiple collections at the same time
+//                   - Improve Syslog (remove CRLFs)
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -203,7 +206,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.97"                       // AChoir Version
+var Version = "v10.00.98"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -795,8 +798,40 @@ func main() {
 
     //****************************************************************
     //* Logging!                                                     *
+    //*  Check for same logfile name indicating collision            *
     //****************************************************************
     LogFile = fmt.Sprintf("%s%cLogs%c%s.Log", BaseDir, slashDelim, slashDelim, ACQName)
+
+    //If the Logfile already exists, this is a collision - Log it and exit
+    if FileExists(LogFile) {
+        LogHndl, log_err = os.OpenFile(LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+        if log_err != nil {
+            ConsOut = fmt.Sprintf("[!] Log Could not be opened for Append: %s\n", LogFile)
+            ConsLogSys(ConsOut, 1, 1)
+        } else {
+            iLogOpen = 1
+        }
+
+        ConsOut = fmt.Sprintf("[+] AChoirX Ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, OSVersion, opArchit)
+        ConsLogSys(ConsOut, 1, 1)
+
+        ConsOut = fmt.Sprintf("[+] Path: %s, MD5: %s\n", MyProg, MyHash)
+        ConsLogSys(ConsOut, 1, 1)
+
+        ConsOut = fmt.Sprintf("[!] Collision: %s\n", ACQName)
+        ConsLogSys(ConsOut, 1, 1)
+
+        showTime("[!] Collision Detected...  Exiting...")
+
+        if iLogOpen == 1 {
+            LogHndl.Close()
+        }
+
+        os.Exit(3)
+    }
+
+
+    // Fell Through - Looks OK so far...
     LogHndl, log_err = os.Create(LogFile)
 
     if log_err != nil {
@@ -3496,6 +3531,8 @@ func AChSyslog(SendLogMSG string) {
     //***************************************************************
     // Remove CRLF to prevent Blank Lines in Syslog
     SendLogMSG = strings.TrimSpace(SendLogMSG)
+    SendLogMSG = strings.Replace(SendLogMSG, "\n", ";", -1)
+    SendLogMSG = strings.Replace(SendLogMSG, "\r", ";", -1)
 
 
     // Not sure why UDP Syslog requires tlsConfig - but it wont compile without it
