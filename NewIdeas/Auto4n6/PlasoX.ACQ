@@ -7,6 +7,9 @@
 * - Recognize:Windows, Linux, or OSX                  *
 *******************************************************
 SET:CopyPath=Part
+SET:SyslogS:127.0.0.1
+SET:SyslogP=5514
+SET:SyslogL=min
 ****************************************************************
 * Windows: Is Plaso in the AChoir directory? If not, Install   *
 ****************************************************************
@@ -36,7 +39,7 @@ VER:Windows
   ACQ:\
   CKN:&ACQ\Triage
     SAY:
-    SAY:[!] That Collection Does Not Exist.
+    SAY:[!] That Collection Does Not Exist. Exiting.
     BYE:
   END:
   SAY:[+] Now TimeLining &Dir\&Inp
@@ -46,54 +49,51 @@ VER:Windows
   ACQ:\TimeLine
   ACQ:\
   SAY:[+] Now TimeLining &ACQ\Triage\C\$MFT
-  SAY:
+  SET:SyslogL=none
   EXE:&Dir\Plaso\Log2TimeLine.exe -z UTC --parsers "mft" --status_view none --quiet --logfile "&Acq\Temp.Log" &Acq\Timeline\timeline.bodyfile "&ACQ\Triage\C\$MFT"
   *******************************************************
   * Timeline Event ViewerLogs                           *
   *******************************************************
-  SAY:
+  SET:SyslogL=min
   SAY:[+] Now TimeLining &ACQ\Triage\C\Windows\System32\winevt\Logs\**\*.evtx
-  SAY:
+  SET:SyslogL=none
   FOR:&ACQ\Triage\C\Windows\System32\winevt\Logs\**\*.evtx
   EXE:&Dir\Plaso\Log2TimeLine.exe -z UTC --parsers "winevt,winevtx" --status_view none --quiet --logfile "&Acq\Temp.Log" &Acq\Timeline\timeline.bodyfile "&For"
   *******************************************************
   * Timeline Prefetch                                   *
   *******************************************************
-  SAY:
+  SET:SyslogL=min
   SAY:[+] Now TimeLining &ACQ\Triage\C\Windows\Prefetch\*.*
-  SAY:
+  SET:SyslogL=none
   FOR:&ACQ\Triage\C\Windows\Prefetch\*.*
   EXE:&Dir\Plaso\Log2TimeLine.exe -z UTC --parsers "prefetch" --status_view none --quiet --logfile "&Acq\Temp.Log" &Acq\Timeline\timeline.bodyfile "&For"
   *******************************************************
   * Timeline System Registries                          *
   *******************************************************
-  SAY:
+  SET:SyslogL=min
   SAY:[+] Now TimeLining &ACQ\Triage\C\Windows\System32\config\*.*
-  SAY:
+  SET:SyslogL=none
   FOR:&ACQ\Triage\C\Windows\System32\config\**\*
   EXE:&Dir\Plaso\Log2TimeLine.exe -z UTC --parsers "winreg_default,winreg" --status_view none --quiet --logfile "&Acq\Temp.Log" &Acq\TimeLine\timeline.bodyfile "&For"
-  SAY:
-  SAY:[+] Timeline Generation Completed...
-  SAY:
   *******************************************************
   * Timeline User Registries                            *
   *******************************************************
-  SAY:
+  SET:SyslogL=min
   SAY:[+] Now TimeLining &ACQ\Triage\C\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
-  SAY:
+  SET:SyslogL=none
   FOR:&ACQ\Triage\C\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
   EXE:&Dir\Plaso\Log2TimeLine.exe -z UTC --parsers "winreg_default,winreg" --status_view none --quiet --logfile "&Acq\Temp.Log" &Acq\Timeline\timeline.bodyfile "&For"
-  SAY:
-  SAY:[+] Timeline Generation Completed...
-  SAY:
   *******************************************************
   * Convert BodyFile to CSV                             *
   *******************************************************
+  SET:SyslogL=min
   SAY:[+] Coverting BodyFile to CSV
-  EXE:&Dir\Plaso\psort.exe -z UTC -o l2tcsv -w &Acq\Timeline\timeline.csv &Acq\Timeline\timeline.bodyfile
+  SET:SyslogL=none
+  EXE:&Dir\Plaso\psort.exe --temporary_directory &Acq\Timeline -z UTC -o l2tcsv -w &Acq\Timeline\timeline.csv &Acq\Timeline\timeline.bodyfile
 END:
 ****************************************************************
 * All Processing Complete                                      *
 ****************************************************************
-SAY:
-SAY:[+] Processing Complete...  Bye...
+SET:SyslogL=min
+SAY:[+] BodyFile Coverted to CSV for: &Acq
+SAY:[+] Plaso Processing Complete for: &Acq

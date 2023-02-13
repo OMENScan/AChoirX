@@ -2,6 +2,9 @@
 * AChoirX, Volatility, and Loki Script                *
 *******************************************************
 SET:CopyPath=Part
+SET:SyslogS:127.0.0.1
+SET:SyslogP=5514
+SET:SyslogL=min
 SAY:{+} Processing Memory Dump: &VR1 (Full Path: &VR0)
 CKY:&Acq
  SAY:{+} Processing Directory Already Exists: &Acq
@@ -50,59 +53,43 @@ END:
 *******************************************************
 LBL:Start
 CKY:&VR3
-  Say:
   Say:[!] Memory File found: &VR3
   Acq:\VoLoki
-  Say:
   Say:[+} Gathering Basic Memory Dump Info...
-  Say:
   Say:[+] Parsing Process List...
-  SYS:&VR0 -f &VR3 windows.pslist.PsList --exestdout=&acn\VoLoki\PSList.dat
-  Say:
+  SYS:&VR0 -f "&VR3" windows.pslist.PsList --exestdout=&acn\VoLoki\PSList.dat
   Say:[+] Parsing Process Tree...
-  SYS:&VR0 -f &VR3 windows.pstree.PsTree --exestdout=&acn\VoLoki\PSTree.dat
-  Say:
-  Say:[+] Parsing Complete Process Scan (Unlinked Processes)...
-  SYS:&VR0 -f &VR3 windows.psscan.PsScan --exestdout=&acn\VoLoki\PSScan.dat
-  Say:
+  SYS:&VR0 -f "&VR3" windows.pstree.PsTree --exestdout=&acn\VoLoki\PSTree.dat
+  Say:[+] Parsing Process Scan (Unlinked Processes)...
+  SYS:&VR0 -f "&VR3" windows.psscan.PsScan --exestdout=&acn\VoLoki\PSScan.dat
   Say:[+] Parsing Modules...
-  SYS:&VR0 -f &VR3 windows.modules.Modules --exestdout=&acn\VoLoki\Modules.dat
-  Say:
-  Say:[+] Parsing Complete Module Scan (Unlinked Modules)...
-  SYS:&VR0 -f &VR3 windows.modscan.ModScan --exestdout=&acn\VoLoki\ModScan.dat
-  Say:
-  Say:[+] Parsing Complete Driver Scan...
-  SYS:&VR0 -f &VR3 windows.driverscan.DriverScan --exestdout=&acn\VoLoki\DriverScan.dat
-  Say:
-  Say:[+] Parsing Complete Services Scan...
-  SYS:&VR0 -f &VR3 windows.getservicesids.GetServiceSIDs --exestdout=&acn\VoLoki\SvcScan.dat
-  Say:
+  SYS:&VR0 -f "&VR3" windows.modules.Modules --exestdout=&acn\VoLoki\Modules.dat
+  Say:[+] Parsing Module Scan (Unlinked Modules)...
+  SYS:&VR0 -f "&VR3" windows.modscan.ModScan --exestdout=&acn\VoLoki\ModScan.dat
+  Say:[+] Parsing Driver Scan...
+  SYS:&VR0 -f "&VR3" windows.driverscan.DriverScan --exestdout=&acn\VoLoki\DriverScan.dat
+  Say:[+] Parsing Services Scan...
+  SYS:&VR0 -f "&VR3" windows.getservicesids.GetServiceSIDs --exestdout=&acn\VoLoki\SvcScan.dat
   Say:[+] Parsing Command Line History...
-  SYS:&VR0 -f &VR3 windows.cmdline.CmdLine --exestdout=&acn\VoLoki\CmdLine.dat
-  Say:
+  SYS:&VR0 -f "&VR3" windows.cmdline.CmdLine --exestdout=&acn\VoLoki\CmdLine.dat
   Say:[+] Parsing Network Info...
-  SYS:&VR0 -f &VR3 windows.netscan.NetScan --exestdout=&acn\VoLoki\Netscan.dat
-  Say:
+  SYS:&VR0 -f "&VR3" windows.netscan.NetScan --exestdout=&acn\VoLoki\Netscan.dat
   Say:[+] Parsing Open Files Info...
-  SYS:&VR0 -f &VR3 windows.filescan.FileScan --exestdout=&acn\VoLoki\OpenFiles.dat
-  Say:
+  SYS:&VR0 -f "&VR3" windows.filescan.FileScan --exestdout=&acn\VoLoki\OpenFiles.dat
   Say:[+] Creating Process List CSV for Module Processing...
-  SYS:&VR0 -r csv -f &VR3 windows.pslist.PsList --exestdout=&acn\VoLoki\PSList.csv
-  Say:
+  SYS:&VR0 -r csv -f "&VR3" windows.pslist.PsList --exestdout=&acn\VoLoki\PSList.csv
   Say:[+] Dumping Processes in Memory...
   LST:&Acn\VoLoki\PSList.csv
   ACQ:\VoLoki\prcdump\PID-&LS1
   ACQ:\VoLoki\prcdump
-  SYS:&VR0 -o &Acq\PID-&LS1 -f &VR3 windows.dumpfiles.DumpFiles --pid &LS1
-  Say:
+  SYS:&VR0 -o &Acq\PID-&LS1 -f "&VR3" windows.dumpfiles.DumpFiles --pid &LS1
+  Say:[+] Completed Dumping Processes in Memory
   Say:[+] Looking for Malicious data...
   ACQ:\VoLoki\malfind
-  SYS:&VR0 -o &Acq -f &VR3 windows.malfind.Malfind --dump
-  Say:
+  SYS:&VR0 -o &Acq -f "&VR3" windows.malfind.Malfind --dump
   Say:[+] Loki Scanning all extracted Telemetry
   ACQ:\
-  SYS:&VR1 --noprocscan -l &Acq\LokiLog.txt --intense --printall -p &Acq\VoLoki
-  Bye:
+  SYS:&VR1 --noprocscan -l &Acq\LokiLog.txt --intense -p &Acq\VoLoki -r 127.0.0.1 -t 5514 
 End:
-Say:[!] Memory File not found: &VR3
+Say:[!] Memory File not found: "&VR3"
 Bye:

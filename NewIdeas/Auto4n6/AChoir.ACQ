@@ -5,6 +5,9 @@
 *  2. Automated Triage Report                         *
 *******************************************************
 SET:CopyPath=Part
+SET:SyslogS:127.0.0.1
+SET:SyslogP=5514
+SET:SyslogL=none
 LBL:Start
 SAY:[+] Checking for new Memory Dumps to Process.
 FOR:C:\Auto-Mem\*
@@ -14,4 +17,3 @@ FOR:C:\Auto-Col\*
 EXA:A-AChoirx.exe /ini:ColProcess.ACQ  /VR0:&For /VR1:&Fnm
 SLP:65
 JMP:Start
-
