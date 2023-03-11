@@ -139,6 +139,8 @@
 // AChoirX v10.00.98 - Check for Collisions - Multiple collections at the same time
 //                   - Improve Syslog (remove CRLFs)
 //
+// AChoirX v10.00.99 - Minor improvement to CPS: (it ignores case now)
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -3998,7 +4000,7 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
         for iSig = 0; iSig < iSigCount; iSig++ {
             // Make Sure we got some data from the File to Check
             if inSize > 0 && sigb_err == nil {
-                if strings.HasPrefix(tmpSig, SigTabl[iSig]) {
+                if strings.HasPrefix(strings.ToUpper(tmpSig), strings.ToUpper(SigTabl[iSig])) {
                     iCPSFound = 1
                     ConsOut = fmt.Sprintf("[*] Header Signature Match Found in File: %s\n", SigTabl[iSig])
                     ConsLogSys(ConsOut, 2, 2)
