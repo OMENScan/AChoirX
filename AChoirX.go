@@ -141,6 +141,9 @@
 //
 // AChoirX v10.00.99 - Minor improvement to CPS: (it ignores case now)
 //
+// AChoirX v10.01.00 - Release 1.0 
+//                   - Add /Nam: to Specify Directory Name
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -208,7 +211,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.98"                       // AChoir Version
+var Version = "v10.01.00"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -393,6 +396,7 @@ var ChkFile = "C:\\AChoir\\Data.Chk"            // Check For File Existence
 var MD5File = "C:\\AChoir\\Hash.txt"            // Saved Hashes
 var BACQDir = "C:\\AChoir"                      // Base Acquisition Directory
 var BaseDir = "C:\\AChoir"                      // Base Directory
+var CurrWorkDir = "C:\\AChoir"                  // Current Workin Directory
 var ACQDir = ""                                 // Relative Acquisition Directory
 var CachDir = "C:\\AChoir\\Cache"               // AChoir Caching Directory 
 var ForFile = "C:\\AChoir\\Cache\\ForFiles"     // Do action for these Files
@@ -414,6 +418,7 @@ var ProgVar = "NA"                              // Windows Program Files
 
 // Host Information
 var cName = "localhost"                         // Endpoint Host Name
+var cNewName = "localhost"                      // From /NAM: command line option
 var host_err error                              // HostName Errors
 var MyPID = 0                                   // This Programs Process ID
 
@@ -497,23 +502,17 @@ func main() {
     MyProg, _ = os.Executable()
     MyHash = GetMD5File(MyProg)
 
-    // Get Time and Date
-    lclTime := time.Now()
-    iMonth := int(lclTime.Month())
-    iDay := lclTime.Day()
-    iYYYY := lclTime.Year()
-    iHour := lclTime.Hour()
-    iMin := lclTime.Minute()
-
     // Get Host Name
     cName, host_err = os.Hostname()
     if host_err != nil {
         cName = "LocalHost"
     }
 
+    // Default cNewName to cName
+    cNewName = cName
+
     // Get My PID
     MyPID = os.Getpid()
-
 
     // Get Operating System and Architecture
     opArchit = runtime.GOARCH
@@ -545,31 +544,13 @@ func main() {
 
     // Initial Settings and Configuration
     slashDelimS = fmt.Sprintf("%c", slashDelim)
-    ACQName = fmt.Sprintf("ACQ-IR-%s-%04d%02d%02d-%02d%02d", cName, iYYYY, iMonth, iDay, iHour, iMin)
+    setDirectories(cName)
     inFnam = "AChoir.ACQ"
     iOutOfDiskSpace = 0
 
     // Default Case Settings 
-    caseNumbr = ACQName
     evidNumbr = "001"
-    caseDescr = fmt.Sprintf("AChoirX Live Acquisition: %s", ACQName)
     caseExmnr = "Unknown"
-
-
-    // What Directory are we in?
-    BaseDir, cwd_err = os.Getwd()
-    if cwd_err != nil {
-        BaseDir = fmt.Sprintf("%cAChoir%cACQ-IR-%s-%04d%02d%02d-%02d%02d", slashDelim, slashDelim, cName, iYYYY, iMonth, iDay, iHour, iMin) 
-    }
-
-    CurrWorkDir := BaseDir
-
-    // Remove any Trailing Slashes.  This happens if CWD is a mapped network drive (since it is at the root directory)
-    // Note: slashDelim was set above based on OS
-    if last := len(BaseDir) - 1; last >= 0 && BaseDir[last] == slashDelim {
-        BaseDir = BaseDir[:last]
-    }
-
 
     // Start by Parsing any Command Line Parameters
     for i := 1; i < len(os.Args); i++ {
@@ -607,6 +588,15 @@ func main() {
             RunMode = "Mnu"
             inFnam = "Menu.ACQ"
             iRunMode = 3
+        } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/NAM:") {
+            // Limit the Name to 200 Characters - Should be Plenty
+            if len(os.Args[i]) < 201 {
+                // Reset Everything to the new Name
+                cNewName = os.Args[i][5:]
+                setDirectories(cNewName)
+            } else {
+                fmt.Println("[!] /NAM: Too Long - Greater than 200 chars")
+            }
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/DBG:") {
             if strings.ToUpper(os.Args[i][5:]) == "MIN" {
                 setMSGLvl = 1
@@ -1235,6 +1225,12 @@ func main() {
 
                     repl_Hst := NewCaseInsensitiveReplacer("&Hst", cName)
                     o32VarRec = repl_Hst.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Nam") {
+
+                    repl_Nam := NewCaseInsensitiveReplacer("&Nam", cNewName)
+                    o32VarRec = repl_Nam.Replace(o32VarRec)
                 }
 
                 if CaseInsensitiveContains(o32VarRec, "&Acq") {
@@ -5946,6 +5942,43 @@ func scanPort(scanProto string, scanHostPort string) bool {
     return true
 }
 
+
+//***************************************************************************
+// ReSet a new Acquisition Directory                                        *
+//***************************************************************************
+func setDirectories(NewDirName string) {
+
+    // Get Time and Date
+    lclTime := time.Now()
+    iMonth := int(lclTime.Month())
+    iDay := lclTime.Day()
+    iYYYY := lclTime.Year()
+    iHour := lclTime.Hour()
+    iMin := lclTime.Minute()
+
+    // Set Acquisition Directory Name
+    ACQName = fmt.Sprintf("ACQ-IR-%s-%04d%02d%02d-%02d%02d", NewDirName, iYYYY, iMonth, iDay, iHour, iMin)
+
+    // Set Case defaults - If we have not already mofified the Case Data (iCase == 1).
+    if iCase != 1 {
+        caseNumbr = ACQName
+        caseDescr = fmt.Sprintf("AChoirX Live Acquisition: %s", ACQName)
+    }
+
+    // What Directory are we in? Set our Base and Current Working Directory
+    BaseDir, cwd_err = os.Getwd()
+    if cwd_err != nil {
+        BaseDir = fmt.Sprintf("%cAChoirX%cACQ-IR-%s-%04d%02d%02d-%02d%02d", slashDelim, slashDelim, NewDirName, iYYYY, iMonth, iDay, iHour, iMin) 
+    }
+
+    CurrWorkDir = BaseDir
+
+    // Remove any Trailing Slashes.  This happens if CWD is a mapped network drive (since it is at the root directory)
+    // Note: slashDelim was set above based on OS
+    if last := len(BaseDir) - 1; last >= 0 && BaseDir[last] == slashDelim {
+        BaseDir = BaseDir[:last]
+    }
+}
 
 
 //***************************************************************************

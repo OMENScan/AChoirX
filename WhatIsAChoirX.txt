@@ -1,4 +1,4 @@
-AChoirX - v10.00.97 (RC3)
+AChoirX - v10.01.00 - Release 1.0
 
 AChoirX
 =======
@@ -405,6 +405,7 @@ Objects:
 &VCK     Results of last Volume Check (VCK:<x:\>
 &DSA     Disk Space Available
 &MEM     Total Memory
+&NAM     Name used for Directory Naming - Set with /NAM: Command Line Option 
 &HST     Local Host Name (set to "localhost" on error)
 &ADM     Running as Admin?  (Yes | No)
 &HSH     MD5 of the last file Hashed with HSH:
@@ -422,7 +423,7 @@ Here are the Command Line Options:
         Note: This is a simple Menu Script for selecting an AChoirX script to run.
 /CON  - Run In Interactive Mode (Same as /Ini:Console)
 /CSE  - Interactive/Console Query for Case Information
-
+/NAM:<Name> - Set the Acquisition Directory using this Name
 /GET:<URL> Get a file using HTTP, before doing the collection.
          Note: The FileName will be set to the URL FileName (after last "/").
                The File will be placed in the Root Directory of AChoir
