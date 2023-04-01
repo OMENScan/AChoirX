@@ -467,7 +467,6 @@ var opn_err error                               // User Defined File Errors
 var zip_err error                               // User Defined File Errors
 var cwd_err error                               // Current Directory Errors
 var for_rcd bool                                // Return Code for ForFile Read
-var flt_rcd bool                                // Return Code for ForFile Read
 var lst_rcd bool                                // Return Code for LstFile Read
 var dsk_rcd bool                                // Return Code for DskFile Read
 
@@ -1209,8 +1208,9 @@ func main() {
 
                             FltRecFound = 0 
                             for FltScan.Scan() {
-                                flt_rcd = FltScan.Scan()
                                 Fltrec = strings.TrimSpace(FltScan.Text())
+                                //fmt.Printf("[Debug] -%s->%s-\n", Lstrec, Fltrec)
+
 
                                 //****************************************************************
                                 //* Step 1: Look for Match - Filtscope is Full(1) or Part(2)     *
@@ -1241,7 +1241,6 @@ func main() {
                             if iFiltype == 2 && FltRecFound == 1 {
                                 continue
                             }
-
                         }
                     }
                 }
@@ -3037,24 +3036,24 @@ func main() {
 
 
 
-                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SET:Filter=") {
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:FILTER=") {
                     //*****************************************************************
                     //* Set Filter to None (0), Include(1), or Exclude(2)             *
                     //*****************************************************************
-                    if strings.ToUpper(Inrec[15:]) == "None" {
+                    if strings.ToUpper(Inrec[11:]) == "None" {
                         iFiltype = 0
-                    } else if CaseInsensitiveContains(Inrec[15:], "Incl") {
+                    } else if CaseInsensitiveContains(Inrec[11:], "Incl") {
                         iFiltype = 1
-                    } else if CaseInsensitiveContains(Inrec[15:], "Excl") {
+                    } else if CaseInsensitiveContains(Inrec[11:], "Excl") {
                         iFiltype = 2
                     }
 
                     //*****************************************************************
                     //* Set Filter to Full(1) or Partial(2) Matching                  *
                     //*****************************************************************
-                    if CaseInsensitiveContains(Inrec[15:], "Full") {
+                    if CaseInsensitiveContains(Inrec[11:], "Full") {
                         iFiltscope = 1
-                    } else if CaseInsensitiveContains(Inrec[15:], "Part") {
+                    } else if CaseInsensitiveContains(Inrec[11:], "Part") {
                         iFiltscope = 2
                     }
 
