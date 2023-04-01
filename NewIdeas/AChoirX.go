@@ -134,15 +134,34 @@
 //
 // AChoirX v10.00.96 - Improve CPU Limit Throttling
 //
+// AChoirX v10.00.97 - Add Native Registry Extraction
+//
+// AChoirX v10.00.98 - Check for Collisions - Multiple collections at the same time
+//                   - Improve Syslog (remove CRLFs)
+//
+// AChoirX v10.00.99 - Minor improvement to CPS: (it ignores case now)
+//
+// AChoirX v10.01.00 - Release 1.0
+//                   - Add /Nam: to Specify Directory Name
+//
+// AChoirX v10.01.00 - Release 1.1
+//                   - Add FLT:<Filter Files> = Filter &LST and &FOR based on a Filter File
+//                   - Add SET:Filter= to control how the filter functions
+//                     - None = Remove the Filter
+//                     - Incl or Excl = Filter is used to Include or Exclude entries
+//                     - Full or Part = Filter is full or partial match
+//                     - Example: SET:Filter=Incl,Part = Filter data that has Partial Matches
+//
 // Other Libraries and code I use:
-//  Syslog: go get github.com/NextronSystems/simplesyslog
-//  Sys:    go get golang.org/x/sys
-//  w32:    go get github.com/gonutz/w32 - Deprecated
-//  w32:    go get github.com/gonutz/w32/v2
-//  S3:     go get github.com/aws/aws-sdk-go/...
-//  SFTP:   go get github.com/pkg/sftp
-//  SFTP:   go get golang.org/x/crypto/ssh
-//  cpu:    go get github.com/shirou/gopsutil/cpu
+//  Syslog:   go get github.com/NextronSystems/simplesyslog
+//  Sys:      go get golang.org/x/sys
+//  w32:      go get github.com/gonutz/w32 - Deprecated
+//  w32:      go get github.com/gonutz/w32/v2
+//  S3:       go get github.com/aws/aws-sdk-go/...
+//  SFTP:     go get github.com/pkg/sftp
+//  SFTP:     go get golang.org/x/crypto/ssh
+//  cpu:      go get github.com/shirou/gopsutil/cpu
+//  Registry: go get golang.org/x/sys/windows/registry
 //
 // Changes from AChoir:
 //  Environment Variable Expansion now uses GoLang $Var or ${Var} 
@@ -200,7 +219,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.00.96"                       // AChoir Version
+var Version = "v10.01.00"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -237,6 +256,7 @@ var DskMe = 0                                   // Flag to identify &DSK is bein
 var dskTyp uint32 = 3                           // Default Disk Type is Fixed (Type 3)
 var LoopNum = 0                                 // Loop Counter
 var ForFName = "File.txt"                       // Parsed File name from Path
+var FltFName = "Filter.txt"                     // Filtering strings in a Filter File 
 var iNative = 0                                 // Are we Native 64Bit on 64Bit (Native = 1, NonNative = 0)
 var sNative = ""                                // Native String (blank or Non-) 
 var iIsAdmin = 0                                // Are we an Admin 
@@ -266,6 +286,9 @@ var NotFound = 0                                // Flag for ensuring that only o
 var YesFound = 0                                // Flag for ensuring that only one Found Rec Increments RunMe
 var isInstalled = 0                             // AChoirX Install Has Not been Run Yet (0)
 var isB64Ini = 0                                // /B64: parameter on Command Line (B64 encoded INI File)
+var iFiltype = 0                                // Filter Type Include(1) or Exclude(2)
+var iFiltscope = 0                              // Filter Scope Full Match(1) or Partial Match(2)
+var FltRecFound = 0                             // Found a filter Record match
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -298,6 +321,7 @@ var Cmprec = "Compare Record"                   // Used by Compare Routines
 var Ziprec = "Zip Record"                       // Used by Unzip Routines
 var Getrec = "Get Record"                       // Used by HTTP Get: Routines
 var Filrec = "File Record"                      // File Record 
+var Fltrec = "Filter Record"                    // Filter Record 
 var Lstrec = "List Record"                      // List Record 
 var Dskrec = "Disk Record"                      // Disk Record 
 var Inprec = "Console Input"                    // Console Input Record 
@@ -377,15 +401,19 @@ var B64File = "C:\\AChoir\\AChoirB64.Acq"       // AChoir Decoded B64 Script Fil
 var LogFile = "C:\\AChoir\\LogFile.dat"         // AChoir Log File
 var CpyFile = "C:\\AChoir\\LogFile.dat"         // Copy To this File
 var HtmFile = "C:\\AChoir\\Index.htm"           // AChoir HTML Output File
+var RegFile = "Registry.csv"                    // AChoir REG: Output File Name
+var RegPath = "C:\\AChoir\\Registry.csv"        // AChoir REG: Full Path Output File
 var WGetFile = "C:\\AChoir\\Download.dat"       // Downloaded WGet File
 var LstFile = "C:\\AChoir\\Data.Lst"            // List of Data
 var ChkFile = "C:\\AChoir\\Data.Chk"            // Check For File Existence
 var MD5File = "C:\\AChoir\\Hash.txt"            // Saved Hashes
 var BACQDir = "C:\\AChoir"                      // Base Acquisition Directory
 var BaseDir = "C:\\AChoir"                      // Base Directory
+var CurrWorkDir = "C:\\AChoir"                  // Current Workin Directory
 var ACQDir = ""                                 // Relative Acquisition Directory
 var CachDir = "C:\\AChoir\\Cache"               // AChoir Caching Directory 
 var ForFile = "C:\\AChoir\\Cache\\ForFiles"     // Do action for these Files
+var FltFile = "C:\\AChoir\\Cache\\FltFiles"     // Filter File for &LST and &FOR
 var MCpFile = "C:\\AChoir\\Cache\\MCpFiles"     // Do action for Multiple File Copies
 var ForDisk = "C:\\AChoir\\Cache\\ForDisk"      // Do Action for Multiple Disk Drives 
 var CurrDir = ""                                // Current Directory
@@ -404,6 +432,7 @@ var ProgVar = "NA"                              // Windows Program Files
 
 // Host Information
 var cName = "localhost"                         // Endpoint Host Name
+var cNewName = "localhost"                      // From /NAM: command line option
 var host_err error                              // HostName Errors
 var MyPID = 0                                   // This Programs Process ID
 
@@ -411,12 +440,15 @@ var MyPID = 0                                   // This Programs Process ID
 var IniScan *bufio.Scanner                      // IO Reader for File or Console
 var ForScan *bufio.Scanner                      // IO Reader for ForFile
 var LstScan *bufio.Scanner                      // IO Reader for LstFile
+var FltScan *bufio.Scanner                      // IO Reader for FltFile
 var DskScan *bufio.Scanner                      // IO Reader for DskFile
 var LogHndl *os.File                            // File Handle for the LogFile
 var HtmHndl *os.File                            // File Handle for the HtmFile
+var RegHndl *os.File                            // File Handle for the Registry Parse Output
 var IniHndl *os.File                            // File Handle for the IniFile
 var ForHndl *os.File                            // File Handle for the ForFile
 var LstHndl *os.File                            // File Handle for the LstFile
+var FltHndl *os.File                            // File Handle for the FltFile
 var DskHndl *os.File                            // File Handle for the DskFile
 var OpnHndl *os.File                            // User Defined Output File(s)
 var MD5Hndl *os.File                            // Save Hashes of Files
@@ -425,14 +457,17 @@ var STDOHndl *os.File                           // STDOut File Handle
 var STDEHndl *os.File                           // STDErr File Handle
 var log_err error                               // Logging Errors
 var htm_err error                               // HTML Writer Errors
+var reg_err error                               // Registry Writer Errors
 var ini_err error                               // Ini File Errors
 var for_err error                               // For File Errors
+var flt_err error                               // Flt File Errors
 var lst_err error                               // Lst File Errors
 var dsk_err error                               // Dsk File Errors
 var opn_err error                               // User Defined File Errors
 var zip_err error                               // User Defined File Errors
 var cwd_err error                               // Current Directory Errors
 var for_rcd bool                                // Return Code for ForFile Read
+var flt_rcd bool                                // Return Code for ForFile Read
 var lst_rcd bool                                // Return Code for LstFile Read
 var dsk_rcd bool                                // Return Code for DskFile Read
 
@@ -485,23 +520,17 @@ func main() {
     MyProg, _ = os.Executable()
     MyHash = GetMD5File(MyProg)
 
-    // Get Time and Date
-    lclTime := time.Now()
-    iMonth := int(lclTime.Month())
-    iDay := lclTime.Day()
-    iYYYY := lclTime.Year()
-    iHour := lclTime.Hour()
-    iMin := lclTime.Minute()
-
     // Get Host Name
     cName, host_err = os.Hostname()
     if host_err != nil {
         cName = "LocalHost"
     }
 
+    // Default cNewName to cName
+    cNewName = cName
+
     // Get My PID
     MyPID = os.Getpid()
-
 
     // Get Operating System and Architecture
     opArchit = runtime.GOARCH
@@ -533,31 +562,13 @@ func main() {
 
     // Initial Settings and Configuration
     slashDelimS = fmt.Sprintf("%c", slashDelim)
-    ACQName = fmt.Sprintf("ACQ-IR-%s-%04d%02d%02d-%02d%02d", cName, iYYYY, iMonth, iDay, iHour, iMin)
+    setDirectories(cName)
     inFnam = "AChoir.ACQ"
     iOutOfDiskSpace = 0
 
     // Default Case Settings 
-    caseNumbr = ACQName
     evidNumbr = "001"
-    caseDescr = fmt.Sprintf("AChoirX Live Acquisition: %s", ACQName)
     caseExmnr = "Unknown"
-
-
-    // What Directory are we in?
-    BaseDir, cwd_err = os.Getwd()
-    if cwd_err != nil {
-        BaseDir = fmt.Sprintf("%cAChoir%cACQ-IR-%s-%04d%02d%02d-%02d%02d", slashDelim, slashDelim, cName, iYYYY, iMonth, iDay, iHour, iMin) 
-    }
-
-    CurrWorkDir := BaseDir
-
-    // Remove any Trailing Slashes.  This happens if CWD is a mapped network drive (since it is at the root directory)
-    // Note: slashDelim was set above based on OS
-    if last := len(BaseDir) - 1; last >= 0 && BaseDir[last] == slashDelim {
-        BaseDir = BaseDir[:last]
-    }
-
 
     // Start by Parsing any Command Line Parameters
     for i := 1; i < len(os.Args); i++ {
@@ -595,6 +606,15 @@ func main() {
             RunMode = "Mnu"
             inFnam = "Menu.ACQ"
             iRunMode = 3
+        } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/NAM:") {
+            // Limit the Name to 200 Characters - Should be Plenty
+            if len(os.Args[i]) < 201 {
+                // Reset Everything to the new Name
+                cNewName = os.Args[i][5:]
+                setDirectories(cNewName)
+            } else {
+                fmt.Println("[!] /NAM: Too Long - Greater than 200 chars")
+            }
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/DBG:") {
             if strings.ToUpper(os.Args[i][5:]) == "MIN" {
                 setMSGLvl = 1
@@ -788,8 +808,40 @@ func main() {
 
     //****************************************************************
     //* Logging!                                                     *
+    //*  Check for same logfile name indicating collision            *
     //****************************************************************
     LogFile = fmt.Sprintf("%s%cLogs%c%s.Log", BaseDir, slashDelim, slashDelim, ACQName)
+
+    //If the Logfile already exists, this is a collision - Log it and exit
+    if FileExists(LogFile) {
+        LogHndl, log_err = os.OpenFile(LogFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+        if log_err != nil {
+            ConsOut = fmt.Sprintf("[!] Log Could not be opened for Append: %s\n", LogFile)
+            ConsLogSys(ConsOut, 1, 1)
+        } else {
+            iLogOpen = 1
+        }
+
+        ConsOut = fmt.Sprintf("[+] AChoirX Ver: %s, Mode: %s, OS: %s, Proc: %s\n", Version, RunMode, OSVersion, opArchit)
+        ConsLogSys(ConsOut, 1, 1)
+
+        ConsOut = fmt.Sprintf("[+] Path: %s, MD5: %s\n", MyProg, MyHash)
+        ConsLogSys(ConsOut, 1, 1)
+
+        ConsOut = fmt.Sprintf("[!] Collision: %s\n", ACQName)
+        ConsLogSys(ConsOut, 1, 1)
+
+        showTime("[!] Collision Detected...  Exiting...")
+
+        if iLogOpen == 1 {
+            LogHndl.Close()
+        }
+
+        os.Exit(3)
+    }
+
+
+    // Fell Through - Looks OK so far...
     LogHndl, log_err = os.Create(LogFile)
 
     if log_err != nil {
@@ -1133,6 +1185,76 @@ func main() {
                 }
 
 
+
+
+
+
+
+
+
+
+
+                //****************************************************************
+                //* Check for &Lst (LstMe) filtering                             *
+                //****************************************************************
+                if iFiltype > 0 {
+                    if LstMe == 1 {
+                        FltFile, flt_err := os.Open(FltFName)
+
+                        if flt_err != nil {
+                            ConsOut = fmt.Sprintf("[!] Filter file could not be opened: %s\n", FltFile)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            FltScan = bufio.NewScanner(FltFile)
+
+                            FltRecFound = 0 
+                            for FltScan.Scan() {
+                                flt_rcd = FltScan.Scan()
+                                Fltrec = strings.TrimSpace(FltScan.Text())
+
+                                //****************************************************************
+                                //* Step 1: Look for Match - Filtscope is Full(1) or Part(2)     *
+                                //****************************************************************
+                                if iFiltscope == 1 {
+                                    if Fltrec == Lstrec {
+                                        FltRecFound = 1
+                                    }
+                                } else {
+                                    if CaseInsensitiveContains(Lstrec, Fltrec) {
+                                        FltRecFound = 1
+                                    }
+                                }
+                            }
+                            FltFile.Close()
+
+
+                            //****************************************************************
+                            //* Include Filter Logic(1) - If not found, bypass               *
+                            //****************************************************************
+                            if iFiltype == 1 && FltRecFound == 0 {
+                                continue
+                            }
+
+                            //****************************************************************
+                            //* Exclude Filter Logic(2) - if found, bypass                   *
+                            //****************************************************************
+                            if iFiltype == 2 && FltRecFound == 1 {
+                                continue
+                            }
+
+                        }
+                    }
+                }
+
+
+
+
+
+
+
+
+
+
                 //****************************************************************
                 //* Check for System Variables and Expand them                   *
                 //****************************************************************
@@ -1191,6 +1313,12 @@ func main() {
 
                     repl_Hst := NewCaseInsensitiveReplacer("&Hst", cName)
                     o32VarRec = repl_Hst.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Nam") {
+
+                    repl_Nam := NewCaseInsensitiveReplacer("&Nam", cNewName)
+                    o32VarRec = repl_Nam.Replace(o32VarRec)
                 }
 
                 if CaseInsensitiveContains(o32VarRec, "&Acq") {
@@ -1546,18 +1674,22 @@ func main() {
                         ExpandDirs(TempDir)
 
                     }
-
-
-
-
-
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "REG:") {
-                    makeKey(Inrec[4:])
+                    RegFile = fmt.Sprintf("%s", Inrec[4:])
+                    RegFile = strings.Replace(RegFile, "\\", "-", -1) 
+                    RegPath = fmt.Sprintf("%s%c%s%c%s.csv", BACQDir, slashDelim, ACQDir, slashDelim, RegFile)
 
+                    ConsOut = fmt.Sprintf("[+] Extracting Registry Keys and Sub-Keys to: %s\n", RegPath)
+                    ConsLogSys(ConsOut, 1, 2)
 
-
-
-
+                    RegHndl, reg_err = os.Create(RegPath)
+                    if reg_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Opening Reg Output File: %s - Registry Parse Bypassed.\n", RegPath)
+                        ConsLogSys(ConsOut, 1, 2)
+                    } else {
+                        makeKey(Inrec[4:])
+                        RegHndl.Close()
+                    }                
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "DIR:") {
                     //****************************************************************
                     //* Set Current Directory                                        *
@@ -2895,6 +3027,46 @@ func main() {
                     ConsLogSys(ConsOut, 1, 1)
 
                     iSyslogLvl = 2
+
+
+
+
+
+
+
+
+
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SET:Filter=") {
+                    //*****************************************************************
+                    //* Set Filter to None (0), Include(1), or Exclude(2)             *
+                    //*****************************************************************
+                    if strings.ToUpper(Inrec[15:]) == "None" {
+                        iFiltype = 0
+                    } else if CaseInsensitiveContains(Inrec[15:], "Incl") {
+                        iFiltype = 1
+                    } else if CaseInsensitiveContains(Inrec[15:], "Excl") {
+                        iFiltype = 2
+                    }
+
+                    //*****************************************************************
+                    //* Set Filter to Full(1) or Partial(2) Matching                  *
+                    //*****************************************************************
+                    if CaseInsensitiveContains(Inrec[15:], "Full") {
+                        iFiltscope = 1
+                    } else if CaseInsensitiveContains(Inrec[15:], "Part") {
+                        iFiltscope = 2
+                    }
+
+
+
+
+
+
+
+
+
+
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3REGION=") {
                     S3_REGION = Inrec[13:]
                     iS3Login = 0  // Reset Login to force a New Session with this Region
@@ -3485,6 +3657,8 @@ func AChSyslog(SendLogMSG string) {
     //***************************************************************
     // Remove CRLF to prevent Blank Lines in Syslog
     SendLogMSG = strings.TrimSpace(SendLogMSG)
+    SendLogMSG = strings.Replace(SendLogMSG, "\n", ";", -1)
+    SendLogMSG = strings.Replace(SendLogMSG, "\r", ";", -1)
 
 
     // Not sure why UDP Syslog requires tlsConfig - but it wont compile without it
@@ -3950,7 +4124,7 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
         for iSig = 0; iSig < iSigCount; iSig++ {
             // Make Sure we got some data from the File to Check
             if inSize > 0 && sigb_err == nil {
-                if strings.HasPrefix(tmpSig, SigTabl[iSig]) {
+                if strings.HasPrefix(strings.ToUpper(tmpSig), strings.ToUpper(SigTabl[iSig])) {
                     iCPSFound = 1
                     ConsOut = fmt.Sprintf("[*] Header Signature Match Found in File: %s\n", SigTabl[iSig])
                     ConsLogSys(ConsOut, 2, 2)
@@ -5896,6 +6070,43 @@ func scanPort(scanProto string, scanHostPort string) bool {
     return true
 }
 
+
+//***************************************************************************
+// ReSet a new Acquisition Directory                                        *
+//***************************************************************************
+func setDirectories(NewDirName string) {
+
+    // Get Time and Date
+    lclTime := time.Now()
+    iMonth := int(lclTime.Month())
+    iDay := lclTime.Day()
+    iYYYY := lclTime.Year()
+    iHour := lclTime.Hour()
+    iMin := lclTime.Minute()
+
+    // Set Acquisition Directory Name
+    ACQName = fmt.Sprintf("ACQ-IR-%s-%04d%02d%02d-%02d%02d", NewDirName, iYYYY, iMonth, iDay, iHour, iMin)
+
+    // Set Case defaults - If we have not already mofified the Case Data (iCase == 1).
+    if iCase != 1 {
+        caseNumbr = ACQName
+        caseDescr = fmt.Sprintf("AChoirX Live Acquisition: %s", ACQName)
+    }
+
+    // What Directory are we in? Set our Base and Current Working Directory
+    BaseDir, cwd_err = os.Getwd()
+    if cwd_err != nil {
+        BaseDir = fmt.Sprintf("%cAChoirX%cACQ-IR-%s-%04d%02d%02d-%02d%02d", slashDelim, slashDelim, NewDirName, iYYYY, iMonth, iDay, iHour, iMin) 
+    }
+
+    CurrWorkDir = BaseDir
+
+    // Remove any Trailing Slashes.  This happens if CWD is a mapped network drive (since it is at the root directory)
+    // Note: slashDelim was set above based on OS
+    if last := len(BaseDir) - 1; last >= 0 && BaseDir[last] == slashDelim {
+        BaseDir = BaseDir[:last]
+    }
+}
 
 
 //***************************************************************************
