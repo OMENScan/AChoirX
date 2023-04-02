@@ -141,8 +141,16 @@
 //
 // AChoirX v10.00.99 - Minor improvement to CPS: (it ignores case now)
 //
-// AChoirX v10.01.00 - Release 1.0 
+// AChoirX v10.01.00 - Release 1.0
 //                   - Add /Nam: to Specify Directory Name
+//
+// AChoirX v10.01.01 - Release 1.01
+//                   - Add FLT:<Filter Files> = Filter &LST and &FOR based on a Filter File
+//                   - Add SET:Filter= to control how the filter functions
+//                     - None = Remove the Filter
+//                     - Incl or Excl = Filter is used to Include or Exclude entries
+//                     - Full or Part = Filter is full or partial match
+//                     - Example: SET:Filter=Incl,Part = Filter data that has Partial Matches
 //
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
@@ -211,7 +219,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.00"                       // AChoir Version
+var Version = "v10.01.01"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -248,6 +256,7 @@ var DskMe = 0                                   // Flag to identify &DSK is bein
 var dskTyp uint32 = 3                           // Default Disk Type is Fixed (Type 3)
 var LoopNum = 0                                 // Loop Counter
 var ForFName = "File.txt"                       // Parsed File name from Path
+var FltFName = "Filter.txt"                     // Parsed File name from Path
 var iNative = 0                                 // Are we Native 64Bit on 64Bit (Native = 1, NonNative = 0)
 var sNative = ""                                // Native String (blank or Non-) 
 var iIsAdmin = 0                                // Are we an Admin 
@@ -277,6 +286,9 @@ var NotFound = 0                                // Flag for ensuring that only o
 var YesFound = 0                                // Flag for ensuring that only one Found Rec Increments RunMe
 var isInstalled = 0                             // AChoirX Install Has Not been Run Yet (0)
 var isB64Ini = 0                                // /B64: parameter on Command Line (B64 encoded INI File)
+var iFiltype = 0                                // Filter Type Include(1) or Exclude(2)
+var iFiltscope = 0                              // Filter Scope Full Match(1) or Partial Match(2)
+var FltRecFound = 0                             // Found a filter Record match
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -309,6 +321,7 @@ var Cmprec = "Compare Record"                   // Used by Compare Routines
 var Ziprec = "Zip Record"                       // Used by Unzip Routines
 var Getrec = "Get Record"                       // Used by HTTP Get: Routines
 var Filrec = "File Record"                      // File Record 
+var Fltrec = "Filter Record"                    // Filter Record 
 var Lstrec = "List Record"                      // List Record 
 var Dskrec = "Disk Record"                      // Disk Record 
 var Inprec = "Console Input"                    // Console Input Record 
@@ -400,6 +413,7 @@ var CurrWorkDir = "C:\\AChoir"                  // Current Workin Directory
 var ACQDir = ""                                 // Relative Acquisition Directory
 var CachDir = "C:\\AChoir\\Cache"               // AChoir Caching Directory 
 var ForFile = "C:\\AChoir\\Cache\\ForFiles"     // Do action for these Files
+var FltFile = "C:\\AChoir\\Cache\\FltFiles"     // Filter File for &LST and &FOR
 var MCpFile = "C:\\AChoir\\Cache\\MCpFiles"     // Do action for Multiple File Copies
 var ForDisk = "C:\\AChoir\\Cache\\ForDisk"      // Do Action for Multiple Disk Drives 
 var CurrDir = ""                                // Current Directory
@@ -426,6 +440,7 @@ var MyPID = 0                                   // This Programs Process ID
 var IniScan *bufio.Scanner                      // IO Reader for File or Console
 var ForScan *bufio.Scanner                      // IO Reader for ForFile
 var LstScan *bufio.Scanner                      // IO Reader for LstFile
+var FltScan *bufio.Scanner                      // IO Reader for FltFile
 var DskScan *bufio.Scanner                      // IO Reader for DskFile
 var LogHndl *os.File                            // File Handle for the LogFile
 var HtmHndl *os.File                            // File Handle for the HtmFile
@@ -433,6 +448,7 @@ var RegHndl *os.File                            // File Handle for the Registry 
 var IniHndl *os.File                            // File Handle for the IniFile
 var ForHndl *os.File                            // File Handle for the ForFile
 var LstHndl *os.File                            // File Handle for the LstFile
+var FltHndl *os.File                            // File Handle for the FltFile
 var DskHndl *os.File                            // File Handle for the DskFile
 var OpnHndl *os.File                            // User Defined Output File(s)
 var MD5Hndl *os.File                            // Save Hashes of Files
@@ -444,6 +460,7 @@ var htm_err error                               // HTML Writer Errors
 var reg_err error                               // Registry Writer Errors
 var ini_err error                               // Ini File Errors
 var for_err error                               // For File Errors
+var flt_err error                               // Flt File Errors
 var lst_err error                               // Lst File Errors
 var dsk_err error                               // Dsk File Errors
 var opn_err error                               // User Defined File Errors
@@ -1164,6 +1181,79 @@ func main() {
                     ConsLogSys(ConsOut, 1, 2)
 
                     Tmprec = fmt.Sprintf("***: Command Bypassed")
+                }
+
+
+                //****************************************************************
+                //* If Filtering has been confiured, the same Filtering File     *
+                //*  will be used for both &FOR and &LST                         *
+                //****************************************************************
+                if iFiltype > 0 {
+                    if LstMe == 1 || ForMe == 1 {
+                        //****************************************************************
+                        //* Check for &LST (LstMe) or &FOR (ForMe) filtering             *
+                        //****************************************************************
+                        FltHndl, flt_err := os.Open(FltFile)
+
+                        if flt_err != nil {
+                            iFiltype = 0
+                            ConsOut = fmt.Sprintf("[!] Filter file could not be opened: %s\n", FltFile)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            FltScan = bufio.NewScanner(FltHndl)
+
+                            FltRecFound = 0 
+                            for FltScan.Scan() {
+                                Fltrec = strings.TrimSpace(FltScan.Text())
+
+                                if LstMe == 1 {
+                                    //****************************************************************
+                                    //* &LST Look for Match - Filtscope is Full(1) or Part(2)        *
+                                    //****************************************************************
+                                    //fmt.Printf("[c] -%s-%s-\n", Lstrec, Fltrec)
+                                    if iFiltscope == 1 {
+                                        if strings.ToUpper(Lstrec) == strings.ToUpper(Fltrec) {
+                                            FltRecFound = 1
+                                        } 
+                                     } else {
+                                        if CaseInsensitiveContains(Lstrec, Fltrec) {
+                                            FltRecFound = 1
+                                        }
+                                    }
+                                } else if ForMe == 1 {
+                                    //****************************************************************
+                                    //* &For Look for Match - Filtscope is Full(1) or Part(2)        *
+                                    //****************************************************************
+                                    //fmt.Printf("[c] -%s-%s-\n", Filrec, Fltrec)
+                                    if iFiltscope == 1 {
+                                        if strings.ToUpper(Filrec) == strings.ToUpper(Fltrec) {
+                                            FltRecFound = 1
+                                        }
+                                    } else {
+                                        if CaseInsensitiveContains(Filrec, Fltrec) {
+                                            FltRecFound = 1
+                                        }
+                                    }
+                                }
+                            }
+                            FltHndl.Close()
+
+
+                            //****************************************************************
+                            //* Include Filter Logic(1) - If not found, bypass               *
+                            //****************************************************************
+                            if iFiltype == 1 && FltRecFound == 0 {
+                                continue
+                            }
+
+                            //****************************************************************
+                            //* Exclude Filter Logic(2) - if found, bypass                   *
+                            //****************************************************************
+                            if iFiltype == 2 && FltRecFound == 1 {
+                                continue
+                            }
+                        }
+                    }
                 }
 
 
@@ -2852,6 +2942,8 @@ func main() {
 
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "LST:") {
                     LstFile = fmt.Sprintf("%s%c%s", BaseDir,slashDelim, Inrec[4:])
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "FLT:") {
+                    FltFile = fmt.Sprintf("%s%c%s", BaseDir,slashDelim, Inrec[4:])
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "BYE:") {
                     cleanUp_Exit(LastRC);
                     os.Exit(LastRC);
@@ -2939,6 +3031,39 @@ func main() {
                     ConsLogSys(ConsOut, 1, 1)
 
                     iSyslogLvl = 2
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:FILTER=") {
+                    //*****************************************************************
+                    //* Set Filter to None (0), Include(1), or Exclude(2)             *
+                    //*****************************************************************
+                    if strings.ToUpper(Inrec[11:]) == "NONE" {
+                        iFiltype = 0
+                    } else if CaseInsensitiveContains(Inrec[11:], "Incl") {
+                        iFiltype = 1
+                    } else if CaseInsensitiveContains(Inrec[11:], "Excl") {
+                        iFiltype = 2
+                    }
+
+                    //*****************************************************************
+                    //* Set Filter to Full(1) or Partial(2) Matching                  *
+                    //*****************************************************************
+                    if CaseInsensitiveContains(Inrec[11:], "Full") {
+                        iFiltscope = 1
+                    } else if CaseInsensitiveContains(Inrec[11:], "Part") {
+                        iFiltscope = 2
+                    }
+
+                    //*****************************************************************
+                    //* Verify that the Filter Exists, Otherwise set to NONE(0)       *
+                    //*****************************************************************
+                    FltHndl, flt_err = os.Open(FltFile)
+
+                    if flt_err != nil {
+                        ConsOut = fmt.Sprintf("[!] &FLT File was not found (FLT: not set): %s\n", FltFile)
+                        ConsLogSys(ConsOut, 1, 2)
+                        iFiltype = 0
+                        break
+                    }
+                    FltHndl.Close()
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3REGION=") {
                     S3_REGION = Inrec[13:]
                     iS3Login = 0  // Reset Login to force a New Session with this Region

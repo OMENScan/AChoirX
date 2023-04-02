@@ -176,6 +176,11 @@ SET:ZipFileName=close Close the Current Zip File & assign new Zip File Name
 SET:ZipFileRoot=<ZipRoot> Name of the Zip File Root in the Zip File
 SET:CPUThrottle=<None>, <Low>, <Med,> <High> - Throttle AChoirX on CPU 
          Utilization (None, 25%, 50%, 75%)
+SET:FILTER=<incl> <excl> <full> <part> - Set the filtering behavior
+           incl = &FOR or &LST match entries in Filter File 
+           excl = &FOR or &LST does NOT match entries in Filter File 
+           full = &FOR or &LST Exact match with entries in Filter File 
+           part = &FOR or &LST Partial match with entries in Filter File 
 SAY:     Echo Text and Objects to the Screen and Logfile
 CON:Hide Hide The Console Screen - For quiet Acquisition
          DO NOT USE IF YOU HAVE SCREEN INPUT - For any 
@@ -275,6 +280,14 @@ LST:<FileName>
          Lines in the <FilName>. In this way a single command can
          be run iteratively replacing the &For variable with each
          entry in the <FileName>. 
+FLT:<filename> or NONE
+         Set the Filter File Name - This file contains text entries 
+         to FILTER both the &FOR and &LST objects.  Setting the file
+         name is not enough to filter, the SET:FILTER= options MUST
+         also be set.  The NONE option removes the filter.
+         Warning: The FILTER IS USED FOR BOTH &LST and &FOR.  Set 
+         FLT:NONE when the filter is no longer needed to avoid unwanted
+         filtering.
 REG:<RegistryKey>
          Natively extract a Registry Key and ALL Sub-Keys under
          it.  The Key MUST BEGIN WITH ONE OF THE FOLLOWING:
@@ -603,6 +616,24 @@ AChoirX uses, will write UniCode (i.e. UTF-16) text output files.  In order for 
 be able read and parse that output, it needs to convert any UniCode to UTF-8. To make 
 that possible, AChoirX will ignore all =x'00' in a string. AChoirX will internally convert 
 UTF-16 input to UTF-8 and write all its output as UTF-8. 
+
+
+A note about Filtering
+----------------------
+AchoirX has a "Filtering" Option.  This can be used in many cases to LIMIT the &FOR and 
+&LST entries.  There are many use cases for this type of option. To make filtering as 
+easy as possible I have made it global across BOTH &LST and &FOR objects.  To set the 
+File to be used for filtering use the FLT:<filename> or NONE command. The Filter File
+contains text entries to FILTER both the &FOR and &LST objects.  Setting the file name 
+is not enough to filter, the SET:FILTER= options MUST also be set. This includes the 
+following options: SET:FILTER=<incl> <excl> <full> <part>
+- incl = &FOR or &LST match entries in Filter File 
+- excl = &FOR or &LST does NOT match entries in Filter File 
+- full = &FOR or &LST Exact match with entries in Filter File 
+- part = &FOR or &LST Partial match with entries in Filter File 
+
+The NONE option removes the filter.  Warning: The FILTER IS USED FOR BOTH &LST and &FOR.  
+Set FLT:NONE when the filter is no longer needed to avoid unwanted filtering.
 
 
 Artifacts that AChoirX itself generates:
