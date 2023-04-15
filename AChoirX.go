@@ -152,6 +152,9 @@
 //                     - Full or Part = Filter is full or partial match
 //                     - Example: SET:Filter=Incl,Part = Filter data that has Partial Matches
 //
+// AChoirX v10.01.02 - Release 1.02
+//                   - Fix Zip Bug when no directory is specified
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -219,7 +222,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.01"                       // AChoir Version
+var Version = "v10.01.02"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -1969,10 +1972,10 @@ func main() {
                         //* First File.  Generate Dir Offset for this collection         *
                         //*  This deteremines the subdirectories                         *
                         //****************************************************************
-                        zipOffset = strings.LastIndexByte(Inrec, slashDelim)
+                        zipOffset = strings.LastIndexByte(ZipInrec, slashDelim)
                         if (zipOffset == -1) {
                             zipOffset = 0
-                        } else if len(Inrec[zipOffset+1:]) < 2 {
+                        } else if len(ZipInrec[zipOffset+1:]) < 2 {
                             zipOffset = 0
                         } else {
                             zipOffset++
@@ -2052,9 +2055,9 @@ func main() {
                     //* file. Preserve the folder structure by using the first Offset *
                     //*****************************************************************
                     if len(setOutZipFRoot) < 1 {
-                        Zipheader.Name = fmt.Sprintf("%s", Inrec[zipOffset:])
+                        Zipheader.Name = fmt.Sprintf("%s", ZipInrec[zipOffset:])
                     } else {
-                        Zipheader.Name = fmt.Sprintf("%s%c%s", setOutZipFRoot, slashDelim, Inrec[zipOffset:])
+                        Zipheader.Name = fmt.Sprintf("%s%c%s", setOutZipFRoot, slashDelim, ZipInrec[zipOffset:])
                     }
 
                     ConsOut = fmt.Sprintf("[+] OutZipFileHeader: %s - Offset: %d\n", Zipheader.Name, zipOffset)
