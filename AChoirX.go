@@ -155,6 +155,9 @@
 // AChoirX v10.01.02 - Release 1.02
 //                   - Fix Zip Bug when no directory is specified
 //
+// AChoirX v10.01.03 - Release 1.03
+//                   - More improvements in Zip - Fix Subdirectory Indexing
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -222,7 +225,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.02"                       // AChoir Version
+var Version = "v10.01.03"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -1967,12 +1970,42 @@ func main() {
                     ConsOut = fmt.Sprintf("[+] Zipping: %s ==> %s\n", ZipInrec, setOutZipFName)
                     ConsLogSys(ConsOut, 1, 1)
 
-                    if LoopNum < 2 {
+
+                    //****************************************************************
+                    //* If we are zipping from the current Acquisition Directory, do *
+                    //*  Not inlude the root.  Just the Subdirs                      *
+                    //* IMPORTANT: Check FULL ACQDir FIRST, then Base ACQ Directory  *
+                    //****************************************************************
+                    TempDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
+
+                    if strings.HasPrefix(strings.ToUpper(ZipInrec), strings.ToUpper(TempDir)) {
+                        zipOffset = len(TempDir)
+
+                        // Dont Land on a Delimiter
+                        if ZipInrec[zipOffset] == slashDelim {
+                            zipOffset++
+                        }
+                          
+                    } else if strings.HasPrefix(strings.ToUpper(ZipInrec), strings.ToUpper(BACQDir)) {
+                        zipOffset = len(BACQDir)
+
+                        // Dont Land on a Delimiter
+                        if ZipInrec[zipOffset] == slashDelim {
+                            zipOffset++
+                        }
+
+                    } else if strings.HasPrefix(strings.ToUpper(ZipInrec), strings.ToUpper(BaseDir)) {
+                        zipOffset = len(BaseDir)
+
+                        // Dont Land on a Delimiter
+                        if ZipInrec[zipOffset] == slashDelim {
+                            zipOffset++
+                        }
+                    } else {
                         //****************************************************************
-                        //* First File.  Generate Dir Offset for this collection         *
-                        //*  This deteremines the subdirectories                         *
+                        //* Ignore our Root Directory, but presere everything under it   *
                         //****************************************************************
-                        zipOffset = strings.LastIndexByte(ZipInrec, slashDelim)
+                        zipOffset = strings.IndexByte(ZipInrec, slashDelim)
                         if (zipOffset == -1) {
                             zipOffset = 0
                         } else if len(ZipInrec[zipOffset+1:]) < 2 {
