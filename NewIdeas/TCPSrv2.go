@@ -39,14 +39,24 @@ func main() {
 		if strings.HasPrefix(strings.ToUpper(clientRequestrim), "SESS:NONE") {
 			log.Printf("Session Set To: None\n")
 			CurrSess = -1
+		} else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "SESS:LIST") {
+			for i := 0; i < SessCount; i++ {
+				log.Printf("Session: %d - IP Address: %s Status: %s\n", SessArry[i], SessIPV4[i], SessStat[i])
+			}
 		} else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "SESS:") {
 			CurrSess, _ = strconv.Atoi(clientRequestrim[5:])
                   if CurrSess > SessCount-1 {
 				log.Printf("No Such Session: %d\n", CurrSess)
 				CurrSess = -1
+			} else if SessStat[CurrSess] != "Active" {
+				log.Printf("Session is not Active: %d\n", CurrSess)
+				CurrSess = -1
 			} else {
 				log.Printf("Session Set To: %d (%s)\n", CurrSess, SessIPV4[CurrSess])
 			}
+		} else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "QUIT:") {
+			log.Printf("[!] Exiting AChoirX Multi-Handler... All Remote Sessions Will Terminate\n")
+			os.Exit(0)
 		} else {
 
 			//log.Println(clientRequestrim)
@@ -88,6 +98,7 @@ func handleClientRequest(con net.Conn) {
 	defer con.Close()
 
 	clientReader := bufio.NewReader(con)
+      MyCount := SessCount
 	SessArry = append(SessArry, SessCount)
 	SessHndl = append(SessHndl, clientReader)
 	SessConn = append(SessConn, con)
@@ -101,7 +112,6 @@ func handleClientRequest(con net.Conn) {
 
 	// Bump the Session Table for the next Session
 	SessCount++ 
- 
 
 	for {
 		// Waiting for the client request
@@ -111,16 +121,19 @@ func handleClientRequest(con net.Conn) {
 		case nil:
 			clientRequest := strings.TrimSpace(clientRequest)
 			if clientRequest == ":QUIT" {
-				log.Println("client requested server to close the connection so closing")
+				log.Println("[!] client requested server to close the connection so closing")
+	                  SessStat[MyCount] = "Closed"
 				return
 			} else {
 				log.Println(clientRequest)
 			}
 		case io.EOF:
-			log.Println("client closed the connection by terminating the process")
+			log.Println("[!] Client closed the connection by terminating the process")
+                  SessStat[MyCount] = "Closed"
 			return
 		default:
-			log.Printf("error: %v\n", err)
+			log.Printf("[!] Connection Error: %v\n", err)
+                  SessStat[MyCount] = "Closed"
 			return
 		}
  
