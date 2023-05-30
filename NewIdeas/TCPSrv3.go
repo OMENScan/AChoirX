@@ -54,7 +54,7 @@ func main() {
 			} else {
 				log.Printf("Session Set To: %d (%s)\n", CurrSess, SessIPV4[CurrSess])
 			}
-		} else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "QUIT:") {
+		} else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "KILL:") {
 			log.Printf("[!] Exiting AChoirX Multi-Handler... All Remote Sessions Will Terminate\n")
 			os.Exit(0)
 		} else {
@@ -97,6 +97,8 @@ func ListenForRequest() {
 func handleClientRequest(con net.Conn) {
 	defer con.Close()
 
+	var ConsOut = "[+] Console Output"
+
 	clientReader := bufio.NewReader(con)
       MyCount := SessCount
 	SessArry = append(SessArry, SessCount)
@@ -116,17 +118,12 @@ func handleClientRequest(con net.Conn) {
 	for {
 		// Waiting for the client request
 		clientRequest, err := clientReader.ReadString('\n')
+		clientRequest = strings.TrimSpace(clientRequest)
+		ConsOut = fmt.Sprintf("%d>>> %s", MyCount, clientRequest)
  
 		switch err {
 		case nil:
-			clientRequest := strings.TrimSpace(clientRequest)
-			if clientRequest == ":QUIT" {
-				log.Println("[!] client requested server to close the connection so closing")
-	                  SessStat[MyCount] = "Closed"
-				return
-			} else {
-				log.Println(clientRequest)
-			}
+			log.Println(ConsOut)
 		case io.EOF:
 			log.Println("[!] Client closed the connection by terminating the process")
                   SessStat[MyCount] = "Closed"
@@ -138,8 +135,8 @@ func handleClientRequest(con net.Conn) {
 		}
  
 		// Responding to the client request
-		if _, err = con.Write([]byte("GOT IT!\n")); err != nil {
-			log.Printf("failed to respond to client: %v\n", err)
-		}
+		//if _, err = con.Write([]byte("GOT IT!\n")); err != nil {
+		//	log.Printf("failed to respond to client: %v\n", err)
+		//}
 	}
 }
