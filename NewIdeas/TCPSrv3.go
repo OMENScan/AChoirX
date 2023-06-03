@@ -112,6 +112,19 @@ func handleClientRequest(con net.Conn) {
 	//log.Printf("Session Count: %d\n", SessCount)
 	//log.Printf("Session Item: %d\n", SessArry[SessCount])
 
+	// Generate Auth String (HostName)
+	cName, host_err := os.Hostname()
+	if host_err != nil {
+		cName = "LocalHost"
+	}
+
+	// After Connecting - Send an Auth Request
+	fmt.Printf("[+] Sending an Auth Request to the newly connected client...\n")
+      Srv_Auth := fmt.Sprintf("Auth:%s\n", cName)
+	if _, auth_err := con.Write([]byte(Srv_Auth)); auth_err != nil {
+		log.Printf("[!] Failed to Initiate Authorization: %v\n", auth_err)
+	}
+
 	// Bump the Session Table for the next Session
 	SessCount++ 
 
@@ -119,24 +132,24 @@ func handleClientRequest(con net.Conn) {
 		// Waiting for the client request
 		clientRequest, err := clientReader.ReadString('\n')
 		clientRequest = strings.TrimSpace(clientRequest)
-		ConsOut = fmt.Sprintf("%d>>> %s", MyCount, clientRequest)
+
+		if strings.HasPrefix(strings.ToUpper(clientRequest), "VRFY:") {
+			log.Printf("[+] Vrfy Recieved from Client: %s\n", strings.TrimSpace(clientRequest[5:]))
+		} else {
+			ConsOut = fmt.Sprintf("%d>>> %s", MyCount, clientRequest)
  
-		switch err {
-		case nil:
-			log.Println(ConsOut)
-		case io.EOF:
-			log.Println("[!] Client closed the connection by terminating the process")
-                  SessStat[MyCount] = "Closed"
-			return
-		default:
-			log.Printf("[!] Connection Error: %v\n", err)
-                  SessStat[MyCount] = "Closed"
-			return
+			switch err {
+			case nil:
+				log.Println(ConsOut)
+			case io.EOF:
+				log.Println("[!] Client closed the connection by terminating the process")
+            	      SessStat[MyCount] = "Closed"
+				return
+			default:
+				log.Printf("[!] Connection Error: %v\n", err)
+            	      SessStat[MyCount] = "Closed"
+				return
+			}
 		}
- 
-		// Responding to the client request
-		//if _, err = con.Write([]byte("GOT IT!\n")); err != nil {
-		//	log.Printf("failed to respond to client: %v\n", err)
-		//}
 	}
 }
