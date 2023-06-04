@@ -6,13 +6,16 @@ import (
 	"log"
 	"net"
 	"os"
-      "fmt"
+	"fmt"
 	"strings"
 	"strconv"
+	"math/rand"
+	"time"
 )
 
 var SessArry []int
 var SessStat []string
+var SessKeys []string
 var SessHndl []*bufio.Reader
 var SessConn []net.Conn
 var SessIPV4 []string
@@ -99,12 +102,21 @@ func handleClientRequest(con net.Conn) {
 
 	var ConsOut = "[+] Console Output"
 
+	// Generate Auth String (HostName-Randint)
+	cName, host_err := os.Hostname()
+	if host_err != nil {
+		cName = "LocalHost"
+	}
+
 	clientReader := bufio.NewReader(con)
-      MyCount := SessCount
+	MyCount := SessCount
+        authRand := fmt.Sprintf("%s-%d", cName, rand.Int())
+
 	SessArry = append(SessArry, SessCount)
 	SessHndl = append(SessHndl, clientReader)
 	SessConn = append(SessConn, con)
-	SessStat = append(SessStat, "Active")
+	SessStat = append(SessStat, "Conn")
+	SessKeys = append(SessKeys, authRand)
 	SessIPV4 = append(SessIPV4, con.RemoteAddr().String())
 	
 	fmt.Printf("[+] Adding Session: %d For IP Address: %s\n", SessCount, SessIPV4[SessCount])
@@ -112,15 +124,13 @@ func handleClientRequest(con net.Conn) {
 	//log.Printf("Session Count: %d\n", SessCount)
 	//log.Printf("Session Item: %d\n", SessArry[SessCount])
 
-	// Generate Auth String (HostName)
-	cName, host_err := os.Hostname()
-	if host_err != nil {
-		cName = "LocalHost"
-	}
-
 	// After Connecting - Send an Auth Request
 	fmt.Printf("[+] Sending an Auth Request to the newly connected client...\n")
-      Srv_Auth := fmt.Sprintf("Auth:%s\n", cName)
+
+	// Seed the Random Number Generator
+    	rand.Seed(int64(time.Now().Nanosecond()))
+
+	Srv_Auth := fmt.Sprintf("Auth:%s\n", authRand)
 	if _, auth_err := con.Write([]byte(Srv_Auth)); auth_err != nil {
 		log.Printf("[!] Failed to Initiate Authorization: %v\n", auth_err)
 	}
@@ -134,6 +144,21 @@ func handleClientRequest(con net.Conn) {
 		clientRequest = strings.TrimSpace(clientRequest)
 
 		if strings.HasPrefix(strings.ToUpper(clientRequest), "VRFY:") {
+                        AuthVrfy := fmt.Sprintf("%s:%s", authRand, authRand)
+			if AuthVrfy == strings.TrimSpace(clientRequest[5:]) {
+				log.Printf("[+] Auth Verification Passed!\n")
+				SessStat[MyCount] = "Active"
+			} else {
+				// Invalid Auth String. Terminate!
+				log.Printf("[+] Invalid AuthVrfy String: %s\n", strings.TrimSpace(clientRequest[5:]))
+				SessStat[MyCount] = "Closed"
+
+				if _, auth_err := con.Write([]byte("BYE:\n")); auth_err != nil {
+					log.Printf("[!] Failed to Terminate Remote Session: %v\n", auth_err)
+				}
+				return
+			}
+			log.Printf("[+] AuthVrfy String: %s\n", AuthVrfy)
 			log.Printf("[+] Vrfy Recieved from Client: %s\n", strings.TrimSpace(clientRequest[5:]))
 		} else {
 			ConsOut = fmt.Sprintf("%d>>> %s", MyCount, clientRequest)
@@ -143,7 +168,7 @@ func handleClientRequest(con net.Conn) {
 				log.Println(ConsOut)
 			case io.EOF:
 				log.Println("[!] Client closed the connection by terminating the process")
-            	      SessStat[MyCount] = "Closed"
+				SessStat[MyCount] = "Closed"
 				return
 			default:
 				log.Printf("[!] Connection Error: %v\n", err)
