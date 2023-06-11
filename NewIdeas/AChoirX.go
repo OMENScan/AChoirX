@@ -405,8 +405,11 @@ var TCPSrv_Port = "5555"                       // TCP Server Console Port
 var TCPCli_Host = "none"                       // TCP Client Console Host
 var TCPCli_Port = "5555"                       // TCP Client Console Port
 var TCPCli_IPort = "127.0.0.1:5555"            // TCP Client Console Port
+var TCPCli_Status = 0                          // TCP Client Connected == 1
 var conRetries = 0                             // Allow up to 10 Retries to re-connect
 var serverReader *bufio.Reader                 // TCP Client Reader
+var serverCon net.Conn                         // TCP Client Connection
+var net_err error                              // TCP Network Error
 
 // Message and Log Levels
 var iLogOpen = 0                                // Is the LogFile Open Yet
@@ -700,6 +703,7 @@ func main() {
                 TCPCli_IPort = fmt.Sprintf("%s:%s", TCPCli_Host, TCPCli_Port)
                 con, con_err := net.Dial("tcp", TCPCli_IPort)
                 if con_err != nil {
+                    TCPCli_Status = 0
                     ConsOut = fmt.Sprintf("[!] Failed to connect to to [%s]: %v\n", TCPCli_IPort, con_err)
                     ConsLogSys(ConsOut, 1, 1)
                     cleanUp_Exit(3)
@@ -709,14 +713,16 @@ func main() {
                 defer con.Close()
  
                 serverReader = bufio.NewReader(con)
- 
+                TCPCli_Status = 1
+                serverCon = con 
+
                 for {
                     // Waiting for the server response
                     serverResponse, Rerr := serverReader.ReadString('\n')
  
                     switch Rerr {
                         case nil:
-                            ConsOut = fmt.Sprintf(">>> %s\n", strings.TrimSpace(serverResponse))
+                            ConsOut = fmt.Sprintf("%s\n", strings.TrimSpace(serverResponse))
                             ConsLogSys(ConsOut, 1, 1)
                         case io.EOF:
                             ConsOut = fmt.Sprintf("[!] Server closed the connection")
@@ -743,11 +749,14 @@ func main() {
 
                             con, con_err = net.Dial("tcp", TCPCli_IPort)
                             if con_err != nil {
+                                TCPCli_Status = 0
                                 ConsOut = fmt.Sprintf("[!] Unable to Connect...  Retrying (%d)...\n", conRetries)
                                 ConsLogSys(ConsOut, 1, 1)
                             } else {
                                 defer con.Close()
                                 serverReader = bufio.NewReader(con)
+                                serverCon = con
+                                TCPCli_Status = 1
                             }
                         }
                     } else {
@@ -1135,7 +1144,7 @@ func main() {
  
             switch Rerr {
                 case nil:
-                    ConsOut = fmt.Sprintf(">>> %s\n", strings.TrimSpace(serverResponse))
+                    ConsOut = fmt.Sprintf("%s\n", strings.TrimSpace(serverResponse))
                     ConsLogSys(ConsOut, 1, 1)
                 case io.EOF:
                     ConsOut = fmt.Sprintf("[!] Server closed the connection")
@@ -1162,18 +1171,62 @@ func main() {
 
                     con, con_err := net.Dial("tcp", TCPCli_IPort)
                     if con_err != nil {
+                        TCPCli_Status = 0
                         ConsOut = fmt.Sprintf("[!] Unable to Connect...  Retrying (%d)...\n", conRetries)
                         ConsLogSys(ConsOut, 1, 1)
                     } else {
                         defer con.Close()
+
                         serverReader = bufio.NewReader(con)
+                        serverCon = con
+                        TCPCli_Status = 1
+
+                        // Now Wait for Multi-Handler to Exchange Encrypted data with me to verify Shared Secret
+                        serverResponse, Rerr := serverReader.ReadString('\n')
+                        if Rerr != nil {
+                            TCPCli_Status = 0
+                            ConsOut = fmt.Sprintf("[!] Unable to Read Server Response...\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                            continue
+                        }
+
+                        // All Good - Process the Auth Chain
+                        conRetries = 0
+
+                        // Should we Quit (Multi-Handler Didnt like our Response)
+                        if strings.TrimSpace(serverResponse) == "BYE:" {
+                            ConsOut = fmt.Sprintf("[!] Server request to close the connection so closing")
+                            ConsLogSys(ConsOut, 1, 1)
+                            cleanUp_Exit(3)
+                            os.Exit(3)
+                        } else if strings.HasPrefix(strings.ToUpper(serverResponse), "AUTH:") {
+                            ConsOut = fmt.Sprintf("[+] Auth Recieved from Server: %s\n", strings.TrimSpace(serverResponse[5:]))
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            ConsOut = fmt.Sprintf("[+] Vrfy Sent to Server: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            ConsOut = fmt.Sprintf("Vrfy: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+                            if _, Werr := con.Write([]byte(ConsOut)); Werr != nil {
+                                ConsOut = fmt.Sprintf("[!] Failed to respond with Vrfy: %v\n", Werr)
+                                ConsLogSys(ConsOut, 1, 1)
+                            }
+
+                            // At this point we can start communicating with the Server
+                            continue
+
+                        } else {
+                            // Something other than a Verify Chain was recieved - Exit Out
+                            ConsOut = fmt.Sprintf("[!] AChoirX Auth Chain Must Be Initiated Before Use...  Exiting...\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                            cleanUp_Exit(3)
+                            os.Exit(3)
+                        }
                     }
                 }
             } else {
-                // Now Wait for Multi-Handler to Exchange Encrypted data with me to verify Shared Secret
-                conRetries = 0
-
-                Tmprec = strings.TrimSpace(serverResponse)
+              // Fell Through - All Good!
+              Tmprec = strings.TrimSpace(serverResponse)
             }
         }
 
@@ -3982,7 +4035,7 @@ func PreIndex() {
 
 func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
     //***************************************************************
-    // Send to Console, Log, and Syslog                             *
+    // Send to Console, Log, TCPRemote, and Syslog                  *
     // thisMSGLvl == The message Level of this message              *
     //  0==None, 1==Min, 2==Standard, 3==Max, 4==Debug              *
     // thisSyslog == Should we send to Syslog                       *
@@ -3993,6 +4046,12 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
 
     if (setMSGLvl >= thisMSGLvl) && setMSGLvl > 0 {
         fmt.Printf (ConLogMSG)
+
+        if (RunMode == "Cli") && TCPCli_Status == 1 {
+            if _, Werr := serverCon.Write([]byte(ConLogMSG)); Werr != nil {
+                ConsOut = fmt.Sprintf("[!] Failed to Send to TCP Server: %v\n", Werr)
+            }
+        }
     }
 
     SyslogCount++
