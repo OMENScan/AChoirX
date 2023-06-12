@@ -133,7 +133,7 @@ func handleClientRequest(con net.Conn) {
 	//log.Printf("Session Item: %d\n", SessArry[SessCount])
 
 	// After Connecting - Send an Auth Request
-	fmt.Printf("[+] Sending an Auth Request to the newly connected client...\n")
+	//fmt.Printf("[+] Sending an Auth Request to the newly connected client...\n")
 
 	// Seed the Random Number Generator
     	mrand.Seed(int64(time.Now().Nanosecond()))
@@ -154,6 +154,15 @@ func handleClientRequest(con net.Conn) {
 		clientRequest, err := clientReader.ReadString('\n')
 		clientRequest = strings.TrimSpace(clientRequest)
 
+                // Decrypt the String
+                EncrInn, b64I_err := base64.StdEncoding.DecodeString(clientRequest)
+                if b64I_err != nil {
+                    clientRequest = fmt.Sprintf("[!] Error Encoding String!\n")
+                } else {
+                    clientRequest = string(decrypt([]byte(EncrInn), inPass))
+                    clientRequest = strings.TrimSpace(clientRequest)
+                }
+
 		if strings.HasPrefix(strings.ToUpper(clientRequest), "VRFY:") {
                         AuthVrfy := fmt.Sprintf("%s:%s", authRand, authRand)
 			if AuthVrfy == strings.TrimSpace(clientRequest[5:]) {
@@ -172,8 +181,8 @@ func handleClientRequest(con net.Conn) {
 				}
 				return
 			}
-			log.Printf("[+] AuthVrfy String: %s\n", AuthVrfy)
-			log.Printf("[+] Vrfy Recieved from Client: %s\n", strings.TrimSpace(clientRequest[5:]))
+			//log.Printf("[+] AuthVrfy String: %s\n", AuthVrfy)
+			//log.Printf("[+] Vrfy Recieved from Client: %s\n", strings.TrimSpace(clientRequest[5:]))
 		} else {
 			ConsOut = fmt.Sprintf("%d>>> %s", MyCount, clientRequest)
  
@@ -253,6 +262,14 @@ func decrypt(data []byte, passphrase string) []byte {
     }
 
     nonceSize := gcm.NonceSize()
+
+    // This Can Happen On EOF - The Data Length is too short - and Blow-Up ski
+    if len(data) < nonceSize {
+        ConsOut = fmt.Sprintf("[!] Error Decrypting Data: Bad Length\n")
+        fmt.Printf(ConsOut)
+        return []byte(ConsOut)
+    }
+
     nonce, ciphertext := data[:nonceSize], data[nonceSize:]
     plaintext, dec_err := gcm.Open(nil, nonce, ciphertext, nil)
     if dec_err != nil {

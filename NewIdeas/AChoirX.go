@@ -690,15 +690,6 @@ func main() {
                 ConsOut = fmt.Sprintf("[+] Remote Client Host: %s on Port: %s\n", TCPCli_Host, TCPCli_Port)
                 ConsLogSys(ConsOut, 1, 1)
 
-
-
-
-
-
-
-
-
-
                 // Make the Connection to the Remote Multi-Handler
                 TCPCli_IPort = fmt.Sprintf("%s:%s", TCPCli_Host, TCPCli_Port)
                 con, con_err := net.Dial("tcp", TCPCli_IPort)
@@ -723,7 +714,7 @@ func main() {
                     // Decrypt the String
                     EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
                     if b64I_err != nil {
-                        serverResponse = fmt.Sprintf("[!] Error Encoding String!\n")
+                        serverResponse = fmt.Sprintf("[!] Error Decoding String!\n")
                     } else {
                         serverResponse = string(decrypt([]byte(EncrInn), inPass))
                     }
@@ -778,48 +769,20 @@ func main() {
                             cleanUp_Exit(3)
                             os.Exit(3)
                         } else if strings.HasPrefix(strings.ToUpper(serverResponse), "AUTH:") {
-                            ConsOut = fmt.Sprintf("[+] Auth Recieved from Server: %s\n", strings.TrimSpace(serverResponse[5:]))
-                            ConsLogSys(ConsOut, 1, 1)
+                            //ConsOut = fmt.Sprintf("[+] Auth Recieved from Server: %s\n", strings.TrimSpace(serverResponse[5:]))
+                            //ConsLogSys(ConsOut, 1, 1)
 
-                            ConsOut = fmt.Sprintf("[+] Vrfy Sent to Server: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
-                            ConsLogSys(ConsOut, 1, 1)
+                            //ConsOut = fmt.Sprintf("[+] Vrfy Sent to Server: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+                            //ConsLogSys(ConsOut, 1, 1)
 
                             ConsOut = fmt.Sprintf("Vrfy: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
 
-                            if _, Werr := con.Write([]byte(ConsOut)); Werr != nil {
+                            EncrOut := encrypt([]byte(ConsOut), inPass)
+                            B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+                            if _, Werr := con.Write([]byte(B64Out)); Werr != nil {
                                 ConsOut = fmt.Sprintf("[!] Failed to respond with Vrfy: %v\n", Werr)
                                 ConsLogSys(ConsOut, 1, 1)
                             }
-
-
-
-
-
-
-
-
-
-
-
-                            EncrOut := encrypt([]byte(ConsOut), inPass)
-                            B64Out := base64.StdEncoding.EncodeToString(EncrOut)
-                            EncrInn, b64I_err := base64.StdEncoding.DecodeString(B64Out)
-                            if b64I_err != nil {
-                                ClearOut := fmt.Sprintf("[!] Error Encoding String!\n")
-                                fmt.Printf("Encr-B64-Decr (%s): %s\n", inPass, ClearOut)
-                            } else {
-                                ClearOut := decrypt([]byte(EncrInn), inPass)
-                                fmt.Printf("Encr-B64-Decr (%s): %s\n", inPass, ClearOut)
-                            }
-
-
-
-
-
-
-
-
-
 
                             // At this point we can start communicating with the Server
                             break
@@ -834,16 +797,6 @@ func main() {
                     }
                 }
             }
-
-
-
-
-
-
-
-
-
-
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INI:") {
             // Check if Input is Console
             if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INI:CONSOLE") {
@@ -1184,7 +1137,7 @@ func main() {
             // Decrypt the String
             EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
             if b64I_err != nil {
-                serverResponse = fmt.Sprintf("[!] Error Encoding String!\n")
+                serverResponse = fmt.Sprintf("[!] Error Decoding String!\n")
             } else {
                 serverResponse = string(decrypt([]byte(EncrInn), inPass))
             }
@@ -1243,7 +1196,7 @@ func main() {
                         // Decrypt the String
                         EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
                         if b64I_err != nil {
-                            serverResponse = fmt.Sprintf("[!] Error Encoding String!\n")
+                            serverResponse = fmt.Sprintf("[!] Error Decoding String!\n")
                         } else {
                             serverResponse = string(decrypt([]byte(EncrInn), inPass))
                         }
@@ -1255,14 +1208,18 @@ func main() {
                             cleanUp_Exit(3)
                             os.Exit(3)
                         } else if strings.HasPrefix(strings.ToUpper(serverResponse), "AUTH:") {
-                            ConsOut = fmt.Sprintf("[+] Auth Recieved from Server: %s\n", strings.TrimSpace(serverResponse[5:]))
-                            ConsLogSys(ConsOut, 1, 1)
+                            //ConsOut = fmt.Sprintf("[+] Auth Recieved from Server: %s\n", strings.TrimSpace(serverResponse[5:]))
+                            //ConsLogSys(ConsOut, 1, 1)
 
-                            ConsOut = fmt.Sprintf("[+] Vrfy Sent to Server: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
-                            ConsLogSys(ConsOut, 1, 1)
+                            //ConsOut = fmt.Sprintf("[+] Vrfy Sent to Server: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+                            //ConsLogSys(ConsOut, 1, 1)
 
                             ConsOut = fmt.Sprintf("Vrfy: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
-                            if _, Werr := con.Write([]byte(ConsOut)); Werr != nil {
+
+                            EncrOut := encrypt([]byte(ConsOut), inPass)
+                            B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+
+                            if _, Werr := con.Write([]byte(B64Out)); Werr != nil {
                                 ConsOut = fmt.Sprintf("[!] Failed to respond with Vrfy: %v\n", Werr)
                                 ConsLogSys(ConsOut, 1, 1)
                             }
@@ -1284,14 +1241,6 @@ func main() {
               Tmprec = strings.TrimSpace(serverResponse)
             }
         }
-
-
-
-
-
-
-
-
 
 
         // Dont Process any Comments
@@ -4103,7 +4052,11 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
         fmt.Printf (ConLogMSG)
 
         if (RunMode == "Cli") && TCPCli_Status == 1 {
-            if _, Werr := serverCon.Write([]byte(ConLogMSG)); Werr != nil {
+
+            EncrOut := encrypt([]byte(ConLogMSG), inPass)
+            B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+
+            if _, Werr := serverCon.Write([]byte(B64Out)); Werr != nil {
                 ConsOut = fmt.Sprintf("[!] Failed to Send to TCP Server: %v\n", Werr)
             }
         }
@@ -6307,7 +6260,14 @@ func decrypt(data []byte, passphrase string) []byte {
         return []byte(ConsOut)
     }
 
+    // This Can Happen On EOF - Data Length is too Short - and the Decrytion will blow-up
     nonceSize := gcm.NonceSize()
+    if len(data) < nonceSize {
+        ConsOut = fmt.Sprintf("[!] Error Decrypting Data: Bad Length\n")
+        ConsLogSys(ConsOut, 1, 1)
+        return []byte(ConsOut)
+    }
+
     nonce, ciphertext := data[:nonceSize], data[nonceSize:]
     plaintext, dec_err := gcm.Open(nil, nonce, ciphertext, nil)
     if dec_err != nil {
