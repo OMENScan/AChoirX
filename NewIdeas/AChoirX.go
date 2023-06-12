@@ -777,10 +777,41 @@ func main() {
                             ConsLogSys(ConsOut, 1, 1)
 
                             ConsOut = fmt.Sprintf("Vrfy: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+
                             if _, Werr := con.Write([]byte(ConsOut)); Werr != nil {
                                 ConsOut = fmt.Sprintf("[!] Failed to respond with Vrfy: %v\n", Werr)
                                 ConsLogSys(ConsOut, 1, 1)
                             }
+
+
+
+
+
+
+
+
+
+
+
+                            EncrOut := encrypt([]byte(ConsOut), inPass)
+                            B64Out := base64.StdEncoding.EncodeToString(EncrOut)
+                            EncrInn, b64I_err := base64.StdEncoding.DecodeString(B64Out)
+                            if b64I_err != nil {
+                                ClearOut := fmt.Sprintf("[!] Error Encoding String!\n")
+                                fmt.Printf("Encr-B64-Decr (%s): %s\n", inPass, ClearOut)
+                            } else {
+                                ClearOut := decrypt([]byte(EncrInn), inPass)
+                                fmt.Printf("Encr-B64-Decr (%s): %s\n", inPass, ClearOut)
+                            }
+
+
+
+
+
+
+
+
+
 
                             // At this point we can start communicating with the Server
                             break

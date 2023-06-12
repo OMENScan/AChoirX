@@ -9,8 +9,13 @@ import (
 	"fmt"
 	"strings"
 	"strconv"
-	"math/rand"
+	mrand "math/rand"
 	"time"
+	"encoding/hex"
+	"crypto/md5"
+	"crypto/aes"
+	"crypto/cipher"
+	crand "crypto/rand"
 )
 
 var SessArry []int
@@ -110,7 +115,7 @@ func handleClientRequest(con net.Conn) {
 
 	clientReader := bufio.NewReader(con)
 	MyCount := SessCount
-        authRand := fmt.Sprintf("%s-%d", cName, rand.Int())
+        authRand := fmt.Sprintf("%s-%d", cName, mrand.Int())
 
 	SessArry = append(SessArry, SessCount)
 	SessHndl = append(SessHndl, clientReader)
@@ -128,7 +133,7 @@ func handleClientRequest(con net.Conn) {
 	fmt.Printf("[+] Sending an Auth Request to the newly connected client...\n")
 
 	// Seed the Random Number Generator
-    	rand.Seed(int64(time.Now().Nanosecond()))
+    	mrand.Seed(int64(time.Now().Nanosecond()))
 
 	Srv_Auth := fmt.Sprintf("Auth:%s\n", authRand)
 	if _, auth_err := con.Write([]byte(Srv_Auth)); auth_err != nil {
@@ -177,4 +182,75 @@ func handleClientRequest(con net.Conn) {
 			}
 		}
 	}
+}
+
+//***************************************************************************
+// Encryption Routines: Turn a Password into a 32-bit Key                   *
+//***************************************************************************
+func createHash(key string) string {
+    hasher := md5.New()
+    hasher.Write([]byte(key))
+    return hex.EncodeToString(hasher.Sum(nil))
+}
+
+
+//***************************************************************************
+// Encryption Routines: Encrypt a stream of bytes                           *
+//***************************************************************************
+func encrypt(data []byte, passphrase string) []byte {
+
+    var ConsOut = "[+] Console Output"
+
+    block, _ := aes.NewCipher([]byte(createHash(passphrase)))
+    gcm, enc_err := cipher.NewGCM(block)
+    if enc_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Encrypting Data: %s\n", enc_err)
+        fmt.Printf(ConsOut)
+        return []byte(ConsOut)
+    }
+
+    nonce := make([]byte, gcm.NonceSize())
+    if _, enc_err = io.ReadFull(crand.Reader, nonce); enc_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Encrypting Data: %s\n", enc_err)
+        fmt.Printf(ConsOut)
+        return []byte(ConsOut)
+    }
+
+    ciphertext := gcm.Seal(nonce, nonce, data, nil)
+    return ciphertext
+}
+
+
+//***************************************************************************
+// Encryption Routines: Decrypt a stream of bytes                           *
+//***************************************************************************
+func decrypt(data []byte, passphrase string) []byte {
+
+    var ConsOut = "[+] Console Output"
+
+    key := []byte(createHash(passphrase))
+    block, ciph_err := aes.NewCipher(key)
+    if ciph_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Decrypting Data (Cipher): %s\n", ciph_err)
+        fmt.Printf(ConsOut)
+        return []byte(ConsOut)
+    }
+
+    gcm, gcm_err := cipher.NewGCM(block)
+    if gcm_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Decrypting Data (GCM): %s\n", gcm_err)
+        fmt.Printf(ConsOut)
+        return []byte(ConsOut)
+    }
+
+    nonceSize := gcm.NonceSize()
+    nonce, ciphertext := data[:nonceSize], data[nonceSize:]
+    plaintext, dec_err := gcm.Open(nil, nonce, ciphertext, nil)
+    if dec_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Decrypting Data: %s\n", dec_err)
+        fmt.Printf(ConsOut)
+        return []byte(ConsOut)
+    }
+
+    return plaintext
 }
