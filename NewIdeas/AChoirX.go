@@ -707,95 +707,7 @@ func main() {
                 TCPCli_Status = 1
                 serverCon = con 
 
-                for {
-                    // Waiting for the server response
-                    serverResponse, Rerr := serverReader.ReadString('\n')
-
-                    // Decrypt the String
-                    EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
-                    if b64I_err != nil {
-                        serverResponse = fmt.Sprintf("[!] Error Decoding String!\n")
-                    } else {
-                        serverResponse = string(decrypt([]byte(EncrInn), inPass))
-                    }
- 
-                    switch Rerr {
-                        case nil:
-                            ConsOut = fmt.Sprintf("%s\n", strings.TrimSpace(serverResponse))
-                            ConsLogSys(ConsOut, 1, 1)
-                        case io.EOF:
-                            ConsOut = fmt.Sprintf("[!] Server closed the connection")
-                            ConsLogSys(ConsOut, 1, 1)
-                        default:
-                            ConsOut = fmt.Sprintf("[!] Server error: %v\n", Rerr)
-                            ConsLogSys(ConsOut, 1, 1)
-                    }
-
-
-                    // If we got an Error Try to re-connect (10x Max)
-                    if Rerr != nil {
-                        conRetries++
-
-                        if conRetries > 10 {
-                            ConsOut = fmt.Sprintf("[!] Max Connection Retries Exceeded...  Exiting...")
-                            ConsLogSys(ConsOut, 1, 1)
-                            cleanUp_Exit(3)
-                            os.Exit(3)
-                        } else {
-                            ConsOut = fmt.Sprintf("[!] Connection to Handler Lost...  Retrying (%d)...\n", conRetries)
-                            ConsLogSys(ConsOut, 1, 1)
-                            time.Sleep (time.Duration(60) * time.Second)
-
-                            con, con_err = net.Dial("tcp", TCPCli_IPort)
-                            if con_err != nil {
-                                TCPCli_Status = 0
-                                ConsOut = fmt.Sprintf("[!] Unable to Connect...  Retrying (%d)...\n", conRetries)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                defer con.Close()
-                                serverReader = bufio.NewReader(con)
-                                serverCon = con
-                                TCPCli_Status = 1
-                            }
-                        }
-                    } else {
-                        // Now Wait for Multi-Handler to Exchange Encrypted data with me to verify Shared Secret
-                        conRetries = 0
-
-                        // Should we Quit (Multi-Handler Didnt like our Response)
-                        if strings.TrimSpace(serverResponse) == "BYE:" {
-                            ConsOut = fmt.Sprintf("[!] Server request to close the connection so closing")
-                            ConsLogSys(ConsOut, 1, 1)
-                            cleanUp_Exit(3)
-                            os.Exit(3)
-                        } else if strings.HasPrefix(strings.ToUpper(serverResponse), "AUTH:") {
-                            //ConsOut = fmt.Sprintf("[+] Auth Recieved from Server: %s\n", strings.TrimSpace(serverResponse[5:]))
-                            //ConsLogSys(ConsOut, 1, 1)
-
-                            //ConsOut = fmt.Sprintf("[+] Vrfy Sent to Server: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
-                            //ConsLogSys(ConsOut, 1, 1)
-
-                            ConsOut = fmt.Sprintf("Vrfy: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
-
-                            EncrOut := encrypt([]byte(ConsOut), inPass)
-                            B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
-                            if _, Werr := con.Write([]byte(B64Out)); Werr != nil {
-                                ConsOut = fmt.Sprintf("[!] Failed to respond with Vrfy: %v\n", Werr)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-
-                            // At this point we can start communicating with the Server
-                            break
-
-                        } else {
-                            // Something other than a Verify Chain was recieved - Exit Out
-                            ConsOut = fmt.Sprintf("[!] AChoirX Auth Chain Must Be Initiated Before Use...  Exiting...\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                            cleanUp_Exit(3)
-                            os.Exit(3)
-                        }
-                    }
-                }
+                TCPCli_ServeResponse("Init")
             }
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INI:") {
             // Check if Input is Console
@@ -1130,118 +1042,11 @@ func main() {
 
             //Remove any preceding blanks
             Tmprec = strings.TrimSpace(IniScan.Text())
+
         } else {
-            // Waiting for the server response
-            serverResponse, Rerr := serverReader.ReadString('\n')
-
-            // Decrypt the String
-            EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
-            if b64I_err != nil {
-                serverResponse = fmt.Sprintf("[!] Error Decoding String!\n")
-            } else {
-                serverResponse = string(decrypt([]byte(EncrInn), inPass))
-            }
- 
-            switch Rerr {
-                case nil:
-                    ConsOut = fmt.Sprintf("%s\n", strings.TrimSpace(serverResponse))
-                    ConsLogSys(ConsOut, 1, 1)
-                case io.EOF:
-                    ConsOut = fmt.Sprintf("[!] Server closed the connection")
-                    ConsLogSys(ConsOut, 1, 1)
-                default:
-                    ConsOut = fmt.Sprintf("[!] Server error: %v\n", Rerr)
-                    ConsLogSys(ConsOut, 1, 1)
-            }
-
-
-            // If we got an Error Try to re-connect (10x Max)
-            if Rerr != nil {
-                conRetries++
-
-                if conRetries > 10 {
-                    ConsOut = fmt.Sprintf("[!] Max Connection Retries Exceeded...  Exiting...")
-                    ConsLogSys(ConsOut, 1, 1)
-                    cleanUp_Exit(3)
-                    os.Exit(3)
-                } else {
-                    ConsOut = fmt.Sprintf("[!] Connection to Handler Lost...  Retrying (%d)...\n", conRetries)
-                    ConsLogSys(ConsOut, 1, 1)
-                    time.Sleep (time.Duration(60) * time.Second)
-
-                    con, con_err := net.Dial("tcp", TCPCli_IPort)
-                    if con_err != nil {
-                        TCPCli_Status = 0
-                        ConsOut = fmt.Sprintf("[!] Unable to Connect...  Retrying (%d)...\n", conRetries)
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else {
-                        defer con.Close()
-
-                        serverReader = bufio.NewReader(con)
-                        serverCon = con
-                        TCPCli_Status = 1
-
-                        // Now Wait for Multi-Handler to Exchange Encrypted data with me to verify Shared Secret
-                        serverResponse, Rerr := serverReader.ReadString('\n')
-                        if Rerr != nil {
-                            TCPCli_Status = 0
-                            ConsOut = fmt.Sprintf("[!] Unable to Read Server Response...\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                            continue
-                        }
-
-                        // All Good - Process the Auth Chain
-                        conRetries = 0
-
-                        // Decrypt the String
-                        EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
-                        if b64I_err != nil {
-                            serverResponse = fmt.Sprintf("[!] Error Decoding String!\n")
-                        } else {
-                            serverResponse = string(decrypt([]byte(EncrInn), inPass))
-                        }
-
-                        // Should we Quit (Multi-Handler Didnt like our Response)
-                        if strings.TrimSpace(serverResponse) == "BYE:" {
-                            ConsOut = fmt.Sprintf("[!] Server request to close the connection so closing")
-                            ConsLogSys(ConsOut, 1, 1)
-                            cleanUp_Exit(3)
-                            os.Exit(3)
-                        } else if strings.HasPrefix(strings.ToUpper(serverResponse), "AUTH:") {
-                            //ConsOut = fmt.Sprintf("[+] Auth Recieved from Server: %s\n", strings.TrimSpace(serverResponse[5:]))
-                            //ConsLogSys(ConsOut, 1, 1)
-
-                            //ConsOut = fmt.Sprintf("[+] Vrfy Sent to Server: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
-                            //ConsLogSys(ConsOut, 1, 1)
-
-                            ConsOut = fmt.Sprintf("Vrfy: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
-
-                            EncrOut := encrypt([]byte(ConsOut), inPass)
-                            B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
-
-                            if _, Werr := con.Write([]byte(B64Out)); Werr != nil {
-                                ConsOut = fmt.Sprintf("[!] Failed to respond with Vrfy: %v\n", Werr)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-
-                            // At this point we can start communicating with the Server
-                            continue
-
-                        } else {
-                            // Something other than a Verify Chain was recieved - Exit Out
-                            ConsOut = fmt.Sprintf("[!] AChoirX Auth Chain Must Be Initiated Before Use...  Exiting...\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                            cleanUp_Exit(3)
-                            os.Exit(3)
-                        }
-                    }
-                }
-            } else {
-              // Fell Through - All Good!
-              Tmprec = strings.TrimSpace(serverResponse)
-            }
+            // Wait for TCP Server Input
+            Tmprec, _ = TCPCli_ServeResponse("Resp")
         }
-
 
         // Dont Process any Comments
         if strings.HasPrefix(Tmprec, "*") {
@@ -6459,3 +6264,130 @@ func cpuThrotl() {
     }
 }
 
+
+//***************************************************************************
+// Wait for TCP Server Response                                             *
+//***************************************************************************
+func TCPCli_ServeResponse(conType string) (string, error) {
+    // Waiting for the server response
+    serverResponse, Rerr := serverReader.ReadString('\n')
+
+    switch Rerr {
+        case nil:
+            // Decrypt the String
+            EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
+
+            if b64I_err != nil {
+                serverResponse = fmt.Sprintf("[!] Error Decoding String!\n")
+            } else {
+                serverResponse = string(decrypt([]byte(EncrInn), inPass))
+            }
+
+            ConsOut = fmt.Sprintf("%s\n", strings.TrimSpace(serverResponse))
+            ConsLogSys(ConsOut, 1, 1)
+        case io.EOF:
+            ConsOut = fmt.Sprintf("[!] Server closed the connection")
+            ConsLogSys(ConsOut, 1, 1)
+        default:
+            ConsOut = fmt.Sprintf("[!] Server error: %v\n", Rerr)
+            ConsLogSys(ConsOut, 1, 1)
+    }
+
+
+    // If we got an Error Try to re-connect (10x Max)
+    if Rerr != nil {
+        conRetries++
+
+        if conRetries > 10 {
+            ConsOut = fmt.Sprintf("[!] Max Connection Retries Exceeded...  Exiting...")
+            ConsLogSys(ConsOut, 1, 1)
+
+            cleanUp_Exit(3)
+            os.Exit(3)
+        } else {
+            ConsOut = fmt.Sprintf("[!] Connection to Handler Lost...  Retrying (%d)...\n", conRetries)
+            ConsLogSys(ConsOut, 1, 1)
+            time.Sleep (time.Duration(60) * time.Second)
+
+            con, con_err := net.Dial("tcp", TCPCli_IPort)
+            if con_err != nil {
+                TCPCli_Status = 0
+                ConsOut = fmt.Sprintf("[!] Unable to Connect...  Retrying (%d)...\n", conRetries)
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                serverReader = bufio.NewReader(con)
+                serverCon = con
+                TCPCli_Status = 1
+
+                // Now Wait for Multi-Handler to Exchange Encrypted data with me to verify Shared Secret
+                serverResponse, Rerr := serverReader.ReadString('\n')
+                if Rerr != nil {
+                    TCPCli_Status = 0
+                    ConsOut = fmt.Sprintf("[!] Unable to Read Server Response...\n")
+                    ConsLogSys(ConsOut, 1, 1)
+                    return "", fmt.Errorf("[!] Unable to Read Server Response")
+                }
+
+                // All Good - Process the Auth Chain
+                conRetries = 0
+
+                // Decrypt the String
+                EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
+                if b64I_err != nil {
+                    serverResponse = fmt.Sprintf("[!] Error Decoding String!\n")
+                } else {
+                    serverResponse = string(decrypt([]byte(EncrInn), inPass))
+                }
+
+                // Authorize the Connection
+                if strings.HasPrefix(strings.ToUpper(serverResponse), "AUTH:") {
+                    //ConsOut = fmt.Sprintf("[+] Auth Recieved from Server: %s\n", strings.TrimSpace(serverResponse[5:]))
+                    //ConsLogSys(ConsOut, 1, 1)
+
+                    //ConsOut = fmt.Sprintf("[+] Vrfy Sent to Server: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+                    //ConsLogSys(ConsOut, 1, 1)
+                    ConsOut = fmt.Sprintf("Vrfy: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+
+                    EncrOut := encrypt([]byte(ConsOut), inPass)
+                    B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+
+                    if _, Werr := con.Write([]byte(B64Out)); Werr != nil {
+                        ConsOut = fmt.Sprintf("[!] Failed to respond with Vrfy: %v\n", Werr)
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+
+                    // At this point we can start communicating with the Server
+                    return "", nil
+
+                } else {
+                    // Something other than a Verify Chain was recieved - Exit Out
+                    ConsOut = fmt.Sprintf("[!] AChoirX Auth Chain Must Be Initiated Before Use...  Exiting...\n")
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    cleanUp_Exit(3)
+                    os.Exit(3)
+                }
+            }
+        }
+    }
+
+    if strings.ToUpper(conType) == "INIT" {
+        //ConsOut = fmt.Sprintf("[+] Auth Recieved from Server: %s\n", strings.TrimSpace(serverResponse[5:]))
+        //ConsLogSys(ConsOut, 1, 1)
+
+        //ConsOut = fmt.Sprintf("[+] Vrfy Sent to Server: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+        //ConsLogSys(ConsOut, 1, 1)
+        ConsOut = fmt.Sprintf("Vrfy: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+
+        EncrOut := encrypt([]byte(ConsOut), inPass)
+        B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+
+        if _, Werr := serverCon.Write([]byte(B64Out)); Werr != nil {
+            ConsOut = fmt.Sprintf("[!] Failed to respond with Vrfy: %v\n", Werr)
+            ConsLogSys(ConsOut, 1, 1)
+        }
+    } 
+
+    // Fell Through - All Good!
+    return strings.TrimSpace(serverResponse), nil
+}
