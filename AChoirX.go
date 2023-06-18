@@ -158,6 +158,9 @@
 // AChoirX v10.01.03 - Release 1.03
 //                   - More improvements in Zip - Fix Subdirectory Indexing
 //
+// AChoirX v10.01.10 - Release 1.10
+//                   - Add remote Multi-Handler (Server & Client Modes)
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -209,6 +212,7 @@ import (
     "crypto/aes"
     "crypto/cipher"
     "crypto/rand"
+    mrand "math/rand"
 
     "golang.org/x/crypto/ssh"
     "github.com/pkg/sftp"
@@ -225,7 +229,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.03"                       // AChoir Version
+var Version = "v10.01.10"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -396,6 +400,19 @@ var SF_SSH_err error                            // SFTP SSH Errors
 var iSFLogin = 0                                // Default is NOT logged in
 var upSF_err error                              // Upload (SFTP Only) Errors
 
+// Remote control of the console over TCP (Essentially a C2 Server)
+var TCPSrv_Host = "none"                       // TCP Server Console Host
+var TCPSrv_Port = "5555"                       // TCP Server Console Port
+var TCPSrv_IPort = "127.0.0.1:5555"            // TCP Server Console IP:Port
+var TCPCli_Host = "none"                       // TCP Client Console Host
+var TCPCli_Port = "5555"                       // TCP Client Console Port
+var TCPCli_IPort = "127.0.0.1:5555"            // TCP Client Console Port
+var TCPCli_Status = 0                          // TCP Client Connected == 1
+var conRetries = 0                             // Allow up to 10 Retries to re-connect
+var serverReader *bufio.Reader                 // TCP Client Reader
+var serverCon net.Conn                         // TCP Client Connection
+var net_err error                              // TCP Network Error
+
 // Message and Log Levels
 var iLogOpen = 0                                // Is the LogFile Open Yet
 var setMSGLvl = 2                               // Display Message Level - Default=2 (med)
@@ -519,6 +536,17 @@ var HstTabl [100]string
 // Max CPU for Throttleing
 var cpu_max float64 = 999
 
+//Multi-Handler Server Arrays
+var SessArry []int
+var SessStat []string
+var SessKeys []string
+var SessHndl []*bufio.Reader
+var SessConn []net.Conn
+var SessIPV4 []string
+var SessCount = 0 
+var CurrSess = -1
+
+
 // Main Line
 func main() {
     // Get My Name and Path
@@ -594,6 +622,8 @@ func main() {
             fmt.Printf(" /DEC:<File Name> - Decrypt File using &PWD - Output File Name: Decrypted.dat\n")
             fmt.Printf(" /CSE - Ask For Case, Evidence, and Examiner Information\n")
             fmt.Printf(" /CON - Run with Interactive Console Input (Same as /Ini:Console)\n")
+            fmt.Printf(" /CLI:<IPAddr>:<Port> - Run as a remote client - Connecting to IP Address/Port\n")
+            fmt.Printf(" /SRV:<Port> - Run Server Multi Handler on Port\n")
             fmt.Printf(" /DBG:min, std, max, debug - Set Console Message Level to 1, 2, 3, or 4\n")
 
             os.Exit(0)
@@ -642,6 +672,157 @@ func main() {
             RunMode = "Con"
             inFnam = "Console"
             iRunMode = 1
+        } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/CLI:") {
+            consOrFile = 1
+            RunMode = "Cli"
+            inFnam = "Console"
+            iRunMode = 1
+
+            Tmprec = strings.TrimSpace(os.Args[i][5:])
+
+            if len(Tmprec) < 1 {
+                ConsOut = fmt.Sprintf("[!] No Remote Host Specified... Exiting...\n")
+                ConsLogSys(ConsOut, 1, 2)
+
+                cleanUp_Exit(3)
+                os.Exit(3)
+            } else {
+                // Replace : with a space so splitstring will work
+                Tmprec = strings.Replace(Tmprec, ":", " ", -1)
+                splitString1, splitString2, SplitRC := twoSplit(Tmprec)
+                TCPCli_Host = splitString1
+
+               if SplitRC == 1 {
+                    ConsOut = fmt.Sprintf("[!] No Remote Port Specified...  Setting Port to: 5555 \n")
+                    ConsLogSys(ConsOut, 1, 2)
+                    TCPCli_Port = "5555"
+                } else {
+                    TCPCli_Port = splitString2
+                }
+
+                ConsOut = fmt.Sprintf("[+] Remote Client Host: %s on Port: %s\n", TCPCli_Host, TCPCli_Port)
+                ConsLogSys(ConsOut, 1, 1)
+
+                // Make the Connection to the Remote Multi-Handler
+                TCPCli_IPort = fmt.Sprintf("%s:%s", TCPCli_Host, TCPCli_Port)
+                con, con_err := net.Dial("tcp", TCPCli_IPort)
+                if con_err != nil {
+                    TCPCli_Status = 0
+                    ConsOut = fmt.Sprintf("[!] Failed to connect to to [%s]: %v\n", TCPCli_IPort, con_err)
+                    ConsLogSys(ConsOut, 1, 1)
+                    cleanUp_Exit(3)
+                    os.Exit(3)
+                }
+
+                defer con.Close()
+ 
+                serverReader = bufio.NewReader(con)
+                TCPCli_Status = 1
+                serverCon = con 
+
+                TCPCli_ServeResponse("Init")
+            }
+        
+
+
+
+
+
+
+
+
+
+        } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/SRV:") {
+            consOrFile = 1
+            RunMode = "Srv"
+            inFnam = "Console"
+            iRunMode = 1
+
+            Tmprec = strings.TrimSpace(os.Args[i][5:])
+
+            if len(Tmprec) < 1 {
+                ConsOut = fmt.Sprintf("[!] No IP Address or Port Specified... Defaulting To: 0.0.0.0:5555\n")
+                ConsLogSys(ConsOut, 1, 2)
+
+                cleanUp_Exit(3)
+                os.Exit(3)
+            } else {
+                // Replace : with a space so splitstring will work
+                Tmprec = strings.Replace(Tmprec, ":", " ", -1)
+                splitString1, splitString2, SplitRC := twoSplit(Tmprec)
+                TCPSrv_Host = splitString1
+
+               if SplitRC == 1 {
+                    ConsOut = fmt.Sprintf("[!] No Server Port Specified...  Setting Port to: 5555 \n")
+                    ConsLogSys(ConsOut, 1, 2)
+                    TCPSrv_Port = "5555"
+                } else {
+                    TCPSrv_Port = splitString2
+                }
+
+                TCPSrv_IPort = fmt.Sprintf("%s:%s", TCPSrv_Host, TCPSrv_Port)
+                ConsOut = fmt.Sprintf("[+] Server Host: %s on Port: %s\n", TCPSrv_Host, TCPSrv_Port)
+                ConsLogSys(ConsOut, 1, 1)
+
+                go ListenForRequest()
+
+                clientReader := bufio.NewReader(os.Stdin)
+ 
+                for {
+                    // Waiting for the client request
+                    clientRequest, srv_err := clientReader.ReadString('\n')
+
+                    if srv_err != nil {
+                        ConsOut = fmt.Sprintf("[!] TCP Server Error: %v\n", srv_err)
+                        ConsLogSys(ConsOut, 1, 2)
+                        continue
+                    }
+
+                    clientRequestrim := strings.TrimSpace(clientRequest)
+
+                    if strings.HasPrefix(strings.ToUpper(clientRequestrim), "SESS:NONE") {
+                        ConsOut = fmt.Sprintf("[+] Session Set To: None\n")
+                        ConsLogSys(ConsOut, 1, 2)
+                        CurrSess = -1
+                    } else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "SESS:LIST") {
+                        for i := 0; i < SessCount; i++ {
+                            ConsOut = fmt.Sprintf("[+] Session: %d - IP Address: %s Status: %s\n", SessArry[i], SessIPV4[i], SessStat[i])
+                            ConsLogSys(ConsOut, 1, 2)
+                        }
+                    } else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "SESS:") {
+                        CurrSess, _ = strconv.Atoi(clientRequestrim[5:])
+                        if CurrSess > SessCount-1 {
+                            ConsOut = fmt.Sprintf("[!] No Such Session: %d\n", CurrSess)
+                            ConsLogSys(ConsOut, 1, 2)
+                            CurrSess = -1
+                        } else if SessStat[CurrSess] != "Active" {
+                            ConsOut = fmt.Sprintf("[!] Session is not Active: %d\n", CurrSess)
+                            ConsLogSys(ConsOut, 1, 2)
+                            CurrSess = -1
+                        } else {
+                            ConsOut = fmt.Sprintf("[+] Session Set To: %d (%s)\n", CurrSess, SessIPV4[CurrSess])
+                            ConsLogSys(ConsOut, 1, 2)
+                        }
+                    } else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "KILL:") {
+                        ConsOut = fmt.Sprintf("[+] Exiting AChoirX Multi-Handler... All Remote Session Connections Will Terminate\n")
+                        ConsLogSys(ConsOut, 1, 2)
+                        os.Exit(0)
+                    } else {
+                        // Test to see of the Session Array works...
+                        if CurrSess > -1 {
+                            EncrOut := encrypt([]byte(clientRequest), inPass)
+                            B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+                            if _, serr := SessConn[CurrSess].Write([]byte(B64Out)); serr != nil {
+                                ConsOut = fmt.Sprintf("[!] Could Not Connect to Session: %d - %v\n", CurrSess, serr)
+                                ConsLogSys(ConsOut, 1, 2)
+                            }
+                        } else {
+                            ConsOut = fmt.Sprintf("[!] No Session Selected - Command Not Sent.\n")
+                            ConsLogSys(ConsOut, 1, 2)
+                        }
+                    }
+                }
+            }
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INI:") {
             // Check if Input is Console
             if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INI:CONSOLE") {
@@ -738,7 +919,7 @@ func main() {
                 defer b64FileName.Close()
                 b64FileName.Write(outB64)
             }
-	} else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/USR:") {
+    } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/USR:") {
             if (os.Args[i][5] =='?') {
                 cons_readr := bufio.NewReader(os.Stdin)
                 fmt.Print("[?] Enter Share Mapping UserID > ")
@@ -960,9 +1141,26 @@ func main() {
 
     RunMe = 0  // Conditional run Script default is yes
 
-    for IniScan.Scan() {
-        //Remove any preceding blanks
-        Tmprec = strings.TrimSpace(IniScan.Text())
+    // Do This Forever
+    for {
+
+        // Input Scan (File and Console) until Error (EOF)
+        if RunMode != "Cli" {
+            if !IniScan.Scan() {
+                ConsOut = fmt.Sprintf("[!] End of Input...  Exiting,")
+                ConsLogSys(ConsOut, 1, 1)
+                cleanUp_Exit(LastRC);
+                os.Exit(LastRC);
+                break 
+            }
+
+            //Remove any preceding blanks
+            Tmprec = strings.TrimSpace(IniScan.Text())
+
+        } else {
+            // Wait for TCP Server Input
+            Tmprec, _ = TCPCli_ServeResponse("Resp")
+        }
 
         // Dont Process any Comments
         if strings.HasPrefix(Tmprec, "*") {
@@ -1376,7 +1574,7 @@ func main() {
                         ConsLogSys(ConsOut, 1, 2)
                         continue
                     }                    
-	
+    
                     tokCount = len(tokFields)
                     if tokCount < 25 {
                         for i := tokCount; i < 26; i++ {
@@ -1417,7 +1615,7 @@ func main() {
                         ConsLogSys(ConsOut, 1, 2)
                         continue
                     }                    
-	
+    
                     tokCount = len(tokFields)
                     if tokCount < 25 {
                         for i := tokCount; i < 26; i++ {
@@ -3760,7 +3958,7 @@ func PreIndex() {
 
 func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
     //***************************************************************
-    // Send to Console, Log, and Syslog                             *
+    // Send to Console, Log, TCPRemote, and Syslog                  *
     // thisMSGLvl == The message Level of this message              *
     //  0==None, 1==Min, 2==Standard, 3==Max, 4==Debug              *
     // thisSyslog == Should we send to Syslog                       *
@@ -3771,6 +3969,16 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
 
     if (setMSGLvl >= thisMSGLvl) && setMSGLvl > 0 {
         fmt.Printf (ConLogMSG)
+
+        if (RunMode == "Cli") && TCPCli_Status == 1 {
+
+            EncrOut := encrypt([]byte(ConLogMSG), inPass)
+            B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+
+            if _, Werr := serverCon.Write([]byte(B64Out)); Werr != nil {
+                ConsOut = fmt.Sprintf("[!] Failed to Send to TCP Server: %v\n", Werr)
+            }
+        }
     }
 
     SyslogCount++
@@ -5971,7 +6179,14 @@ func decrypt(data []byte, passphrase string) []byte {
         return []byte(ConsOut)
     }
 
+    // This Can Happen On EOF - Data Length is too Short - and the Decrytion will blow-up
     nonceSize := gcm.NonceSize()
+    if len(data) < nonceSize {
+        ConsOut = fmt.Sprintf("[!] Error Decrypting Data: Bad Length\n")
+        ConsLogSys(ConsOut, 1, 1)
+        return []byte(ConsOut)
+    }
+
     nonce, ciphertext := data[:nonceSize], data[nonceSize:]
     plaintext, dec_err := gcm.Open(nil, nonce, ciphertext, nil)
     if dec_err != nil {
@@ -6158,6 +6373,276 @@ func cpuThrotl() {
                 ConsLogSys(ConsOut, 1, 1)
             } else {
                 pctloop = 10
+            }
+        }
+    }
+}
+
+
+//***************************************************************************
+// Wait for TCP Server Response                                             *
+//***************************************************************************
+func TCPCli_ServeResponse(conType string) (string, error) {
+    // Waiting for the server response
+    serverResponse, Rerr := serverReader.ReadString('\n')
+
+    switch Rerr {
+        case nil:
+            // Decrypt the String
+            EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
+
+            if b64I_err != nil {
+                serverResponse = fmt.Sprintf("[!] Error Decoding String!\n")
+            } else {
+                serverResponse = string(decrypt([]byte(EncrInn), inPass))
+            }
+
+            // Kluge to prevent Auth from Displaying - Will find a better way to do this
+            if strings.ToUpper(conType) != "INIT" {
+                ConsOut = fmt.Sprintf("%s\n", strings.TrimSpace(serverResponse))
+                ConsLogSys(ConsOut, 1, 1)
+            }
+        case io.EOF:
+            ConsOut = fmt.Sprintf("[!] Server closed the connection")
+            ConsLogSys(ConsOut, 1, 1)
+        default:
+            ConsOut = fmt.Sprintf("[!] Server error: %v\n", Rerr)
+            ConsLogSys(ConsOut, 1, 1)
+    }
+
+
+    // If we got an Error Try to re-connect (10x Max)
+    if Rerr != nil {
+        conRetries++
+
+        if conRetries > 10 {
+            ConsOut = fmt.Sprintf("[!] Max Connection Retries Exceeded...  Exiting...")
+            ConsLogSys(ConsOut, 1, 1)
+
+            cleanUp_Exit(3)
+            os.Exit(3)
+        } else {
+            ConsOut = fmt.Sprintf("[!] Connection to Handler Lost...  Retrying (%d)...\n", conRetries)
+            ConsLogSys(ConsOut, 1, 1)
+            time.Sleep (time.Duration(60) * time.Second)
+
+            con, con_err := net.Dial("tcp", TCPCli_IPort)
+            if con_err != nil {
+                TCPCli_Status = 0
+                ConsOut = fmt.Sprintf("[!] Unable to Connect...  Retrying (%d)...\n", conRetries)
+                ConsLogSys(ConsOut, 1, 1)
+            } else {
+                serverReader = bufio.NewReader(con)
+                serverCon = con
+                TCPCli_Status = 1
+
+                // Now Wait for Multi-Handler to Exchange Encrypted data with me to verify Shared Secret
+                serverResponse, Rerr := serverReader.ReadString('\n')
+                if Rerr != nil {
+                    TCPCli_Status = 0
+                    ConsOut = fmt.Sprintf("[!] Unable to Read Server Response...\n")
+                    ConsLogSys(ConsOut, 1, 1)
+                    return "", fmt.Errorf("[!] Unable to Read Server Response")
+                }
+
+                // All Good - Process the Auth Chain
+                conRetries = 0
+
+                // Decrypt the String
+                EncrInn, b64I_err := base64.StdEncoding.DecodeString(serverResponse)
+                if b64I_err != nil {
+                    serverResponse = fmt.Sprintf("[!] Error Decoding String!\n")
+                } else {
+                    serverResponse = string(decrypt([]byte(EncrInn), inPass))
+                }
+
+                // Authorize the Connection
+                if strings.HasPrefix(strings.ToUpper(serverResponse), "AUTH:") {
+                    //ConsOut = fmt.Sprintf("[+] Auth Recieved from Server: %s\n", strings.TrimSpace(serverResponse[5:]))
+                    //ConsLogSys(ConsOut, 1, 1)
+
+                    //ConsOut = fmt.Sprintf("[+] Vrfy Sent to Server: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+                    //ConsLogSys(ConsOut, 1, 1)
+                    ConsOut = fmt.Sprintf("Vrfy: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+
+                    EncrOut := encrypt([]byte(ConsOut), inPass)
+                    B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+
+                    if _, Werr := con.Write([]byte(B64Out)); Werr != nil {
+                        ConsOut = fmt.Sprintf("[!] Failed to respond with Vrfy: %v\n", Werr)
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        ConsOut = fmt.Sprintf("[+] Re-Connection Authorized\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+
+                    // At this point we can start communicating with the Server
+                    return "", nil
+
+                } else {
+                    // Something other than a Verify Chain was recieved - Exit Out
+                    ConsOut = fmt.Sprintf("[!] AChoirX Auth Chain Must Be Initiated Before Use...  Exiting...\n")
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    cleanUp_Exit(3)
+                    os.Exit(3)
+                }
+            }
+        }
+    }
+
+    if strings.ToUpper(conType) == "INIT" {
+        if strings.HasPrefix(strings.ToUpper(serverResponse), "AUTH:") {
+            //ConsOut = fmt.Sprintf("[+] Auth Recieved from Server: %s\n", strings.TrimSpace(serverResponse[5:]))
+            //ConsLogSys(ConsOut, 1, 1)
+
+            //ConsOut = fmt.Sprintf("[+] Vrfy Sent to Server: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+            //ConsLogSys(ConsOut, 1, 1)
+            ConsOut = fmt.Sprintf("Vrfy: %s:%s\n", strings.TrimSpace(serverResponse[5:]), strings.TrimSpace(serverResponse[5:]))
+
+            EncrOut := encrypt([]byte(ConsOut), inPass)
+            B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+
+            if _, Werr := serverCon.Write([]byte(B64Out)); Werr != nil {
+                ConsOut = fmt.Sprintf("[!] Failed to respond with Vrfy: %v\n", Werr)
+                ConsLogSys(ConsOut, 1, 1)
+            }
+
+            // At this point we can start communicating with the Server
+            return "", nil
+
+        } else {
+            // Something other than a Verify Chain was recieved - Exit Out
+            ConsOut = fmt.Sprintf("[!] AChoirX Auth Chain Must Be Initiated Before Use...  Exiting...\n")
+            ConsLogSys(ConsOut, 1, 1)
+
+            cleanUp_Exit(3)
+            os.Exit(3)
+        }
+    } 
+
+    // Fell Through - All Good!
+    return strings.TrimSpace(serverResponse), nil
+}
+
+//***************************************************************************
+// Wait for TCP Client Request                                              *
+//***************************************************************************
+func ListenForRequest() {
+    listener, err := net.Listen("tcp", TCPSrv_IPort)
+    if err != nil {
+        ConsOut = fmt.Sprintf("[!] Failed Connection to Client: %v\n", err)
+        ConsLogSys(ConsOut, 1, 1)
+    }
+    defer listener.Close()
+ 
+    for {
+        con, err := listener.Accept()
+        if err != nil {
+            ConsOut = fmt.Sprintf("[!] Failed Connection to Client: %v\n", err)
+            ConsLogSys(ConsOut, 1, 1)
+            continue
+        }
+
+        // If you want, you can increment a counter here and inject to handleClientRequest below as client identifier
+        go handleClientRequest(con)
+    }
+}
+ 
+//***************************************************************************
+// Handle TCP Client Request                                                *
+//***************************************************************************
+func handleClientRequest(con net.Conn) {
+    defer con.Close()
+
+    var ConsOut = "[+] Console Output"
+
+    // Generate Auth String (HostName-Randint)
+    cName, host_err := os.Hostname()
+    if host_err != nil {
+        cName = "LocalHost"
+    }
+
+    clientReader := bufio.NewReader(con)
+    MyCount := SessCount
+    authRand := fmt.Sprintf("%s-%d", cName, mrand.Int())
+
+    SessArry = append(SessArry, SessCount)
+    SessHndl = append(SessHndl, clientReader)
+    SessConn = append(SessConn, con)
+    SessStat = append(SessStat, "Conn")
+    SessKeys = append(SessKeys, authRand)
+    SessIPV4 = append(SessIPV4, con.RemoteAddr().String())
+	
+    fmt.Printf("[+] Adding Session: %d For IP Address: %s\n", SessCount, SessIPV4[SessCount])
+
+    // Seed the Random Number Generator
+    mrand.Seed(int64(time.Now().Nanosecond()))
+
+    Srv_Auth := fmt.Sprintf("Auth:%s\n", authRand)
+    EncrOut := encrypt([]byte(Srv_Auth), inPass)
+    B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+
+    if _, auth_err := con.Write([]byte(B64Out)); auth_err != nil {
+        ConsOut = fmt.Sprintf("[!] Failed to Initiate Authorization: %v\n", auth_err)
+        ConsLogSys(ConsOut, 1, 1)
+    }
+
+    // Bump the Session Table for the next Session
+    SessCount++ 
+
+    for {
+        // Waiting for the client request
+        clientRequest, err := clientReader.ReadString('\n')
+        clientRequest = strings.TrimSpace(clientRequest)
+
+        // Decrypt the String
+        EncrInn, b64I_err := base64.StdEncoding.DecodeString(clientRequest)
+        if b64I_err != nil {
+            clientRequest = fmt.Sprintf("[!] Error Encoding String!\n")
+        } else {
+            clientRequest = string(decrypt([]byte(EncrInn), inPass))
+            clientRequest = strings.TrimSpace(clientRequest)
+        }
+
+        if strings.HasPrefix(strings.ToUpper(clientRequest), "VRFY:") {
+            AuthVrfy := fmt.Sprintf("%s:%s", authRand, authRand)
+            if AuthVrfy == strings.TrimSpace(clientRequest[5:]) {
+                ConsOut = fmt.Sprintf("[+] Auth Verification Passed!\n")
+                ConsLogSys(ConsOut, 1, 1)
+                SessStat[MyCount] = "Active"
+            } else {
+                // Invalid Auth String. Terminate!
+                ConsOut = fmt.Sprintf("[+] Invalid AuthVrfy String: %s\n", strings.TrimSpace(clientRequest[5:]))
+                ConsLogSys(ConsOut, 1, 1)
+                SessStat[MyCount] = "Closed"
+
+                EncrOut := encrypt([]byte("BYE:\n"), inPass)
+                B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+
+                if _, auth_err := con.Write([]byte(B64Out)); auth_err != nil {
+                    ConsOut = fmt.Sprintf("[!] Failed to Terminate Remote Session: %v\n", auth_err)
+                    ConsLogSys(ConsOut, 1, 1)
+                }
+                return
+            }
+        } else {
+            // Add CRLF for better display formatting
+            ConsOut = fmt.Sprintf("%d>>> %s\n", MyCount, clientRequest)
+ 
+            switch err {
+            case nil:
+                ConsLogSys(ConsOut, 1, 1)
+            case io.EOF:
+                ConsOut = fmt.Sprintf("[!] Client closed the connection by terminating the process\n")
+                ConsLogSys(ConsOut, 1, 1)
+                SessStat[MyCount] = "Closed"
+                return
+            default:
+                ConsOut = fmt.Sprintf("[!] Connection Error: %v\n", err)
+                ConsLogSys(ConsOut, 1, 1)
+                SessStat[MyCount] = "Closed"
+                return
             }
         }
     }

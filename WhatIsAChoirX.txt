@@ -1,4 +1,4 @@
-AChoirX - v10.01.00 - Release 1.0
+AChoirX - v10.01.10 - Release 1.10
 
 AChoirX
 =======
@@ -461,6 +461,59 @@ Here are the Command Line Options:
      Note: By Default the embeded toolkit will be unzipped.  If you do not want this
            specify the decoded ini file name (/INI:AChoirB64.ACQ) and AChoirX will
            not unembed the default tool kit - This is by design.
+/CLI:<IP Address>:<Port> - This option tells AChoirX to run as a TCP Client by 
+     connecting to the AChoirx Server.  This allows Remote control of the Client
+     by the AChoirX Multi-Handler Server.  Any Number of Clients can connect to 
+     The ChoirX Multi-Handler Server
+/SRV:<IP Address>:<Port> - This option tells AChoirX to run as a TCP Server by 
+     listening on the IP Address and Port Specified. This is a Multi-Handler
+     server allowing multiple AChoirX Client connections. 
+
+
+A note about AChoirX Client/Server Modes (Beta 0.01)
+(/CLI: and /SRV:)
+------------------------------------------------------------------------
+AChoirX can be started as a TCP Client or Server.  This is done by the 
+/CLI: or /SRV: command line parameters.  As a Client AChoirX is run as 
+a remote shell, accepting commands from the server.  As a Server AChoirX
+funtions as a Multi-Handler allowing control of several Clients.
+
+IMPORTANT NOTE: Authentication and communication REQUIRES a shared
+password.  This is done by specifying the password for both the Client
+and Server at startup, For Example:
+
+Client - /PWD:Pa$$word /CLI:192.168.1.101:5555
+Server - /PWD:Pa$$word /SRV:0.0.0.0:5555
+
+Note: It is important that the /PWD: option is specified FIRST, otherwise the
+DEFAULT password (none) will be used.
+
+All communications betweem the Client and Server are encrypted using this 
+shared password, so without it on both Client and Server, AChoirX will not be 
+able to communicate, and will fail.
+
+The AChoirX Server Mode has only a few specific commands:
+SESS:List - List the connected Client Sessions
+SESS:n - Set the current Session to n
+SESS:None - Set the current Session to NONE
+KILL: - Shut Down the Multi Handler
+
+You can also issue ANY AChoirX command to the Remote Session.  This functions
+like the Local Console mode across TCP - however you will not see the output of
+each command - Only the standard AChoirX console messages will be seen.
+
+To force the remote Session to end, use the standard AChoirX BYE: command.
+
+NOTE: If The AChoirX Client looses connection with the AChoirX server, it
+will retry 10 times at 60 second interals.  If no Re-connection can be 
+established it will exit out.  This means that when you shut down the AChoirX
+server, all remote sessions will terminate in 10 Minutes.
+
+NOTE: This functionality is in Beta, so please provide feedback so I can improve
+this new capability.
+
+NOTE: Since AChoirX is Cross-Platform (Windows, Linux, OSX), both the Client and
+Server modes will work on all three platforms.
 
 
 A note about Conditonal Logic 
