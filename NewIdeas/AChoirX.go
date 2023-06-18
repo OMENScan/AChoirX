@@ -734,7 +734,7 @@ func main() {
 
         } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/SRV:") {
             consOrFile = 1
-            RunMode = "SRV"
+            RunMode = "Srv"
             inFnam = "Console"
             iRunMode = 1
 
@@ -6627,7 +6627,8 @@ func handleClientRequest(con net.Conn) {
                 return
             }
         } else {
-            ConsOut = fmt.Sprintf("%d>>> %s", MyCount, clientRequest)
+            // Add CRLF for better display formatting
+            ConsOut = fmt.Sprintf("%d>>> %s\n", MyCount, clientRequest)
  
             switch err {
             case nil:
