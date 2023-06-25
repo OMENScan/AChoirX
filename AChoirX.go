@@ -161,6 +161,9 @@
 // AChoirX v10.01.10 - Release 1.10
 //                   - Add remote Multi-Handler (Server & Client Modes)
 //
+// AChoirX v10.01.11 - Release 1.11
+//                   - Improvements in remote Multi-Handler
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -229,7 +232,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.10"                       // AChoir Version
+var Version = "v10.01.11"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -722,16 +725,6 @@ func main() {
 
                 TCPCli_ServeResponse("Init")
             }
-        
-
-
-
-
-
-
-
-
-
         } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/SRV:") {
             consOrFile = 1
             RunMode = "Srv"
@@ -765,63 +758,6 @@ func main() {
                 ConsLogSys(ConsOut, 1, 1)
 
                 go ListenForRequest()
-
-                clientReader := bufio.NewReader(os.Stdin)
- 
-                for {
-                    // Waiting for the client request
-                    clientRequest, srv_err := clientReader.ReadString('\n')
-
-                    if srv_err != nil {
-                        ConsOut = fmt.Sprintf("[!] TCP Server Error: %v\n", srv_err)
-                        ConsLogSys(ConsOut, 1, 2)
-                        continue
-                    }
-
-                    clientRequestrim := strings.TrimSpace(clientRequest)
-
-                    if strings.HasPrefix(strings.ToUpper(clientRequestrim), "SESS:NONE") {
-                        ConsOut = fmt.Sprintf("[+] Session Set To: None\n")
-                        ConsLogSys(ConsOut, 1, 2)
-                        CurrSess = -1
-                    } else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "SESS:LIST") {
-                        for i := 0; i < SessCount; i++ {
-                            ConsOut = fmt.Sprintf("[+] Session: %d - IP Address: %s Status: %s\n", SessArry[i], SessIPV4[i], SessStat[i])
-                            ConsLogSys(ConsOut, 1, 2)
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "SESS:") {
-                        CurrSess, _ = strconv.Atoi(clientRequestrim[5:])
-                        if CurrSess > SessCount-1 {
-                            ConsOut = fmt.Sprintf("[!] No Such Session: %d\n", CurrSess)
-                            ConsLogSys(ConsOut, 1, 2)
-                            CurrSess = -1
-                        } else if SessStat[CurrSess] != "Active" {
-                            ConsOut = fmt.Sprintf("[!] Session is not Active: %d\n", CurrSess)
-                            ConsLogSys(ConsOut, 1, 2)
-                            CurrSess = -1
-                        } else {
-                            ConsOut = fmt.Sprintf("[+] Session Set To: %d (%s)\n", CurrSess, SessIPV4[CurrSess])
-                            ConsLogSys(ConsOut, 1, 2)
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "KILL:") {
-                        ConsOut = fmt.Sprintf("[+] Exiting AChoirX Multi-Handler... All Remote Session Connections Will Terminate\n")
-                        ConsLogSys(ConsOut, 1, 2)
-                        os.Exit(0)
-                    } else {
-                        // Test to see of the Session Array works...
-                        if CurrSess > -1 {
-                            EncrOut := encrypt([]byte(clientRequest), inPass)
-                            B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
-                            if _, serr := SessConn[CurrSess].Write([]byte(B64Out)); serr != nil {
-                                ConsOut = fmt.Sprintf("[!] Could Not Connect to Session: %d - %v\n", CurrSess, serr)
-                                ConsLogSys(ConsOut, 1, 2)
-                            }
-                        } else {
-                            ConsOut = fmt.Sprintf("[!] No Session Selected - Command Not Sent.\n")
-                            ConsLogSys(ConsOut, 1, 2)
-                        }
-                    }
-                }
             }
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INI:") {
             // Check if Input is Console
@@ -1105,8 +1041,75 @@ func main() {
         getCaseInfo(1)
     }
 
+    if RunMode == "Srv" {
 
-    if consOrFile == 1 {
+        clientReader := bufio.NewReader(os.Stdin)
+
+        ConsOut = fmt.Sprintf("[+] Switching to AChoirX Server Mode.\n")
+        ConsLogSys(ConsOut, 1, 1)
+
+        for {
+            // Waiting for the client request
+            clientRequest, srv_err := clientReader.ReadString('\n')
+
+            if srv_err != nil {
+                ConsOut = fmt.Sprintf("[!] TCP Server Error: %v\n", srv_err)
+                ConsLogSys(ConsOut, 1, 2)
+                continue
+            }
+
+            clientRequestrim := strings.TrimSpace(clientRequest)
+
+            if strings.HasPrefix(strings.ToUpper(clientRequestrim), "SESS:NONE") {
+                ConsOut = fmt.Sprintf("[+] Session Set To: None\n")
+                ConsLogSys(ConsOut, 1, 2)
+                CurrSess = -1
+            } else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "SESS:LIST") {
+                if SessCount < 1 {
+                    ConsOut = fmt.Sprintf("[!] No Sessions Have Been Started with AChoirX Server\n")
+                    ConsLogSys(ConsOut, 1, 2)
+                } else {
+                    for i := 0; i < SessCount; i++ {
+                        ConsOut = fmt.Sprintf("[+] Session: %d - IP Address: %s Status: %s\n", SessArry[i], SessIPV4[i], SessStat[i])
+                        ConsLogSys(ConsOut, 1, 2)
+                    }
+                }
+            } else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "SESS:") {
+                CurrSess, _ = strconv.Atoi(clientRequestrim[5:])
+                if CurrSess > SessCount-1 {
+                   ConsOut = fmt.Sprintf("[!] No Such Session: %d\n", CurrSess)
+                    ConsLogSys(ConsOut, 1, 2)
+                    CurrSess = -1
+                } else if SessStat[CurrSess] != "Active" {
+                    ConsOut = fmt.Sprintf("[!] Session is not Active: %d\n", CurrSess)
+                    ConsLogSys(ConsOut, 1, 2)
+                    CurrSess = -1
+                } else {
+                    ConsOut = fmt.Sprintf("[+] Session Set To: %d (%s)\n", CurrSess, SessIPV4[CurrSess])
+                    ConsLogSys(ConsOut, 1, 2)
+                }
+            } else if strings.HasPrefix(strings.ToUpper(clientRequestrim), "KILL:") {
+                ConsOut = fmt.Sprintf("[+] Exiting AChoirX Multi-Handler... All Remote Session Connections Will Terminate\n")
+                ConsLogSys(ConsOut, 1, 2)
+
+                cleanUp_Exit(0);
+                os.Exit(0)
+            } else {
+                // Test to see of the Session Array works...
+                if CurrSess > -1 {
+                    EncrOut := encrypt([]byte(clientRequest), inPass)
+                    B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))
+                    if _, serr := SessConn[CurrSess].Write([]byte(B64Out)); serr != nil {
+                        ConsOut = fmt.Sprintf("[!] Could Not Connect to Session: %d - %v\n", CurrSess, serr)
+                        ConsLogSys(ConsOut, 1, 2)
+                    }
+                } else {
+                    ConsOut = fmt.Sprintf("[!] No Session Selected - Command Not Sent.\n")
+                    ConsLogSys(ConsOut, 1, 2)
+                }
+            }
+        }
+    } else if consOrFile == 1 {
         ConsOut = fmt.Sprintf("[+] Switching to Console Input.\n")
         ConsLogSys(ConsOut, 1, 1)
         fmt.Printf(">>>")
