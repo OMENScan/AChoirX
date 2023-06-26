@@ -5,6 +5,8 @@ The goal of AChoirX is to create a simple scripting language for Targeted Collec
 
 The AChoirX installation contains a single AChoir collection script, which can run on all three versions of AChoirX. This shows the power of the idea: A single consistent method to gather artifacts and telemetry from all three platforms using a single script.  AChoirX does not to abstract these artifacts - but rather collect the actual platform specific raw artifacts in a consistent manner using the same utility on all three platforms.
 
+AChoir scripts can be modified in nearly endless ways to meet the collection needs of different types of investigations.  AChoirX can also run in interactive console mode, or across TCP using the built in Multi-Handler.  AChoirX also natively supports common upload methods such as SFTP or S3.
+
 # Change Log:
 10/16/2020 - Alpha 23. Windows, Linux, OSX supported. The default script runs on all three platforms and gathers platform specific Artifacts and Telemetry. Has built in S3 Bucket uploading (using the AWS SDK).
 
