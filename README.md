@@ -1,16 +1,9 @@
 # AChoirX
  AChoirX is a port of AChoir in Go(lang) for Cross Platform forensic collection, processing, and analysis.
 
-# The Plan:
-1. Port all functions from AChoir to AChoirX that can be cross-platform supported to GO.  This will give a basic set of functionality, but WILL NOT have all Windows specific functionality of the C version of AChoir.  I recommend that the C Version on windows be used for the foreseeable future.  I will continue to Update and enhance the Windows C Version.  For now, the C version is the flagship version of AChoir for Windows.
-2. Add the functions that are not available using Standard Go, but are still cross-platform.  I will rely on third party libraries, or create my own libraries to ensure that functionality not available in native Go (but important for all platforms) will be implemented in AChoirX.
-3. Add platform specific code to add functionality that is either not available in all platforms, or is handled differently in different platforms. AChoirX will contain shared code, and platform specific code.  I'll try to make this as transparent as possible, but I anticipate that some things will simply remain platform specific.
-
 The goal of AChoirX is to create a simple scripting language for Targeted Collection (Live Response) on Windows, Linux, and OSX.  AChoirX (like AChoir) will also support scripting of extraction, parsing, and analysis of mounted forensic images.
 
-In the latest Alpha release I have created a single AChoir collection script, which can run on all three versions of AChoir. This shows the power of the idea: A single consistent method to gather artifacts and telemetry from all three platforms using a single script.  AChoirX does not to abstract these artifacts - but rather collect the actual platform specific raw artifacts in a consistent manner using the same utility on all three platforms.
-
-I hope that eventually this idea will help forensicators move across multiple platforms without the need for separate tools requiring separate syntax.
+The AChoirX installation contains a single AChoir collection script, which can run on all three versions of AChoirX. This shows the power of the idea: A single consistent method to gather artifacts and telemetry from all three platforms using a single script.  AChoirX does not to abstract these artifacts - but rather collect the actual platform specific raw artifacts in a consistent manner using the same utility on all three platforms.
 
 # Change Log:
 10/16/2020 - Alpha 23. Windows, Linux, OSX supported. The default script runs on all three platforms and gathers platform specific Artifacts and Telemetry. Has built in S3 Bucket uploading (using the AWS SDK).
@@ -89,3 +82,25 @@ HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a sing
 05/15/2022 - Beta 94(RC3) - Add Echo command
 
 09/22/2022 - Beta 95(RC3) - Add CPU Limit Throttling
+
+10/21/2022 - AChoirX v10.00.96 - Improve CPU Limit Throttling
+
+10/24/2022 - AChoirX v10.00.97 - Add Native Registry Extraction
+
+02/12/2023 - AChoirX v10.00.98 - Check for Collisions - Multiple collections at the same time, Improve Syslog (remove CRLFs)
+
+03/10/2023 - AChoirX v10.00.99 - Minor improvement to CPS: (it ignores case now)
+
+AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
+
+04/02/2023 - AChoirX v10.01.01 - Release 1.01. Add FLT:<Filter Files> = Filter &LST and &FOR based on a Filter File, Add SET:Filter= to control how the filter functions, None = Remove the Filter, Incl or Excl = Filter is used to Include or Exclude entries, Full or Part = Filter is full or partial match, (Example: SET:Filter=Incl,Part = Filter data that has Partial Matches)
+
+04/15/2023 - AChoirX v10.01.02 - Release 1.02. Fix Zip Bug when no directory is specified
+
+04/16/2023 - AChoirX v10.01.03 - Release 1.03. More improvements in Zip - Fix Subdirectory Indexing
+
+06/18/2023 - AChoirX v10.01.10 - Release 1.10. Add remote Multi-Handler (Server & Client Modes)
+
+06/24/2023 - AChoirX v10.01.11 - Release 1.11. Improvements in remote Multi-Handler
+
+
