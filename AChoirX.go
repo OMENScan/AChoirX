@@ -164,6 +164,10 @@
 // AChoirX v10.01.11 - Release 1.11
 //                   - Improvements in remote Multi-Handler
 //
+// AChoirX v10.01.12 - Release 1.12
+//                   - Change Behavior: If Console or CLI was invoked. Drop back into 
+//                     Interractive Mode after INI: Processing
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -232,12 +236,13 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.11"                       // AChoir Version
+var Version = "v10.01.12"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
 var MyHash = "none"                             // My Hash
 var iRunMode = 0                                // Int Runmode Flag (0, 1, 2)
+var Console_Status = 0                          // Was the Console Ever Invoked
 var inFnam = "AChoir.ACQ"                       // Script Name
 var inEncFile = "AChoir.ECR"                    // Input Encrypted File Name
 var ACQName = "ACQ-IR-LocalHost-00000000-0000"  // AChoir Unique Collection Name
@@ -674,6 +679,7 @@ func main() {
             consOrFile = 1
             RunMode = "Con"
             inFnam = "Console"
+            Console_Status = 1
             iRunMode = 1
         } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/CLI:") {
             consOrFile = 1
@@ -764,6 +770,7 @@ func main() {
             if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INI:CONSOLE") {
                 consOrFile = 1
                 RunMode = "Con"
+                Console_Status = 1
                 inFnam = os.Args[i][5:]
                 iRunMode = 1
             } else if len(os.Args[i]) < 254 {
@@ -1149,12 +1156,36 @@ func main() {
 
         // Input Scan (File and Console) until Error (EOF)
         if RunMode != "Cli" {
+            // If we ran an INI and we are connected, reset input to CLI
             if !IniScan.Scan() {
-                ConsOut = fmt.Sprintf("[!] End of Input...  Exiting,")
-                ConsLogSys(ConsOut, 1, 1)
-                cleanUp_Exit(LastRC);
-                os.Exit(LastRC);
-                break 
+                if TCPCli_Status == 1 {
+                    consOrFile = 1
+                    RunMode = "Cli"
+                    inFnam = "Console"
+
+                    ConsOut = fmt.Sprintf("[+] Switching Back to CLI Mode\n")
+                    ConsLogSys(ConsOut, 1, 2)
+                } else if Console_Status == 1 {
+                    // If we ran a Console reset input to CON
+                    consOrFile = 1
+                    RunMode = "Con"
+                    inFnam = "Console"
+                    iRunMode = 1
+
+                    ConsOut = fmt.Sprintf("[+] Switching Back to Console (Interactive Mode)\n")
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    IniHndl.Close()
+                    //fmt.Printf(">>>")
+                    IniScan = bufio.NewScanner(os.Stdin)
+                } else {
+                    // End of INI, Exit Out
+                    ConsOut = fmt.Sprintf("[!] End of Input...  Exiting,")
+                    ConsLogSys(ConsOut, 1, 1)
+                    cleanUp_Exit(LastRC);
+                    os.Exit(LastRC);
+                    break
+                }
             }
 
             //Remove any preceding blanks
@@ -1994,6 +2025,7 @@ func main() {
                         if consOrFile == 0 {
                             RunMode = "Con"
                             inFnam = "Console"
+                            Console_Status = 1
                             iRunMode = 1
                             consOrFile = 1
 
@@ -2028,6 +2060,7 @@ func main() {
                                 os.Exit(3)
                             }
 
+                            RunMode = "Ini"
                             IniScan = bufio.NewScanner(IniHndl)
                             RunMe = 0  // Conditional run Script default is yes
 
@@ -3973,7 +4006,9 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
     if (setMSGLvl >= thisMSGLvl) && setMSGLvl > 0 {
         fmt.Printf (ConLogMSG)
 
-        if (RunMode == "Cli") && TCPCli_Status == 1 {
+        // if (RunMode == "Cli") && TCPCli_Status == 1 {
+        // If we are connected - Send to Server - CLI, CONS, or INI Mode 
+        if TCPCli_Status == 1 {
 
             EncrOut := encrypt([]byte(ConLogMSG), inPass)
             B64Out := fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString(EncrOut))

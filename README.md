@@ -105,4 +105,4 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 
 06/24/2023 - AChoirX v10.01.11 - Release 1.11. Improvements in remote Multi-Handler
 
-
+06/30/2023 - AChoirX v10.01.12 - Release 1.12. Change Behavior: If Console or CLI was invoked. Drop back into Interractive Mode after INI: Processing
