@@ -168,6 +168,9 @@
 //                   - Change Behavior: If Console or CLI was invoked. Drop back into 
 //                     Interractive Mode after INI: Processing
 //
+// AChoirX v10.01.13 - Release 1.13
+//                   - Get input from Stdin or TCP Server 
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -236,7 +239,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.12"                       // AChoir Version
+var Version = "v10.01.13"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -4116,8 +4119,14 @@ func consInput(consString string, conLog int, conHide int) {
         ConsLogSys(ConsOut, 4, 4)
     }
 
-    con_reader := bufio.NewReader(os.Stdin)
-    Conrec, _ = con_reader.ReadString('\n')
+    if TCPCli_Status == 1 {
+        // Should we get input from the TCP Server
+        Conrec, _ = TCPCli_ServeResponse("Resp")
+    } else {
+        // No TCP. get input from Stdin
+        con_reader := bufio.NewReader(os.Stdin)
+        Conrec, _ = con_reader.ReadString('\n')
+    }
 
     // Remove CRLF to LF
     Conrec = strings.TrimSpace(Conrec)
