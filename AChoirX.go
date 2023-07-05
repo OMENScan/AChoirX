@@ -171,6 +171,9 @@
 // AChoirX v10.01.13 - Release 1.13
 //                   - Get input from Stdin or TCP Server 
 //
+// AChoirX v10.01.14 - Release 1.14
+//                   - Con:Last - Display last 10 Console Messages 
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -239,7 +242,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.13"                       // AChoir Version
+var Version = "v10.01.14"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -428,6 +431,7 @@ var net_err error                              // TCP Network Error
 var iLogOpen = 0                                // Is the LogFile Open Yet
 var setMSGLvl = 2                               // Display Message Level - Default=2 (med)
 var iSyslogLvl = 0                              // Syslog Level - Default=0 (Off)
+var iConLast = 0                                // Are we in Redisplay (CON:LAST) Mode
 
 // Global File Names
 var IniFile = "C:\\AChoir\\AChoir.Acq"          // AChoir Script File
@@ -527,6 +531,7 @@ var CntiArray = []int{0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 var DrvsArray = []string{"C:\\", "D:\\", "E:\\", "F:\\", "G:\\", "H:\\", "I:\\", "J:\\", "K:\\", "L:\\",
                          "M:\\", "N:\\", "O:\\", "P:\\", "Q:\\", "R:\\", "S:\\", "T:\\", "U:\\", "V:\\",
                          "W:\\", "X:\\", "Y:\\", "Z:\\"}
+var ConsArray = []string{"none", "none", "none", "none", "none", "none", "none", "none", "none", "none"}
 
 // File Signature Copy Table Variables
 var iSigCount = 0
@@ -2096,6 +2101,17 @@ func main() {
                     ConsOut = fmt.Sprintf("[+] Showing Console...\n")
                     ConsLogSys(ConsOut, 1, 1)
                     winConHideShow(1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:LAST") {
+                    // Redisplay the last 10 console messages.  Most useful for TCP
+                    iConLast = 1
+                    ConsOut = fmt.Sprintf("[+] Re-Displaying Last 10 Console Messsages...\n")
+                    ConsLogSys(ConsOut, 1, 1)
+                    for iCon := 0; iCon < len(ConsArray); iCon++ {
+                        if ConsArray[iCon] != "none" {
+                            ConsLogSys(ConsArray[iCon], 1, 1)
+                        }
+                    }
+                    iConLast = 0
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=MIN") {
                     setMSGLvl = 1
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=STD") {
@@ -4019,6 +4035,14 @@ func ConsLogSys(ConLogMSG string, thisMSGLvl int, thisSyslog int) {
             if _, Werr := serverCon.Write([]byte(B64Out)); Werr != nil {
                 ConsOut = fmt.Sprintf("[!] Failed to Send to TCP Server: %v\n", Werr)
             }
+        }
+
+        if iConLast == 0 {
+            // Save the last 10 Messages... JIC we need to re-display
+            for iCon := 1; iCon < len(ConsArray); iCon++ {
+                ConsArray[iCon-1] = ConsArray[iCon]
+            }
+            ConsArray[len(ConsArray)-1] = ConLogMSG
         }
     }
 

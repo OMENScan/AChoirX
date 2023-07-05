@@ -1,4 +1,4 @@
-AChoirX - v10.01.11 - Release 1.11
+AChoirX - v10.01.14 - Release 1.14
 
 AChoirX
 =======
@@ -187,7 +187,10 @@ CON:Hide Hide The Console Screen - For quiet Acquisition
          Input be sure to Show any Hidden Screen
 CON:Show Show a Previously Hidden Console
          Be Sure to Show any hidden screens before needed 
-         Input. 
+         Input.
+CON:Last Show the last 10 Console Messaages.  This can be very useful
+         When using AChoirX Server mode to re-display console messages
+         that have scrolled off the screen.
 CON:MSGLevel=<min>, <std>, <max>, <debug> Set console messages level.
          Levels break down (generally) as follows:
           min=Just display the command, progress and critical errors
