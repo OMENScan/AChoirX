@@ -174,6 +174,9 @@
 // AChoirX v10.01.14 - Release 1.14
 //                   - Con:Last - Display last 10 Console Messages 
 //
+// AChoirX v10.01.15 - Release 1.15
+//                   - Improvements in Con:Last 
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -242,7 +245,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.14"                       // AChoir Version
+var Version = "v10.01.15"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -2102,16 +2105,7 @@ func main() {
                     ConsLogSys(ConsOut, 1, 1)
                     winConHideShow(1)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:LAST") {
-                    // Redisplay the last 10 console messages.  Most useful for TCP
-                    iConLast = 1
-                    ConsOut = fmt.Sprintf("[+] Re-Displaying Last 10 Console Messsages...\n")
-                    ConsLogSys(ConsOut, 1, 1)
-                    for iCon := 0; iCon < len(ConsArray); iCon++ {
-                        if ConsArray[iCon] != "none" {
-                            ConsLogSys(ConsArray[iCon], 1, 1)
-                        }
-                    }
-                    iConLast = 0
+                    ConsLastTen()
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=MIN") {
                     setMSGLvl = 1
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=STD") {
@@ -4133,23 +4127,32 @@ func getCaseInfo(SayOrGet int) {
 // conHide - Should we redact the Input                         *
 //***************************************************************
 func consInput(consString string, conLog int, conHide int) {
-    ConsOut = fmt.Sprintf("[?] [%s] ", consString)
+    for {
+        ConsOut = fmt.Sprintf("[?] [%s] ", consString)
 
-    if conLog == 1 {
-        // Log it Normal
-        ConsLogSys(ConsOut, 1, 1)
-    } else {
-        // Only Log in Debug Mode
-        ConsLogSys(ConsOut, 4, 4)
-    }
+        if conLog == 1 {
+            // Log it Normal
+            ConsLogSys(ConsOut, 1, 1)
+        } else {
+            // Only Log in Debug Mode
+            ConsLogSys(ConsOut, 4, 4)
+        }
 
-    if TCPCli_Status == 1 {
-        // Should we get input from the TCP Server
-        Conrec, _ = TCPCli_ServeResponse("Resp")
-    } else {
-        // No TCP. get input from Stdin
-        con_reader := bufio.NewReader(os.Stdin)
-        Conrec, _ = con_reader.ReadString('\n')
+        if TCPCli_Status == 1 {
+            // Should we get input from the TCP Server
+            Conrec, _ = TCPCli_ServeResponse("Resp")
+        } else {
+            // No TCP. get input from Stdin
+            con_reader := bufio.NewReader(os.Stdin)
+            Conrec, _ = con_reader.ReadString('\n')
+        }
+
+        // Bit of a kluge - but account for CON:LAST being input here
+        if strings.HasPrefix(strings.ToUpper(Conrec), "CON:LAST") {
+            ConsLastTen()
+        } else {
+            break
+        }
     }
 
     // Remove CRLF to LF
@@ -6717,5 +6720,24 @@ func handleClientRequest(con net.Conn) {
             }
         }
     }
+}
+
+
+//***************************************************************************
+// Display Last 10 Console Messages. Most useful for TCP                    *
+//***************************************************************************
+func ConsLastTen() {
+    iConLast = 1
+    ConsOut = fmt.Sprintf("[+] Re-Displaying Last 10 Console Messsages...\n")
+    ConsLogSys(ConsOut, 1, 1)
+
+    for iCon := 0; iCon < len(ConsArray); iCon++ {
+        if ConsArray[iCon] != "none" {
+            ConsOut = fmt.Sprintf("%s\n", strings.TrimSpace(ConsArray[iCon]))
+            ConsLogSys(ConsOut, 1, 1)
+        }
+    }
+
+    iConLast = 0
 }
 
