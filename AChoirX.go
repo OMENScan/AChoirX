@@ -177,6 +177,9 @@
 // AChoirX v10.01.15 - Release 1.15
 //                   - Improvements in Con:Last 
 //
+// AChoirX v10.01.16 - Release 1.16
+//                   - Default CLI Console output Redirect to TCP 
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -245,7 +248,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.15"                       // AChoir Version
+var Version = "v10.01.16"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -4864,6 +4867,17 @@ func RunCommand(Commandstring string, Commandtype int) error {
         }
     }
 
+
+    //****************************************************************
+    //* If TCP CLI mode - Redirect Stdout (If it has not already     *
+    //****************************************************************
+    if iSTDOut == 0 && TCPCli_Status == 1 {
+        iSTDOut = 2
+        STDOutF = fmt.Sprintf("%s%cTCPSTDOut", CachDir, slashDelim)
+        os.Remove(STDOutF)  // Delete it first to prevent accidental spillage 
+    }
+
+
     //****************************************************************
     //* Make sure the command is there, then hash it.                *
     //****************************************************************
@@ -4982,6 +4996,22 @@ func RunCommand(Commandstring string, Commandtype int) error {
             ConsLogSys(ConsOut, 1, 1)
 
             return strt_err
+        }
+    }
+
+
+    //****************************************************************
+    //* If TCP CLI mode - Redirect Stdout (If it has not already     *
+    //****************************************************************
+    if iSTDOut == 2 && TCPCli_Status == 1 {
+        StdOHndl, stdo_err := os.Open(STDOutF)
+
+        if stdo_err == nil {
+            StdOScan := bufio.NewScanner(StdOHndl)
+            for StdOScan.Scan() {
+                ConsOut = fmt.Sprintf("%s\n", strings.TrimSpace(StdOScan.Text()))
+                ConsLogSys(ConsOut, 1, 1)
+            }
         }
     }
 
