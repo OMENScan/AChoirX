@@ -1,4 +1,4 @@
-AChoirX - v10.01.14 - Release 1.14
+AChoirX - v10.01.17 - Release 1.17
 
 AChoirX
 =======
@@ -229,6 +229,7 @@ N==:<Number1> <Number2> - Is <Number1> Equal to <Number2>
 INI:     SWITCH to another Script File (INI:F:\NewScript.Acq)
          Note: This WILL NOT RETURN to the calling script.
 INI:Console - Switch to Interactive Console Mode
+XTR:     Extracts the embedded toolkit.
 CSE:SAY  Display Optional Case Information ans write it to Log
 CSE:GET  Input Optional Case Information - ONLY allowed ONCE 
           per session to avoid ambiguity.
@@ -450,6 +451,7 @@ Here are the Command Line Options:
 /INI:<File Name>  - Run the <File Name> script instead of AChoir.ACQ
         This Option WILL NOT Create a Base Acquisition Directory
         Use the ACQ: action to create the Base Acquisition Directory if you want one. 
+/XTR    Extracts the embedded toolkit.
 /PWD:<password> - Sets the &PWD variable
 /DEC:<FileName> - Decrypts a file and writes it to: Decrypted.Dat
 /DRV:<x:> - Set the &DRV parameter

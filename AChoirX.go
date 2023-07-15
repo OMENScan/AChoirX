@@ -180,6 +180,10 @@
 // AChoirX v10.01.16 - Release 1.16
 //                   - Default CLI Console output Redirect to TCP 
 //
+// AChoirX v10.01.17 - Release 1.17
+//                   - SFTP improvements (cross platform)
+//                   - Add /XTR and XTR: - extracts the embedded toolkit
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -248,7 +252,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.16"                       // AChoir Version
+var Version = "v10.01.17"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -641,6 +645,7 @@ func main() {
             fmt.Printf(" /GET:<URL/File> - Get a File using HTTP.\n")
             fmt.Printf(" /GXR:<URL/File> - Get a Zip File using HTTP, Extract the Files, and Run the Script.\n")
             fmt.Printf(" /INI:<File Name> - Run the <File Name> script instead of AChoir.ACQ\n")
+            fmt.Printf(" /XTR - Extract the embedded Toolkit\n")
             fmt.Printf(" /DEC:<File Name> - Decrypt File using &PWD - Output File Name: Decrypted.dat\n")
             fmt.Printf(" /CSE - Ask For Case, Evidence, and Examiner Information\n")
             fmt.Printf(" /CON - Run with Interactive Console Input (Same as /Ini:Console)\n")
@@ -797,6 +802,11 @@ func main() {
             } else {
                 fmt.Println("[!] /INI: Too Long - Greater than 254 chars")
             }
+        } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/XTR") {
+            // Force Extraction of the embedded toolkit - Be careful with this one
+            ConsOut = fmt.Sprintf("[*] UnEmbedding the ToolKit%s\n")
+            ConsLogSys(ConsOut, 1, 2)
+            UnEmbed(embdata)
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/DEC:") {
             inEncFile = os.Args[i][5:]
 
@@ -2031,7 +2041,11 @@ func main() {
 
                     ConsOut = fmt.Sprintf("[+] Disk Drive Set to: %s\n", DiskDrive)
                     ConsLogSys(ConsOut, 1, 1)
-
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "XTR:") {
+                    // Force Extraction of the embedded toolkit - Be careful with this one
+                    ConsOut = fmt.Sprintf("[*] UnEmbedding the ToolKit\n")
+                    ConsLogSys(ConsOut, 1, 2)
+                    UnEmbed(embdata)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "INI:") {
                     IniFile = Inrec[4:]
 
@@ -6350,12 +6364,21 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
     // Make remote directories via File Path Recursion                          *
     //***************************************************************************
     parent := filepath.Dir(remoteFile)
-    path := string(filepath.Separator)
-    dirs := strings.Split(parent, path)
+    sepath := string(filepath.Separator)
+    dirs := strings.Split(parent, sepath)
+
+    sfpath := ""
+    path := ""
 
     for _, dir := range dirs {
         path = filepath.Join(path, dir)
-        sftp_client.Mkdir(path)
+
+        // Force Path Separator to be / for SFTP
+        sfpath = strings.Replace(path , "\\", "/", -1)
+
+        //ConsOut = fmt.Sprintf("[!] Debug: Creating remote directory path: %s\n", sfpath)
+        //ConsLogSys(ConsOut, 1, 1)
+        sftp_client.Mkdir(sfpath)
     }
 
 

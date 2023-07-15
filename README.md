@@ -106,3 +106,14 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 06/24/2023 - AChoirX v10.01.11 - Release 1.11. Improvements in remote Multi-Handler
 
 06/30/2023 - AChoirX v10.01.12 - Release 1.12. Change Behavior: If Console or CLI was invoked. Drop back into Interractive Mode after INI: Processing
+
+07/02/2023 - AChoirX v10.01.13 - Release 1.13. Get input from Stdin or TCP Server 
+
+07/04/2023 - AChoirX v10.01.14 - Release 1.14. Con:Last - Display last 10 Console Messages 
+
+07/06/2023 - AChoirX v10.01.15 - Release 1.15. Improvements in Con:Last 
+
+07/08/2023 - AChoirX v10.01.16 - Release 1.16. Default CLI Console output Redirect to TCP 
+
+07/15/2023 - AChoirX v10.01.17 - Release 1.17. SFTP improvements (cross platform). Add /XTR and XTR: - extracts the embedded toolkit
+
