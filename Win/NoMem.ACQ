@@ -216,13 +216,17 @@ VER:Windows
   ACQ:\PCA
   CPY:"${SYSTEMDRIVE}\Windows\appcompat\pca\*.txt" "&Acq"
  END:
+ SAY: 29. Copying Windows Task XML Files...
+ SAY:
+ ACQ:\Sch
+ CPY:"&Win\System32\Tasks\**\*" "&Acq"
  SAY: Acquisition Complete...
  SAY:
  SAY: Now Hashing Artifacts...
  HSH:ACQ
  SAY:
  PZZ: All Done!  Press Any Key to Finish.
- BYE:
+ JMP:AllDun
 END:
 Ver:Linux
  SAY:Linux Acquisition (A Work In Progress)...
@@ -344,7 +348,7 @@ Ver:Linux
  HSH:ACQ
  SAY:
  PZZ: All Done!  Press Any Key to Finish.
- BYE:
+ JMP:AllDun
 END:
 Ver:OSX
  SAY:OSX Acquisition (A Work In Progress)...
@@ -452,5 +456,7 @@ Ver:OSX
  HSH:ACQ
  SAY:
  PZZ: All Done!  Press Any Key to Finish.
- BYE:
+ JMP:AllDun
 END:
+LBL:AllDun
+Say:[+] Exiting Script...

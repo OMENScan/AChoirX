@@ -184,6 +184,10 @@
 //                   - SFTP improvements (cross platform)
 //                   - Add /XTR and XTR: - extracts the embedded toolkit
 //
+// AChoirX v10.01.18 - Release 1.18
+//                    - Minor cosmetic changes
+//                    - Improvements in the embedded Default Scripts
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -252,7 +256,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.17"                       // AChoir Version
+var Version = "v10.01.18"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -804,7 +808,7 @@ func main() {
             }
         } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/XTR") {
             // Force Extraction of the embedded toolkit - Be careful with this one
-            ConsOut = fmt.Sprintf("[*] UnEmbedding the ToolKit%s\n")
+            ConsOut = fmt.Sprintf("[*] UnEmbedding the ToolKit (/XTR)\n")
             ConsLogSys(ConsOut, 1, 2)
             UnEmbed(embdata)
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/DEC:") {
@@ -1204,7 +1208,7 @@ func main() {
                     IniScan = bufio.NewScanner(os.Stdin)
                 } else {
                     // End of INI, Exit Out
-                    ConsOut = fmt.Sprintf("[!] End of Input...  Exiting,")
+                    ConsOut = fmt.Sprintf("[!] End of Input...  Exiting...\n")
                     ConsLogSys(ConsOut, 1, 1)
                     cleanUp_Exit(LastRC);
                     os.Exit(LastRC);

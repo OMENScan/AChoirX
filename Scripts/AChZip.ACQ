@@ -6,10 +6,13 @@ SET:CopyPath=Part
 SAY:[+] AChoir will pull artifacts and telemetry of forensic value for investigation.
 SAY:[+]  * * *   Please MAKE SURE you are running this as an Administrator  * * * 
 SAY:[+]  * * * Administrator right are required for many of these utilities * * * 
-SAY:[+]  1. Now Dumping Memory (Split into 2Gb Sections for upload)...
-SAY:[+]   WARNING: This will take while, and will create a HUGE memory image File.
-SAY:[+]   You've been warned ;-) 
+SAY:[+]  1. Now Dumping Memory...
 VER:Windows
+ CKY:&Acq\&Acn.zip
+  Say:[!] Zip Collection File Already Exist: &Acq\&Acn.zip
+  Say:[!] Please delete it before running another collection... Exiting...
+  JMP:AllDun
+ END:
  SET:ZipFileName=&Acq\&Acn.zip
  *******************************************************
  * Memory Dump                                         *
@@ -270,6 +273,13 @@ VER:Windows
   CLN:&Acn\PCA
  END:
  *******************************************************
+ * Windows XML Task Files                              *
+ *******************************************************
+ SAY: 29. Copying/Zipping Windows Task XML Files...
+ SET:ZipFileRoot=Sch
+ FOR:&Win\System32\Tasks\**\*
+ ZIP:&For
+ *******************************************************
  * Wrap Up                                             *
  *******************************************************
  SAY:[+] Acquisition Complete...
@@ -287,13 +297,18 @@ VER:Windows
  SAY:[+] 30. Cleaning Up ...
  CLN:&Acn\Ranprog
  CLN:&Acn\Cache
- BYE:
+ JMP:AllDun
 END:
 Ver:Linux
  *******************************************************
  * Linux Collection                                    *
  *******************************************************
  SAY:[+] Linux Collection in Progress...
+ CKY:&Acq/&Acn.zip
+  Say:[!] Zip Collection File Already Exist: &Acq/&Acn.zip
+  Say:[!] Please delete it before running another collection... Exiting...
+  JMP:AllDun
+ END:
  *******************************************************
  * Disk Artifacts                                      *
  *******************************************************
@@ -453,9 +468,11 @@ Ver:Linux
  CLN:&Acn/UserInfo
  CLN:&Acn/Home
  CLN:&Acn/RanProg
- BYE:
+ JMP:AllDun
 END:
 Ver:OSX
  SAY:[!] OSX Acquisition Not Available Yet (Coming Soon)...
- BYE:
+ JMP:AllDun
 END:
+LBL:Alldun
+Say:[+] Exiting Script...
