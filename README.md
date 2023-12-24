@@ -120,3 +120,6 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 07/23/2023 - AChoirX v10.01.18 - Release 1.18. Cosmetic changes, Improvements in the embedded Default Scripts
 
 12/23/2023 - AChoirX v10.01.19 - Release 1.19. Change behavior of --exestdout and --exestderr to Append Mode, Linux collection script improvements
+
+12/24/2023 - AChoirX v10.01.20 - Release 1.20. Improve SRV/CLI display if there are errors
+
