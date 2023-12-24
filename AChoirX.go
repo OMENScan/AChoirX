@@ -192,6 +192,9 @@
 //                    - Change behavior of --exestdout to Append Mode
 //                    - Change behavior of --exestderr to Append Mode
 //
+// AChoirX v10.01.20 - Release 1.20
+//                    - Improve SRV/CLI display if there are errors
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -260,7 +263,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.19"                       // AChoir Version
+var Version = "v10.01.20"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -331,6 +334,7 @@ var isB64Ini = 0                                // /B64: parameter on Command Li
 var iFiltype = 0                                // Filter Type Include(1) or Exclude(2)
 var iFiltscope = 0                              // Filter Scope Full Match(1) or Partial Match(2)
 var FltRecFound = 0                             // Found a filter Record match
+var RunStrt_err error                           // Run or Start command error status
 
 //Tokenize Records
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
@@ -4966,6 +4970,7 @@ func RunCommand(Commandstring string, Commandtype int) error {
     //****************************************************************
     //* Setup the command to run                                     *
     //****************************************************************
+    RunStrt_err = nil
     run_cmd := exec.Command(Fullpath, cmdSplit[1:]...)
     //run_cmd.Stdout = os.Stdout
     //run_cmd.Stderr = os.Stderr
@@ -5005,7 +5010,7 @@ func RunCommand(Commandstring string, Commandtype int) error {
             ConsOut = fmt.Sprintf("[!] Error Running Command: %s\n    %s\n", Commandstring, run_err)
             ConsLogSys(ConsOut, 1, 1)
 
-            return run_err
+            RunStrt_err = run_err
         }
 
     } else {
@@ -5021,7 +5026,7 @@ func RunCommand(Commandstring string, Commandtype int) error {
             ConsOut = fmt.Sprintf("[!] Error Starting Command: %s\n    %s\n", Commandstring, strt_err)
             ConsLogSys(ConsOut, 1, 1)
 
-            return strt_err
+            RunStrt_err = strt_err
         }
     }
 
@@ -5044,8 +5049,7 @@ func RunCommand(Commandstring string, Commandtype int) error {
         }
     }
 
-    return nil
-
+    return RunStrt_err
 }
 
 
