@@ -1,6 +1,6 @@
 *******************************************************
 * AChZipNoMem - Collect and Zip Script                *
-*  Version 0.01 - Beta 04/15/2023                     *
+*  Version 0.02 - Beta 012/23/2023                     *
 *******************************************************
 SET:CopyPath=Part
 SAY:[+] AChoir will pull artifacts and telemetry of forensic value for investigation.
@@ -259,7 +259,7 @@ VER:Windows
  *******************************************************
  * Windows XML Task Files                              *
  *******************************************************
- SAY:[+] 29. Copying/Zipping Windows Task XML Files...
+ SAY: 29. Copying/Zipping Windows Task XML Files...
  SET:ZipFileRoot=Sch
  FOR:&Win\System32\Tasks\**\*
  ZIP:&For
@@ -300,11 +300,26 @@ Ver:Linux
  ACQ:/Disk
  SYS:mount --exestdout=&acn/Disk/MountedDisks.dat
  SYS:df -h --exestdout=&acn/Disk/DiskUsage.dat
+ SYS:blkid --exestdout=&acn/Sys/blkid.dat
+ SYS:fdisk -l --exestdout=&acn/Sys/fdisk-l.dat
+ SYS:findmnt --ascii --exestdout=&acn/Sys/findmnt--ascii.dat
+ SYS:iscsiadm -m nod --exestdout=&acn/Sys/iscsiadm-mnod.dat
+ SYS:lsblk -l --exestdout=&acn/Sys/lsblk-l.dat
+ SYS:mdadm --detail --scan --verbose --exestdout=&acn/Sys/mdadm--detail--scan--verbose.dat
  *******************************************************
  * System Information                                  *
  *******************************************************
  SAY:[+] 4. Gathering System Information...
  ACQ:/Sys
+ SYS:cat /proc/cpuinfo --exestdout=&acn/Sys/CPUInfo.dat
+ SYS:hwclock --exestdout=&acn/Sys/hwclock.dat
+ SYS:dmesg --exestdout=&acn/Sys/dmesg.dat
+ SYS:lscpu --exestdout=&acn/Sys/lscpu.dat
+ SYS:lshw --exestdout=&acn/Sys/lshw.dat
+ SYS:lspci -vv --exestdout=&acn/Sys/lscpi-vv.dat
+ SYS:lspci -nn -k --exestdout=&acn/Sys/lscpi-nn-k.dat
+ SYS:lsusb -vv --exestdout=&acn/Sys/lsusb.dat
+ SYS:hostname -f  --exestdout=&acn/Sys/hostname-f.dat
  SYS:uname -a --exestdout=&acn/Sys/Uname.dat
  SYS:cat /proc/version --exestdout=&acn/Sys/Version.dat
  *******************************************************
@@ -312,6 +327,22 @@ Ver:Linux
  *******************************************************
  SAY:[+] 5. Gathering IPTables Firewall Rules...
  SYS:iptables -L --exestdout=&acn/Sys/IPTables.dat
+ SYS:iptables -t nat -L -v -n--exestdout=&acn/Sys/IPTables-tnat-Lvn.dat
+ SYS:ip6tables -L -v -n --exestdout=&acn/Sys/IP6Tables-Lvn.dat
+ SYS:ip6tables -t nat -L -v -n--exestdout=&acn/Sys/IP6Tables-tnat-Lvn.dat
+ SYS:firewall-cmd --get-active-zones --exestdout=&acn/Sys/FireWall-ActiveZones.dat
+ SYS:firewall-cmd --get-default-zone --exestdout=&acn/Sys/FireWall-DefaultZone.dat
+ SYS:firewall-cmd --get-services --exestdout=&acn/Sys/FireWall-Services.dat
+ SYS:firewall-cmd --list-all --exestdout=&acn/Sys/FireWall-Enabled.dat
+ SYS:firewall-cmd --list-all-zones --exestdout=&acn/Sys/FireWall-DefaultZone.dat
+ SYS:ufw status verbose --exestdout=&acn/Sys/UFW-Status.dat
+ SYS:lsmod --exestdout=&acn/Sys/lsmod.dat
+ SYS:sysctl -a --exestdout=&acn/Sys/sysctl-a.dat
+ SYS:ls -l -a -R /sys/module --exestdout=&acn/Sys/ls-l-a-R-sys-module.dat
+ SYS:ls -l -a /sys/module --exestdout=&acn/Sys/ls-l-a-sys-module.dat
+ SYS:timedatectl status --exestdout=&acn/Sys/timedatectl-status.dat
+ SYS:uptime -s --exestdout=&acn/Sys/uptime-s.dat
+ SYS:vmstat --exestdout=&acn/Sys/vmstat.dat
  *******************************************************
  * Var Log                                             *
  *******************************************************
@@ -350,6 +381,14 @@ Ver:Linux
  SYS:sh -c "find /proc/[0-9]*/exe -print0 | xargs -0 ls -lh" --exestdout=&acn/Sys/proc-Executables.dat
  SYS:sh -c "find /proc/[0-9]*/fd -print0 | xargs -0 ls -lh" --exestdout=&acn/Sys/proc-FDLinks.dat
  SYS:sh -c "find -L /proc/[0-9]*/exe -print0 | xargs -0 sha1sum" --exestdout=&acn/Sys/proc-Hashes.dat
+ SYS:sh -c "find /proc/[0-9]*/cwd -print0 | xargs -0 ls -lh" --exestdout=&acn/Sys/proc-CWDs.dat
+ SYS:sh -c "find /proc/[0-9]*/comm | xargs head" --exestdout=&acn/Sys/proc-CommName.dat
+ SYS:sh -c "find /proc/[0-9]*/environ | xargs head" --exestdout=&acn/Sys/proc-Environ.dat
+ SYS:sh -c "find /proc/[0-9]*/task/[0-9]*/children | xargs head" --exestdout=&acn/Sys/proc-Children.dat
+ SYS:sh -c "find /proc/[0-9]*/status | xargs head" --exestdout=&acn/Sys/proc-Status.dat
+ SYS:sh -c "find /proc/[0-9]*/exe -print0 | xargs -0 strings -f" --exestdout=&acn/Sys/proc-Strings.dat
+ SYS:sh -c "find /proc/[0-9]*/exe -print0 | xargs -0 ls -lh | grep \(deleted\)" --exestdout=&acn/Sys/proc-DelExecutables.dat
+ SYS:sh -c "find /proc/[0-9]*/fd -print0 | xargs -0 ls -lh | grep \(deleted\)" --exestdout=&acn/Sys/proc-DelFDLinks.dat
  *******************************************************
  * Connection Info                                     *
  *******************************************************
@@ -357,7 +396,9 @@ Ver:Linux
  ACQ:/Sys
  SYS:netstat -anp --exestdout=&acn/Sys/Netstat-anp.dat
  SYS:netstat -rn --exestdout=&acn/Sys/Netstat-rn.dat
- SYS lsof -i -n -P --exestdout=&acn/Sys/lsofConnections.dat
+ SYS:ss -anp --exestdout=&acn/Sys/ss-tanp.dat
+ SYS:lsof -i -n -P --exestdout=&acn/Sys/lsofConnections.dat
+ SYS:nfsstat --exestdout=&acn/Sys/NFS-Stats.dat
  *******************************************************
  * IP Config                                           *
  *******************************************************
@@ -408,9 +449,14 @@ Ver:Linux
  SAY:[+] 18. Gathering Services Information...
  ACQ:/Sys
  SYS:service --status-all --exestdout=&acn/Sys/Services.dat
+ *******************************************************
+ * Persistence                                         *
+ *******************************************************
  SAY: 19. Gathering Persistence Information...
  SYS:sh -c "find /etc/systemd/ -name '*.service' -print0 | xargs -0 cat" --exestdout=&acn/Sys/SystemD.dat
- SYS:systemctl list-unit-files --exestdout=&acn/Sys/SystemCTL.dat
+ SYS:systemctl list-units --exestdout=&acn/Sys/systemctl-list-units.dat
+ SYS:systemctl list-timers --all --exestdout=&acn/Sys/systemctl-list-timers--all.dat
+ SYS:systemctl list-unit-files --exestdout=&acn/Sys/systemctl-list-unit-files.dat
  *******************************************************
  * User Information                                    *
  *******************************************************
@@ -425,9 +471,13 @@ Ver:Linux
  SAY:
  ACQ:/Home
  cpy:/home/**/.* &Acq
- SAY:Enumerating All Files...
+ *******************************************************
+ * Enumerate all Files and create bodyfile             *
+ *******************************************************
+ SAY:[+] 23. Enumerating All Files... 
  ACQ:/Disk
- SYS: find / -printf "%i, %d, %b, %A+ %AZ, %C+ %CZ, %T+ %TZ, %M, %u, %g, %p\n" --exestdout=&Acn/Disk/AllFiles.csv
+ SYS:find / -printf "0|%p|%i|%M|%U|%G|%s|%A@|%T@|%C@|0\n" --exestdout=&acn/Disk/bodyfile.dat
+ SYS:find / -printf "%i, %d, %b, %A+ %AZ, %C+ %CZ, %T+ %TZ, %M, %u, %g, %p\n" --exestdout=&Acn/Disk/AllFiles.csv
  *******************************************************
  * Hash Everything                                     *
  *******************************************************
@@ -435,7 +485,7 @@ Ver:Linux
  *******************************************************
  * Zip it all                                          *
  *******************************************************
- SAY:[+] 23. Zipping Evidence for Upload...
+ SAY:[+] 24. Zipping Evidence for Upload...
  ACQ:/
  FOR:&Acq/**/*
  SET:ZipFileName=&Acq/&Acn.zip
@@ -443,7 +493,7 @@ Ver:Linux
  ZIP:&For
  ZIP:&Dir/Logs/&Acn.log
  SET:ZipFileName=close
- SAY:[+] 23c. Deleting Local Copy...
+ SAY:[+] 24a. Deleting Local Copy...
  CLN:&Acn/Cache
  CLN:&Acn/Cron
  CLN:&Acn/Disk
@@ -460,3 +510,4 @@ Ver:OSX
 END:
 LBL:Alldun
 Say:[+] Exiting Script...
+

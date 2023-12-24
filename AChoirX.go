@@ -188,6 +188,10 @@
 //                    - Minor cosmetic changes
 //                    - Improvements in the embedded Default Scripts
 //
+// AChoirX v10.01.19 - Release 1.19
+//                    - Change behavior of --exestdout to Append Mode
+//                    - Change behavior of --exestderr to Append Mode
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -256,7 +260,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.18"                       // AChoir Version
+var Version = "v10.01.19"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -4969,7 +4973,9 @@ func RunCommand(Commandstring string, Commandtype int) error {
     if iSTDOut == 0 {
         run_cmd.Stdout = os.Stdout
     } else {
-        STDOHndl, _ := os.Create(STDOutF)
+        //STDOHndl, _ := os.Create(STDOutF)
+        // Change StdOut redirect to Append instead of New File
+        STDOHndl, _ = os.OpenFile(STDOutF, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
         run_cmd.Stdout = STDOHndl
         defer STDOHndl.Close()
     }
@@ -4977,7 +4983,9 @@ func RunCommand(Commandstring string, Commandtype int) error {
     if iSTDErr == 0 {
         run_cmd.Stderr = os.Stderr
     } else {
-        STDEHndl, _ := os.Create(STDErrF)
+        //STDEHndl, _ := os.Create(STDErrF)
+        // Change StdOut redirect to Append instead of New File
+        STDEHndl, _ = os.OpenFile(STDErrF, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0666)
         run_cmd.Stderr = STDEHndl
         defer STDEHndl.Close()
     }
@@ -5030,6 +5038,9 @@ func RunCommand(Commandstring string, Commandtype int) error {
                 ConsOut = fmt.Sprintf("%s\n", strings.TrimSpace(StdOScan.Text()))
                 ConsLogSys(ConsOut, 1, 1)
             }
+
+            // Delete the Temp Console STDOut file - No Longer needed
+            os.Remove(STDOutF)
         }
     }
 

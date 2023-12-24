@@ -30,15 +30,11 @@ SAY: Install them on this machine.
 SAY:
 PZZ: Press any key to continue (or q to quit)...
 SAY: 
-SAY: --- Getting WinPMem (from GitHub/Rekall & Velocidex) ---
+SAY: --- Getting WinPMem (from GitHub/Velocidex) ---
 SAY:
 DIR:\MEM
-GET:https://github.com/Velocidex/c-aff4/releases/download/v4.0.rc1/winpmem_mini_x64_rc2.exe &Dir\winpmem_mini_x64_rc2.exe
-GET:https://github.com/Velocidex/c-aff4/releases/download/v4.0.rc1/winpmem_mini_x86_rc2.exe &Dir\winpmem_mini_x86_rc2.exe
-GET:https://github.com/Velocidex/c-aff4/releases/download/v3.3.rc3/winpmem_v3.3.rc3.exe &Dir\winpmem_3.3rc3.exe
-GET:https://github.com/Velocidex/c-aff4/releases/download/3.2/winpmem_3.2.exe &Dir\winpmem_3.2.exe
-GET:https://github.com/google/rekall/releases/download/v1.3.2/winpmem_2.0.1.exe &Dir\winpmem_2.0.1.exe
-GET:https://github.com/google/rekall/releases/download/v1.3.1/winpmem_1.6.2.exe &Dir\winpmem_1.6.2.exe
+GET:https://github.com/Velocidex/WinPmem/releases/download/v4.0.rc1/winpmem_mini_x64_rc2.exe &Dir\winpmem_mini_x64_rc2.exe
+GET:https://github.com/Velocidex/WinPmem/releases/download/v4.0.rc1/winpmem_mini_x86_rc2.exe &Dir\winpmem_mini_x86_rc2.exe
 SAY:
 SAY: --- Getting RawCopy (From GitHub/JSchicht) ---
 SAY:
@@ -220,9 +216,7 @@ SAY:
 SAY: --- Getting WinSCP Portable (from WinSCP.net) ---
 SAY:
 DIR:\XFR
-GET:https://cdn.winscp.net/files/WinSCP-5.17.8-Portable.zip?secure=0uJCosGH0PKqOQK8QdCwOQ==,1603080680 &Dir\WinSCP.zip
-***:https://cdn.winscp.net/files/WinSCP-5.17.7-Portable.zip?secure=tAz9nV5L7USK1q6j7Bq2dg==,1602012778 &Dir\WinSCP.zip
-***:https://winscp.net/download/WinSCP-5.17.6-Portable.zip &Dir\WinSCP.zip
+GET:https://winscp.net/download/WinSCP-5.19.6-Portable.zip &Dir\WinSCP.zip
 SAY:
 SAY: --- Unzipping WinSCP Portable ---
 SAY:
@@ -236,6 +230,11 @@ SAY:
 SAY: --- Unzipping The Sleuth Kit ---
 SAY:
 UNZ:&Dir\SleuthKit.zip &Dir
+SAY:
+SAY: --- Getting Linux AVML from Microsoft Github Repo ---
+SAY:
+DIR:\Linux\MEM
+GET:https://github.com/microsoft/avml/releases/download/v0.13.0/avml &Dir\avml
 SAY:
 SAY: Download and Build Complete...
 SAY:

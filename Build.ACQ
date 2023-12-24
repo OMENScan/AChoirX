@@ -231,6 +231,11 @@ SAY: --- Unzipping The Sleuth Kit ---
 SAY:
 UNZ:&Dir\SleuthKit.zip &Dir
 SAY:
+SAY: --- Getting Linux AVML from Microsoft Github Repo ---
+SAY:
+DIR:\Linux\MEM
+GET:https://github.com/microsoft/avml/releases/download/v0.13.0/avml &Dir\avml
+SAY:
 SAY: Download and Build Complete...
 SAY:
 SAY: Now Hashing The Files...

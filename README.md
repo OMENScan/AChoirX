@@ -117,3 +117,6 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 
 07/15/2023 - AChoirX v10.01.17 - Release 1.17. SFTP improvements (cross platform). Add /XTR and XTR: - extracts the embedded toolkit
 
+07/23/2023 - AChoirX v10.01.18 - Release 1.18. Cosmetic changes, Improvements in the embedded Default Scripts
+
+12/23/2023 - AChoirX v10.01.19 - Release 1.19. Change behavior of --exestdout and --exestderr to Append Mode, Linux collection script improvements
