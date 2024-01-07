@@ -126,3 +126,5 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 01/01/2024 - AChoirX v10.01.20a - Release 1.20a. Standardize Win, Lin, and OSX default embedded scripts across all executables.
 
 01/01/2024 - AChoirX v10.01.20b - Release 1.20b. Update all upload scripts to support OSX.
+
+01/07/2024 - AChoirX v10.01.20c - Release 1.20c. Add MacOS Support for ARM 64.

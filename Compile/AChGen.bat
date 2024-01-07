@@ -50,25 +50,36 @@ GOTO NoManif64
 Echo.
 Echo Now Embedding Manifest...
 mt-master\X64\mt.exe /nologo /manifest "mt-master\x64\AChoirX.exe.manifest" /outputresource:"A-AChoirX.exe;#1"
-GOTO AchOSX
+GOTO AchOSXAMD
 :NoManif64
 Echo.
 Echo Manifest Utility not found, Manifest bypassed... 
 REM *********************************************************************
-REM * AChoir OSX Compile                                                *
+REM * AChoir OSX Compile AMD 64                                         *
 REM *********************************************************************
-:AchOSX
+:AchOSXAMD
 Echo.
-Echo Compiling AChoirX for OSX...
+Echo Compiling AChoirX for OSX AMD64...
 set CGO_ENABLED=0
 set GOARCH=amd64
 set GOOS=darwin
 go build AChoirX.go only_OSX.go
-Copy AChoirX AChoirX-OSX /y
+Copy AChoirX AChoirX-AMD /y
+REM *********************************************************************
+REM * AChoir OSX Compile - ARM 64 -Apple Silicon                        *
+REM *********************************************************************
+:AchOSXARM
+Echo.
+Echo Compiling AChoirX for OSX ARM64...
+set CGO_ENABLED=0
+set GOARCH=arm64
+set GOOS=darwin
+go build AChoirX.go only_OSX.go
+Copy AChoirX AChoirX-ARM /y
 REM *********************************************************************
 REM * AChoir Linux Compile                                              *
 REM *********************************************************************
-:AchOSX
+:AchLin
 Echo.
 Echo Compiling AChoirX for Linux...
 set CGO_ENABLED=0
