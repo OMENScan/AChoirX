@@ -195,6 +195,9 @@
 // AChoirX v10.01.20 - Release 1.20
 //                    - Improve SRV/CLI display if there are errors
 //
+// AChoirX v10.01.21 - Release 1.21
+//                    - Occasionally the TCP STDOut file is not deleted (Add clear file to compensate)
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -263,7 +266,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.20"                       // AChoir Version
+var Version = "v10.01.21"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -513,6 +516,7 @@ var DskHndl *os.File                            // File Handle for the DskFile
 var OpnHndl *os.File                            // User Defined Output File(s)
 var MD5Hndl *os.File                            // Save Hashes of Files
 var ZipHndl *os.File                            // File Handle for Zip Files
+var STDCHndl *os.File                           // STDOut Clear File Handle
 var STDOHndl *os.File                           // STDOut File Handle
 var STDEHndl *os.File                           // STDErr File Handle
 var log_err error                               // Logging Errors
@@ -4900,7 +4904,17 @@ func RunCommand(Commandstring string, Commandtype int) error {
     if iSTDOut == 0 && TCPCli_Status == 1 {
         iSTDOut = 2
         STDOutF = fmt.Sprintf("%s%cTCPSTDOut", CachDir, slashDelim)
-        os.Remove(STDOutF)  // Delete it first to prevent accidental spillage 
+
+        STDOHndl.Close() // First cLose STDOutF File Handle when used over TCP.
+        remov_err := os.Remove(STDOutF)  // Delete it first to prevent accidental spillage 
+        //****************************************************************
+        //* If we cant remove it, its probably still open - clear it out *
+        //****************************************************************
+        if remov_err != nil {
+            STDCHndl, _ := os.Create(STDOutF)
+            STDCHndl.Close()
+            os.Remove(STDOutF)  // Try Again, for giggles
+        }
     }
 
 
@@ -5032,9 +5046,10 @@ func RunCommand(Commandstring string, Commandtype int) error {
 
 
     //****************************************************************
-    //* If TCP CLI mode - Redirect Stdout (If it has not already     *
+    //* If TCP CLI mode - Redirect Stdout (If it has not already)     *
     //****************************************************************
     if iSTDOut == 2 && TCPCli_Status == 1 {
+        STDOHndl.Close() // CLose STDOut File when used over TCP to redirect it.
         StdOHndl, stdo_err := os.Open(STDOutF)
 
         if stdo_err == nil {
@@ -5043,9 +5058,18 @@ func RunCommand(Commandstring string, Commandtype int) error {
                 ConsOut = fmt.Sprintf("%s\n", strings.TrimSpace(StdOScan.Text()))
                 ConsLogSys(ConsOut, 1, 1)
             }
+            StdOHndl.Close() // Close 
 
             // Delete the Temp Console STDOut file - No Longer needed
-            os.Remove(STDOutF)
+            remov_err := os.Remove(STDOutF)
+            //****************************************************************
+            //* If we cant remove it, its probably open - so clear it out    *
+            //****************************************************************
+            if remov_err != nil {
+                STDCHndl, _ := os.Create(STDOutF)
+                STDCHndl.Close()
+                os.Remove(STDOutF)  // Try Again, for giggles
+            }
         }
     }
 
