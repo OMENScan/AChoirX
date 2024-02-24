@@ -213,11 +213,51 @@ EQU:"&LST" "List of devices attached"
  *******************************************************
  * Parse through Packages Ops                          *
  *******************************************************
+ Say:[+] Parsing and Collecting Package Ops...
  SET:DELIMS=:\/
  EXE:&VR9 shell pm list packages --exestdout=&VR8pm-list-packages.txt
  LST:&VR8pm-list-packages.txt
  EXE:&VR9 shell appops get &LS1 --exestdout=&VR8&LS1_appops.txt
  SET:DELIMS=,\/
+ *******************************************************
+ * Collect System Files                                *
+ *******************************************************
+ Say:[+] Collecting System Files...
+ VR8:&Acn\System\ 
+ VR7:\System
+ ACQ:&VR7
+ VR6:&Acq\**\*
+ EXE:&VR9 pull /system/ &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/apex &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/app &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/bin &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/cameradata &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/container &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/etc &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/fake-libs &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/fonts &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/framework &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/hidden &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/lib &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/lib64 &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/media &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/priv-app &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/saiv &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/tts &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/usr &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/vendor &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/xbin &ACQ --exestdout=&VR8system_log.txt
+ *******************************************************
+ * Zip and Hash                                        *
+ *******************************************************
+ Say:[+] Zipping and Hashing System Files...
+ FOR:&VR6
+ SET:ZipFileName=&Acq&VR7.zip
+ SET:ZipFileRoot=System
+ ZIP:&For
+ SET:ZipFileName=close
+ HSH:&Acq&VR7.zip
+ Say:Hash of &Acq&VR7.zip is: &HSH
 End:
 EQU:&VR0 0
  Say:[+] ADB Does Not Appear to be Attached to a Device...
