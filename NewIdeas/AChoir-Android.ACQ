@@ -13,6 +13,8 @@ CKN:&VR9
 END:
 *******************************************************
 * Make Sure we have an Android Device attached        *
+*  Note: Windows Delimiter is set to Tab and looks    *
+*        for "device" in column 2 (&LS1)              *
 * VR0=0 is not attached.  VR0=1 is attached           *
 *******************************************************
 LBL:Start
@@ -22,9 +24,11 @@ VR7:\Android
 ACQ:&VR7
 Say:[+] Checking for ADB Devices
 EXE:&VR9 devices --exestdout=&VR8Devices.dat
+SET:DELIMS=	\/
 LST:&VR8Devices.dat
-EQU:"&LST" "List of devices attached"
+EQU:"&LS1" "device"
  Say:[+] ADB Appears to be Attached to a Device...
+ SET:DELIMS=,\/
  VR0:1
  *******************************************************
  * Basic Collection                                    *
@@ -93,7 +97,7 @@ EQU:"&LST" "List of devices attached"
  ACQ:&VR7
  VR6:&Acq\**\*
  Say:[+] Beginning SD Card Acquisition...
- EXE:&VR9 pull /sdcard/ &ACQ/
+ EXE:&VR9 pull /sdcard/ &ACQ
  FOR:&VR6
  SET:ZipFileName=&Acq&VR7.zip
  SET:ZipFileRoot=SDCard
@@ -258,6 +262,152 @@ EQU:"&LST" "List of devices attached"
  SET:ZipFileName=close
  HSH:&Acq&VR7.zip
  Say:Hash of &Acq&VR7.zip is: &HSH
+ *******************************************************
+ * ADB Backup                                          *
+ *******************************************************
+ * Say:[+] Creating Full Backup... Check the device for confirmation response...
+ * VR8:&Acn\Backup\ 
+ * VR7:\Backup
+ * ACQ:&VR7
+ * EXE:&VR9 backup -all -shared -system -keyvalue -apk -obb -f &Acq&VR7.ab
+ * HSH:&Acq&VR7.ab
+ * Say:Hash of &Acq&VR7.ab is: &HSH
+ *******************************************************
+ * Extract APK Data Packages                           *
+ *******************************************************
+ Say:[+] Extracting APK Packages...
+ VR8:&Acn\APK\ 
+ VR7:\APK
+ ACQ:&VR7
+ VR6:&Acq\**\*
+ SET:DELIMS=:\/
+ OPN:&VR8filter-packages.txt
+ OUT:package:/data/
+ FLT:&VR8filter-packages.txt
+ SET:FILTER=incl,part
+ EXE:&VR9 shell pm list packages -f -u --exestdout=&VR8pm-list-packages-f-u.txt
+ LST:&VR8pm-list-packages-f-u.txt
+ SET:DELIMS=/\/
+ EXE:&VR9 pull /&LS1/&LS2/&LS3/&LS4/ &ACQ
+ SET:DELIMS=,\/
+ FLT:NONE
+ FOR:&VR6
+ SET:ZipFileName=&Acq&VR7.zip
+ SET:ZipFileRoot=APK
+ ZIP:&For
+ SET:ZipFileName=close
+ HSH:&Acq&VR7.zip
+ Say:Hash of &Acq&VR7.zip is: &HSH
+ *******************************************************
+ * Extract Content Provider Data                       *
+ *******************************************************
+ Say:[+] Extracting Content Provider Data...
+ VR8:&Acn\Content\ 
+ VR7:\Content
+ ACQ:&VR7
+ Say:[+] Querying Calendar Content...
+ EXE:&VR9 shell dumpsys package providers --exestdout=&VR8content_providers_list.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/calendar_entities --exestdout=&VR8calendar_calendar_entities.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/calendars --exestdout=&VR8calendar_calendars.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/attendees --exestdout=&VR8calendar_attendees.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/event_entities --exestdout=&VR8calendar_event_entities.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/events --exestdout=&VR8calendar_events.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/properties --exestdout=&VR8calendar_properties.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/reminders --exestdout=&VR8calendar_reminders.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/calendar_alerts --exestdout=&VR8calendar_alerts.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/colors --exestdout=&VR8calendar_colors.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/extendedproperties --exestdout=&VR8calendar_extendedpropertiess.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/syncstate --exestdout=&VR8calendar_syncstate.txt
+ Say:[+] Querying Contacts Content...
+ EXE:&VR9 shell content query --uri content://com.android.contacts/raw_contacts --exestdout=&VR8contacts_raw_contacts.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/directories --exestdout=&VR8contacts_directories.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/syncstate --exestdout=&VR8contacts_syncstate.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/contacts --exestdout=&VR8contacts_contacts.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/raw_contacts  --exestdout=&VR8contacts_raw_contacts.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/profile --exestdout=&VR8contacts_profile.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/profile/as_vcard --exestdout=&VR8contacts_profile_as_vcard.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/stream_items --exestdout=&VR8contacts_stream_items.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/stream_items/photo --exestdout=&VR8contacts_stream_items_photo.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/stream_items_limit --exestdout=&VR8contacts_stream_items_limit.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data --exestdout=&VR8contacts_data.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/raw_contact_entities --exestdout=&VR8contacts_raw_contact_entities.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/profile/raw_contact_entities --exestdout=&VR8contacts_profile_raw_contact_entities.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/status_updates --exestdout=&VR8contacts_status_updates.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/phones --exestdout=&VR8contacts_data_phones.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/phones/filter --exestdout=&VR8contacts_data_phones_filter.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/emails/lookup --exestdout=&VR8contacts_data_emails_lookup.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/emails/filter --exestdout=&VR8contacts_data_emails_filter.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/emails/filter --exestdout=&VR8contacts_data_emails_filter.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/emails/emails --exestdout=&VR8contacts_data_emails_emails.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/postals --exestdout=&VR8contacts_data_postals.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/groups --exestdout=&VR8contacts_groups.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/groups_summary --exestdout=&VR8contacts_groups_summary.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/aggregation_exceptions --exestdout=&VR8contacts_aggregation_exceptions.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/settings --exestdout=&VR8contacts_settings.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/provider_status --exestdout=&VR8contacts_provider_status.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/photo_dimensions --exestdout=&VR8contacts_photo_dimensions.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/deleted_contacts --exestdout=&VR8contacts_deleted_contacts.txt
+ Say:[+] Querying Downloads Content...
+ EXE:&VR9 shell content query --uri content://downloads/my_downloads --exestdout=&VR8downloads_my_downloads.txt
+ EXE:&VR9 shell content query --uri content://downloads/download --exestdout=&VR8downloads_download.txt
+ Say:[+] Querying External Media Content...
+ EXE:&VR9 shell content query --uri content://media/external/file --exestdout=&VR8media_external_file.txt
+ EXE:&VR9 shell content query --uri content://media/external/images/media --exestdout=&VR8media_external_images_media.txt
+ EXE:&VR9 shell content query --uri content://media/external/images/thumbnails --exestdout=&VR8media_external_images_thumbnails.txt
+ EXE:&VR9 shell content query --uri content://media/external/audio/media --exestdout=&VR8media_external_audio_media.txt
+ EXE:&VR9 shell content query --uri content://media/external/audio/genres --exestdout=&VR8media_external_audio_genres.txt
+ EXE:&VR9 shell content query --uri content://media/external/audio/playlists --exestdout=&VR8media_external_audio_playlists.txt
+ EXE:&VR9 shell content query --uri content://media/external/audio/artists --exestdout=&VR8media_external_audio_artists.txt
+ EXE:&VR9 shell content query --uri content://media/external/audio/albums --exestdout=&VR8media_external_audio_albums.txt
+ EXE:&VR9 shell content query --uri content://media/external/video/media --exestdout=&VR8media_external_video_media.txt
+ EXE:&VR9 shell content query --uri content://media/external/video/thumbnails --exestdout=&VR8media_external_video_thumbnails.txt
+ Say:[+] Querying Internal Media Content...
+ EXE:&VR9 shell content query --uri content://media/internal/file --exestdout=&VR8media_internal_file.txt
+ EXE:&VR9 shell content query --uri content://media/internal/images/media --exestdout=&VR8media_internal_images_media.txt
+ EXE:&VR9 shell content query --uri content://media/internal/images/thumbnails --exestdout=&VR8media_internal_images_thumbnails.txt
+ EXE:&VR9 shell content query --uri content://media/internal/audio/media --exestdout=&VR8media_internal_audio_media.txt
+ EXE:&VR9 shell content query --uri content://media/internal/audio/genres --exestdout=&VR8media_internal_audio_genres.txt
+ EXE:&VR9 shell content query --uri content://media/internal/audio/playlists --exestdout=&VR8media_internal_audio_playlists.txt
+ EXE:&VR9 shell content query --uri content://media/internal/audio/artists --exestdout=&VR8media_internal_audio_artists.txt
+ EXE:&VR9 shell content query --uri content://media/internal/audio/albums --exestdout=&VR8media_internal_audio_albums.txt
+ EXE:&VR9 shell content query --uri content://media/internal/video/media --exestdout=&VR8media_internal_video_media.txt
+ EXE:&VR9 shell content query --uri content://media/internal/video/thumbnails --exestdout=&VR8media_internal_video_thumbnails.txt
+ Say:[+] Querying Settings Content...
+ EXE:&VR9 shell content query --uri content://settings/system --exestdout=&VR8settings_system.txt
+ EXE:&VR9 shell content query --uri content://settings/system/ringtone --exestdout=&VR8settings_system_ringtone.txt
+ EXE:&VR9 shell content query --uri content://settings/system/alarm_alert --exestdout=&VR8settings_system_alarm_alert.txt
+ EXE:&VR9 shell content query --uri content://settings/system/notification_sound --exestdout=&VR8settings_system_notification_sound.txt
+ EXE:&VR9 shell content query --uri content://settings/secure --exestdout=&VR8settings_secure.txt
+ EXE:&VR9 shell content query --uri content://settings/global --exestdout=&VR8settings_global.txt
+ EXE:&VR9 shell content query --uri content://settings/bookmarks --exestdout=&VR8settings_bookmarks.txt
+ EXE:&VR9 shell content query --uri content://com.google.settings/partners --exestdout=&VR8google_settings_partner.txt
+ EXE:&VR9 shell content query --uri content://nwkinfo/nwkinfo/carriers --exestdout=&VR8nwkinfo_carriers.txt 
+ EXE:&VR9 shell content query --uri content://com.android.settings.personalvibration.PersonalVibrationProvider/ --exestdout=&VR8personal_vibration.txt 
+ EXE:&VR9 shell content query --uri content://settings/system/bluetooth_devices --exestdout=&VR8bluetooth_devices.txt 
+ EXE:&VR9 shell content query --uri content://settings/system/powersavings_appsettings --exestdout=&VR8powersavings_appsettings.txt 
+ Say:[+] Querying User Dictionary Content...
+ EXE:&VR9 shell content query --uri content://user_dictionary/words --exestdout=&VR8user_dictionary_words.txt
+ Say:[+] Querying Browser Content...
+ EXE:&VR9 shell content query --uri content://browser/bookmarks --exestdout=&VR8browser_bookmarks.txt
+ EXE:&VR9 shell content query --uri content://browser/searches --exestdout=&VR8browser_searches.txt
+ Say:[+] Querying Android Browser Content...
+ EXE:&VR9 shell content query --uri content://com.android.browser --exestdout=&VR8android_browser.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/accounts --exestdout=&VR8android_browser_accounts.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/accounts/account_name --exestdout=&VR8android_browser_accounts_account_name.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/accounts/account_type --exestdout=&VR8android_browser_accounts_account_type.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/accounts/sourceid --exestdout=&VR8android_browser_accounts_sourceid.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/settings --exestdout=&VR8android_browser_settings.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/syncstate --exestdout=&VR8android_browser_syncstate.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/images --exestdout=&VR8android_browser_images.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/image_mappings --exestdout=&VR8android_browser_image_mappings.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/bookmarks --exestdout=&VR8android_browser_bookmarks.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/bookmarks/folder --exestdout=&VR8android_browser_bookmarks_folder.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/history --exestdout=&VR8android_browser_history.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/bookmarks/search_suggest_query --exestdout=&VR8android_browser_bookmarks_earch_suggest_query.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/searches --exestdout=&VR8android_browser_searches.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/combined --exestdout=&VR8android_browser_combined.txt
+ SAY:[+] Now Hashing Artifacts...
+ HSH:ACQ
 End:
 EQU:&VR0 0
  Say:[+] ADB Does Not Appear to be Attached to a Device...
