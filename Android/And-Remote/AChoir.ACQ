@@ -1,0 +1,416 @@
+*******************************************************
+* AChoirX Android remote (ADB) Collection             *
+*******************************************************
+SET:CopyPath=Part
+*******************************************************
+* Verify that ADB is there                            *
+*******************************************************
+VR9:&Dir\Android\adb.exe
+CKN:&VR9
+  Say:
+  Say:[!] adb not found! Exiting...
+  JMP:AllDun
+END:
+*******************************************************
+* Make Sure we have an Android Device attached        *
+*  Note: Windows Delimiter is set to Tab and looks    *
+*        for "device" in column 2 (&LS1)              *
+* VR0=0 is not attached.  VR0=1 is attached           *
+*******************************************************
+LBL:Start
+VR0:0
+VR8:&Acn\Android\
+VR7:\Android
+ACQ:&VR7
+Say:[+] Checking for ADB Devices
+EXE:&VR9 devices --exestdout=&VR8Devices.dat
+SET:DELIMS=	\/
+LST:&VR8Devices.dat
+EQU:"&LS1" "device"
+ Say:[+] ADB Appears to be Attached to a Device...
+ SET:DELIMS=,\/
+ VR0:1
+ *******************************************************
+ * Basic Collection                                    *
+ *******************************************************
+ Say:[+] Beginning Basic Collection...
+ EXE:&VR9 shell getprop --exestdout=&VR8getprop.txt
+ EXE:&VR9 shell settings list system --exestdout=&VR8settings_system.txt
+ EXE:&VR9 shell settings list secure --exestdout=&VR8settings_secure.txt
+ EXE:&VR9 shell settings list global --exestdout=&VR8settings_global.txt
+ *******************************************************
+ * Live System Information Collection                  *
+ *******************************************************
+ VR8:&Acn\LiveData\ 
+ VR7:\LiveData
+ ACQ:&VR7
+ Say:[+] Beginning Live System Collection...
+ EXE:&VR9 shell id --exestdout=&VR8id.txt
+ EXE:&VR9 shell uname -a --exestdout=&VR8uname-a.txt
+ EXE:&VR9 shell cat /proc/version --exestdout=&VR8kernel_version.txt
+ EXE:&VR9 shell uptime --exestdout=&VR8uptime.txt
+ EXE:&VR9 shell date --exestdout=&VR8date.txt
+ EXE:&VR9 shell printenv --exestdout=&VR8printenv.txt
+ EXE:&VR9 shell cat /proc/partitions --exestdout=&VR8partitions.txt
+ EXE:&VR9 shell cat /proc/cpuinfo --exestdout=&VR8cpuinfo.txt
+ EXE:&VR9 shell cat /proc/diskstats --exestdout=&VR8diskstats.txt
+ EXE:&VR9 shell df --exestdout=&VR8df.txt
+ EXE:&VR9 shell df -ah --exestdout=&VR8df-ah.txt
+ EXE:&VR9 shell mount --exestdout=&VR8mount.txt
+ EXE:&VR9 shell ip address show wlan0 --exestdout=&VR8ip_wlan0.txt
+ EXE:&VR9 shell ifconfig -a --exestdout=&VR8ifconfig-a.txt
+ EXE:&VR9 shell netstat -an --exestdout=&VR8netstat-an.txt
+ EXE:&VR9 shell lsof --exestdout=&VR8lsof.txt
+ EXE:&VR9 shell ps -ef --exestdout=&VR8ps-ef.txt
+ EXE:&VR9 shell top -n 1 --exestdout=&VR8top-n_1.txt
+ EXE:&VR9 shell cat /proc/sched_debug --exestdout=&VR8proc_sched_debug.txt
+ EXE:&VR9 shell vmstat --exestdout=&VR8vmstat.txt
+ EXE:&VR9 shell sysctl -a --exestdout=&VR8sysctl-a.txt
+ EXE:&VR9 shell ime list --exestdout=&VR8ime_list.txt
+ EXE:&VR9 shell service list --exestdout=&VR8service_list.txt
+ EXE:&VR9 shell logcat -S -b all --exestdout=&VR8logcat-S-b_all.txt
+ EXE:&VR9 shell logcat -d -b all V:* --exestdout=&VR8logcat-d-b_all_V.txt
+ *******************************************************
+ * Package Manager Information Collection              *
+ *******************************************************
+ VR8:&Acn\Packages\ 
+ VR7:\Packages
+ ACQ:&VR7
+ Say:[+] Beginning Package Information Collection...
+ EXE:&VR9 shell pm get-max-users --exestdout=&VR8pm_get-max-users.txt
+ EXE:&VR9 shell pm list users --exestdout=&VR8pm_list_users.txt
+ EXE:&VR9 shell pm list features --exestdout=&VR8pm_list_features.txt
+ EXE:&VR9 shell pm list permission-groups --exestdout=&VR8pm_list_permission-groups.txt
+ EXE:&VR9 shell pm list instrumentation --exestdout=&VR8pm_list_instrumentation.txt
+ EXE:&VR9 shell pm list libraries -f --exestdout=&VR8pm_list_libraries-f.txt
+ EXE:&VR9 shell pm list packages -f --exestdout=&VR8pm_list_packages-f.txt
+ EXE:&VR9 shell pm list packages -d --exestdout=&VR8pm_list_packages-d.txt
+ EXE:&VR9 shell pm list packages -e --exestdout=&VR8pm_list_packages-e.txt
+ EXE:&VR9 shell pm list packages -f -u --exestdout=&VR8pm_list_packages-f-u.txt
+ EXE:&VR9 shell pm list permissions -f --exestdout=&VR8pm_list_permissions-f.txt
+ EXE:&VR9 shell cat /data/system/uiderrors.txt --exestdout=&VR8uiderrors.txt
+ *******************************************************
+ * SD Card Acquisition                                 *
+ *******************************************************
+ VR8:&Acn\SDCard\ 
+ VR7:\SDCard
+ ACQ:&VR7
+ VR6:&Acq\**\*
+ Say:[+] Beginning SD Card Acquisition...
+ EXE:&VR9 pull /sdcard/ &ACQ
+ FOR:&VR6
+ SET:ZipFileName=&Acq&VR7.zip
+ SET:ZipFileRoot=SDCard
+ ZIP:&For
+ SET:ZipFileName=close
+ HSH:&Acq&VR7.zip
+ Say:Hash of &Acq&VR7.zip is: &HSH
+ *******************************************************
+ * Extract bugreport, dumpsys and appops information   *
+ *******************************************************
+ VR8:&Acn\DumpSys\ 
+ VR7:\DumpSys
+ ACQ:&VR7
+ Say:[+] Extracting bugreport, dumpsys and appops information...
+ EXE:&VR9 bugreport &Acq/bugreport.zip
+ EXE:&VR9 shell dumpsys --exestdout=&VR8dumpsys.txt
+ EXE:&VR9 shell dumpsys -l --exestdout=&VR8dumpsys-l.txt
+ EXE:&VR9 shell dumpsys account --exestdout=&VR8dumpsys_account.txt
+ EXE:&VR9 shell dumpsys accessibility --exestdout=&VR8dumpsys_accessibility.txt
+ EXE:&VR9 shell dumpsys activity --exestdout=&VR8dumpsys_activity.txt
+ EXE:&VR9 shell dumpsys alarm --exestdout=&VR8dumpsys_alarm.txt
+ EXE:&VR9 shell dumpsys app_binding --exestdout=&VR8dumpsys_app_binding.txt
+ EXE:&VR9 shell dumpsys app_hibernation --exestdout=&VR8dumpsys_app_hibernation.txt
+ EXE:&VR9 shell dumpsys application_policy --exestdout=&VR8dumpsys_application_policy.txt
+ EXE:&VR9 shell dumpsys appwidget --exestdout=&VR8dumpsys_appwidget.txt
+ EXE:&VR9 shell dumpsys appops --exestdout=&VR8dumpsys_appops.txt
+ EXE:&VR9 shell dumpsys audio --exestdout=&VR8dumpsys_audio.txt
+ EXE:&VR9 shell dumpsys autofill --exestdout=&VR8dumpsys_autofill.txt
+ EXE:&VR9 shell dumpsys backup --exestdout=&VR8dumpsys_backup.txt
+ EXE:&VR9 shell dumpsys battery --exestdout=&VR8dumpsys_battery.txt
+ EXE:&VR9 shell dumpsys batteryproperties --exestdout=&VR8dumpsys_batteryproperties.txt
+ EXE:&VR9 shell dumpsys batterystats --exestdout=&VR8dumpsys_batterystats.txt
+ EXE:&VR9 shell dumpsys batterystats -c --exestdout=&VR8dumpsys_batterystats-c.txt
+ EXE:&VR9 shell dumpsys biometric --exestdout=&VR8dumpsys_biometric.txt
+ EXE:&VR9 shell dumpsys blob_store --exestdout=&VR8dumpsys_blob_store.txt
+ EXE:&VR9 shell dumpsys bluetooth_manager --exestdout=&VR8dumpsys_bluetooth_manager.txt 
+ EXE:&VR9 shell dumpsys cacheinfo --exestdout=&VR8dumpsys_cacheinfo.txt 
+ EXE:&VR9 shell dumpsys carrier_config --exestdout=&VR8dumpsys_carrier_config.txt 
+ EXE:&VR9 shell dumpsys clipboard --exestdout=&VR8dumpsys_clipboard.txt 
+ EXE:&VR9 shell dumpsys color_display --exestdout=&VR8dumpsys_color_display.txt 
+ EXE:&VR9 shell dumpsys connectivity --exestdout=&VR8dumpsys_connectivity.txt 
+ EXE:&VR9 shell dumpsys connmetrics --exestdout=&VR8dumpsys_connmetrics.txt
+ EXE:&VR9 shell dumpsys content --exestdout=&VR8dumpsys_content.txt
+ EXE:&VR9 shell dumpsys content_capture --exestdout=&VR8dumpsys_content_capture.txt
+ EXE:&VR9 shell dumpsys cover --exestdout=&VR8dumpsys_cover.txt
+ EXE:&VR9 shell dumpsys cpuinfo --exestdout=&VR8dumpsys_cpuinfo.txt
+ EXE:&VR9 shell dumpsys desktopmode --exestdout=&VR8dumpsys_desktopmode.txt
+ EXE:&VR9 shell dumpsys dbinfo --exestdout=&VR8dumpsys_dbinfo.txt
+ EXE:&VR9 shell dumpsys dbinfo -v --exestdout=&VR8dumpsys_dbinfo-v.txt
+ EXE:&VR9 shell dumpsys device_policy --exestdout=&VR8dumpsys_device_policy.txt
+ EXE:&VR9 shell dumpsys device_state --exestdout=&VR8dumpsys_device_state.txt
+ EXE:&VR9 shell dumpsys devicestoragemonitor --exestdout=&VR8dumpsys_devicestoragemonitor.txt
+ EXE:&VR9 shell dumpsys diskstats --exestdout=&VR8dumpsys_diskstats.txt
+ EXE:&VR9 shell dumpsys display --exestdout=&VR8dumpsys_display.txt
+ EXE:&VR9 shell dumpsys dropbox --exestdout=&VR8dumpsys_dropbox.txt
+ EXE:&VR9 shell dumpsys gfxinfo --exestdout=&VR8dumpsys_gfxinfo.txt    
+ EXE:&VR9 shell dumpsys graphicsstats --exestdout=&VR8dumpsys_graphicsstats.txt    
+ EXE:&VR9 shell dumpsys hardware_properties --exestdout=&VR8dumpsys_hardware_properties.txt  
+ EXE:&VR9 shell dumpsys input --exestdout=&VR8dumpsys_input.txt  
+ EXE:&VR9 shell dumpsys isub --exestdout=&VR8dumpsys_isub.txt 
+ EXE:&VR9 shell dumpsys iphonesubinfo --exestdout=&VR8dumpsys_iphonesubinfo.txt 
+ EXE:&VR9 shell dumpsys jobscheduler --exestdout=&VR8dumpsys_jobscheduler.txt 
+ EXE:&VR9 shell dumpsys launcherapps --exestdout=&VR8dumpsys_launcherapps.txt 
+ EXE:&VR9 shell dumpsys location --exestdout=&VR8dumpsys_location.txt 
+ EXE:&VR9 shell dumpsys lock_settings --exestdout=&VR8dumpsys_lock_settings.txt 
+ EXE:&VR9 shell dumpsys meminfo -t 60 -a --exestdout=&VR8dumpsys_meminfo-t60-a.txt 
+ EXE:&VR9 shell dumpsys meminfo -t 60 -a -c --exestdout=&VR8dumpsys_meminfo-t60-a-c.txt 
+ EXE:&VR9 shell dumpsys mount --exestdout=&VR8dumpsys_mount.txt 
+ EXE:&VR9 shell dumpsys netpolicy --exestdout=&VR8dumpsys_netpolicy.txt 
+ EXE:&VR9 shell dumpsys netstats --exestdout=&VR8dumpsys_netstats.txt 
+ EXE:&VR9 shell dumpsys netstats detail --exestdout=&VR8dumpsys_netstats_detail.txt 
+ EXE:&VR9 shell dumpsys network_management --exestdout=&VR8dumpsys_network_management.txt 
+ EXE:&VR9 shell dumpsys network_score --exestdout=&VR8dumpsys_network_score.txt 
+ EXE:&VR9 shell dumpsys notification --exestdout=&VR8dumpsys_notification.txt 
+ EXE:&VR9 shell dumpsys notification --noredact --exestdout=&VR8dumpsys_notification--noredact.txt 
+ EXE:&VR9 shell dumpsys overlay --exestdout=&VR8dumpsys_overlay.txt 
+ EXE:&VR9 shell dumpsys package --exestdout=&VR8dumpsys_package.txt 
+ EXE:&VR9 shell dumpsys password_policy --exestdout=&VR8dumpsys_password_policy.txt 
+ EXE:&VR9 shell dumpsys permission --exestdout=&VR8dumpsys_permission.txt 
+ EXE:&VR9 shell dumpsys permissionmgr --exestdout=&VR8dumpsys_permissionmgr.txt 
+ EXE:&VR9 shell dumpsys phone --exestdout=&VR8dumpsys_phone.txt 
+ EXE:&VR9 shell dumpsys power --exestdout=&VR8dumpsys_power.txt 
+ EXE:&VR9 shell dumpsys print --exestdout=&VR8dumpsys_print.txt 
+ EXE:&VR9 shell dumpsys procstats --full-details --exestdout=&VR8dumpsys_procstats--full-details.txt 
+ EXE:&VR9 shell dumpsys procstats --full-details -c --exestdout=&VR8dumpsys_procstats--full-details-c.txt 
+ EXE:&VR9 shell dumpsys restriction_policy --exestdout=&VR8dumpsys_restriction_policy.txt 
+ EXE:&VR9 shell dumpsys role --exestdout=&VR8dumpsys_role.txt 
+ EXE:&VR9 shell dumpsys rollback --exestdout=&VR8dumpsys_rollback.txt 
+ EXE:&VR9 shell dumpsys sdhms --exestdout=&VR8dumpsys_sdhms.txt 
+ EXE:&VR9 shell dumpsys sec_location --exestdout=&VR8dumpsys_sec_location.txt 
+ EXE:&VR9 shell dumpsys secims --exestdout=&VR8dumpsys_secims.txt 
+ EXE:&VR9 shell dumpsys search --exestdout=&VR8dumpsys_search.txt 
+ EXE:&VR9 shell dumpsys sensorservice --exestdout=&VR8dumpsys_sensorservice.txt 
+ EXE:&VR9 shell dumpsys settings --exestdout=&VR8dumpsys_settings.txt 
+ EXE:&VR9 shell dumpsys shortcut --exestdout=&VR8dumpsys_shortcut.txt 
+ EXE:&VR9 shell dumpsys stats --exestdout=&VR8dumpsys_stats.txt 
+ EXE:&VR9 shell dumpsys statusbar --exestdout=&VR8dumpsys_statusbar.txt 
+ EXE:&VR9 shell dumpsys storaged --exestdout=&VR8dumpsys_storaged.txt
+ EXE:&VR9 shell dumpsys telecom --exestdout=&VR8dumpsys_telecom.txt
+ EXE:&VR9 shell dumpsys thermalservice --exestdout=&VR8dumpsys_thermalservice.txt
+ EXE:&VR9 shell dumpsys time_detector --exestdout=&VR8dumpsys_time_detectore.txt
+ EXE:&VR9 shell dumpsys time_zone_detector --exestdout=&VR8dumpsys_time_zone_detector.txt
+ EXE:&VR9 shell dumpsys usagestats --exestdout=&VR8dumpsys_usagestats.txt
+ EXE:&VR9 shell dumpsys user --exestdout=&VR8dumpsys_user.txt
+ EXE:&VR9 shell dumpsys usb --exestdout=&VR8dumpsys_usb.txt
+ EXE:&VR9 shell dumpsys vibrator --exestdout=&VR8dumpsys_vibrator.txt
+ EXE:&VR9 shell dumpsys voip --exestdout=&VR8dumpsys_voip.txt
+ EXE:&VR9 shell dumpsys wallpaper --exestdout=&VR8dumpsys_wallpaper.txt
+ EXE:&VR9 shell dumpsys wifi --exestdout=&VR8dumpsys_wifi.txt
+ EXE:&VR9 shell dumpsys wifiaware --exestdout=&VR8dumpsys_wifiaware.txt
+ EXE:&VR9 shell dumpsys wifiscanner --exestdout=&VR8dumpsys_wifiscanner.txt
+ EXE:&VR9 shell dumpsys window --exestdout=&VR8dumpsys_window.txt
+ EXE:&VR9 shell telecom get-default-dialer --exestdout=&VR8telecom_get-default-dialer.txt
+ EXE:&VR9 shell telecom get-system-dialer --exestdout=&VR8telecom_get-system-dialer.txt
+ EXE:&VR9 shell telecom get-max-phones --exestdout=&VR8telecom_get-max-phones.txt
+ EXE:&VR9 shell telecom get-sim-config --exestdout=&VR8telecom_get-sim-config.txt
+ *******************************************************
+ * Parse through Packages Ops                          *
+ *******************************************************
+ Say:[+] Parsing and Collecting Package Ops...
+ SET:DELIMS=:\/
+ EXE:&VR9 shell pm list packages --exestdout=&VR8pm-list-packages.txt
+ LST:&VR8pm-list-packages.txt
+ EXE:&VR9 shell appops get &LS1 --exestdout=&VR8&LS1_appops.txt
+ SET:DELIMS=,\/
+ *******************************************************
+ * Collect System Files                                *
+ *******************************************************
+ Say:[+] Collecting System Files...
+ VR8:&Acn\System\ 
+ VR7:\System
+ ACQ:&VR7
+ VR6:&Acq\**\*
+ EXE:&VR9 pull /system/ &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/apex &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/app &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/bin &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/cameradata &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/container &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/etc &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/fake-libs &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/fonts &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/framework &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/hidden &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/lib &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/lib64 &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/media &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/priv-app &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/saiv &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/tts &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/usr &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/vendor &ACQ --exestdout=&VR8system_log.txt
+ EXE:&VR9 pull /system/xbin &ACQ --exestdout=&VR8system_log.txt
+ *******************************************************
+ * Zip and Hash                                        *
+ *******************************************************
+ Say:[+] Zipping and Hashing System Files...
+ FOR:&VR6
+ SET:ZipFileName=&Acq&VR7.zip
+ SET:ZipFileRoot=System
+ ZIP:&For
+ SET:ZipFileName=close
+ HSH:&Acq&VR7.zip
+ Say:Hash of &Acq&VR7.zip is: &HSH
+ *******************************************************
+ * ADB Backup                                          *
+ *******************************************************
+ * Say:[+] Creating Full Backup... Check the device for confirmation response...
+ * VR8:&Acn\Backup\ 
+ * VR7:\Backup
+ * ACQ:&VR7
+ * EXE:&VR9 backup -all -shared -system -keyvalue -apk -obb -f &Acq&VR7.ab
+ * HSH:&Acq&VR7.ab
+ * Say:Hash of &Acq&VR7.ab is: &HSH
+ *******************************************************
+ * Extract APK Data Packages                           *
+ *******************************************************
+ Say:[+] Extracting APK Packages...
+ VR8:&Acn\APK\ 
+ VR7:\APK
+ ACQ:&VR7
+ VR6:&Acq\**\*
+ SET:DELIMS=:\/
+ OPN:&VR8filter-packages.txt
+ OUT:package:/data/
+ FLT:&VR8filter-packages.txt
+ SET:FILTER=incl,part
+ EXE:&VR9 shell pm list packages -f -u --exestdout=&VR8pm-list-packages-f-u.txt
+ LST:&VR8pm-list-packages-f-u.txt
+ SET:DELIMS=/\/
+ EXE:&VR9 pull /&LS1/&LS2/&LS3/&LS4/ &ACQ
+ SET:DELIMS=,\/
+ FLT:NONE
+ FOR:&VR6
+ SET:ZipFileName=&Acq&VR7.zip
+ SET:ZipFileRoot=APK
+ ZIP:&For
+ SET:ZipFileName=close
+ HSH:&Acq&VR7.zip
+ Say:Hash of &Acq&VR7.zip is: &HSH
+ *******************************************************
+ * Extract Content Provider Data                       *
+ *******************************************************
+ Say:[+] Extracting Content Provider Data...
+ VR8:&Acn\Content\ 
+ VR7:\Content
+ ACQ:&VR7
+ Say:[+] Querying Calendar Content...
+ EXE:&VR9 shell dumpsys package providers --exestdout=&VR8content_providers_list.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/calendar_entities --exestdout=&VR8calendar_calendar_entities.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/calendars --exestdout=&VR8calendar_calendars.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/attendees --exestdout=&VR8calendar_attendees.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/event_entities --exestdout=&VR8calendar_event_entities.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/events --exestdout=&VR8calendar_events.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/properties --exestdout=&VR8calendar_properties.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/reminders --exestdout=&VR8calendar_reminders.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/calendar_alerts --exestdout=&VR8calendar_alerts.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/colors --exestdout=&VR8calendar_colors.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/extendedproperties --exestdout=&VR8calendar_extendedpropertiess.txt
+ EXE:&VR9 shell content query --uri content://com.android.calendar/syncstate --exestdout=&VR8calendar_syncstate.txt
+ Say:[+] Querying Contacts Content...
+ EXE:&VR9 shell content query --uri content://com.android.contacts/raw_contacts --exestdout=&VR8contacts_raw_contacts.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/directories --exestdout=&VR8contacts_directories.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/syncstate --exestdout=&VR8contacts_syncstate.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/contacts --exestdout=&VR8contacts_contacts.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/raw_contacts  --exestdout=&VR8contacts_raw_contacts.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/profile --exestdout=&VR8contacts_profile.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/profile/as_vcard --exestdout=&VR8contacts_profile_as_vcard.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/stream_items --exestdout=&VR8contacts_stream_items.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/stream_items/photo --exestdout=&VR8contacts_stream_items_photo.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/stream_items_limit --exestdout=&VR8contacts_stream_items_limit.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data --exestdout=&VR8contacts_data.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/raw_contact_entities --exestdout=&VR8contacts_raw_contact_entities.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/profile/raw_contact_entities --exestdout=&VR8contacts_profile_raw_contact_entities.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/status_updates --exestdout=&VR8contacts_status_updates.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/phones --exestdout=&VR8contacts_data_phones.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/phones/filter --exestdout=&VR8contacts_data_phones_filter.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/emails/lookup --exestdout=&VR8contacts_data_emails_lookup.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/emails/filter --exestdout=&VR8contacts_data_emails_filter.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/emails/filter --exestdout=&VR8contacts_data_emails_filter.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/emails/emails --exestdout=&VR8contacts_data_emails_emails.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/data/postals --exestdout=&VR8contacts_data_postals.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/groups --exestdout=&VR8contacts_groups.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/groups_summary --exestdout=&VR8contacts_groups_summary.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/aggregation_exceptions --exestdout=&VR8contacts_aggregation_exceptions.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/settings --exestdout=&VR8contacts_settings.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/provider_status --exestdout=&VR8contacts_provider_status.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/photo_dimensions --exestdout=&VR8contacts_photo_dimensions.txt
+ EXE:&VR9 shell content query --uri content://com.android.contacts/deleted_contacts --exestdout=&VR8contacts_deleted_contacts.txt
+ Say:[+] Querying Downloads Content...
+ EXE:&VR9 shell content query --uri content://downloads/my_downloads --exestdout=&VR8downloads_my_downloads.txt
+ EXE:&VR9 shell content query --uri content://downloads/download --exestdout=&VR8downloads_download.txt
+ Say:[+] Querying External Media Content...
+ EXE:&VR9 shell content query --uri content://media/external/file --exestdout=&VR8media_external_file.txt
+ EXE:&VR9 shell content query --uri content://media/external/images/media --exestdout=&VR8media_external_images_media.txt
+ EXE:&VR9 shell content query --uri content://media/external/images/thumbnails --exestdout=&VR8media_external_images_thumbnails.txt
+ EXE:&VR9 shell content query --uri content://media/external/audio/media --exestdout=&VR8media_external_audio_media.txt
+ EXE:&VR9 shell content query --uri content://media/external/audio/genres --exestdout=&VR8media_external_audio_genres.txt
+ EXE:&VR9 shell content query --uri content://media/external/audio/playlists --exestdout=&VR8media_external_audio_playlists.txt
+ EXE:&VR9 shell content query --uri content://media/external/audio/artists --exestdout=&VR8media_external_audio_artists.txt
+ EXE:&VR9 shell content query --uri content://media/external/audio/albums --exestdout=&VR8media_external_audio_albums.txt
+ EXE:&VR9 shell content query --uri content://media/external/video/media --exestdout=&VR8media_external_video_media.txt
+ EXE:&VR9 shell content query --uri content://media/external/video/thumbnails --exestdout=&VR8media_external_video_thumbnails.txt
+ Say:[+] Querying Internal Media Content...
+ EXE:&VR9 shell content query --uri content://media/internal/file --exestdout=&VR8media_internal_file.txt
+ EXE:&VR9 shell content query --uri content://media/internal/images/media --exestdout=&VR8media_internal_images_media.txt
+ EXE:&VR9 shell content query --uri content://media/internal/images/thumbnails --exestdout=&VR8media_internal_images_thumbnails.txt
+ EXE:&VR9 shell content query --uri content://media/internal/audio/media --exestdout=&VR8media_internal_audio_media.txt
+ EXE:&VR9 shell content query --uri content://media/internal/audio/genres --exestdout=&VR8media_internal_audio_genres.txt
+ EXE:&VR9 shell content query --uri content://media/internal/audio/playlists --exestdout=&VR8media_internal_audio_playlists.txt
+ EXE:&VR9 shell content query --uri content://media/internal/audio/artists --exestdout=&VR8media_internal_audio_artists.txt
+ EXE:&VR9 shell content query --uri content://media/internal/audio/albums --exestdout=&VR8media_internal_audio_albums.txt
+ EXE:&VR9 shell content query --uri content://media/internal/video/media --exestdout=&VR8media_internal_video_media.txt
+ EXE:&VR9 shell content query --uri content://media/internal/video/thumbnails --exestdout=&VR8media_internal_video_thumbnails.txt
+ Say:[+] Querying Settings Content...
+ EXE:&VR9 shell content query --uri content://settings/system --exestdout=&VR8settings_system.txt
+ EXE:&VR9 shell content query --uri content://settings/system/ringtone --exestdout=&VR8settings_system_ringtone.txt
+ EXE:&VR9 shell content query --uri content://settings/system/alarm_alert --exestdout=&VR8settings_system_alarm_alert.txt
+ EXE:&VR9 shell content query --uri content://settings/system/notification_sound --exestdout=&VR8settings_system_notification_sound.txt
+ EXE:&VR9 shell content query --uri content://settings/secure --exestdout=&VR8settings_secure.txt
+ EXE:&VR9 shell content query --uri content://settings/global --exestdout=&VR8settings_global.txt
+ EXE:&VR9 shell content query --uri content://settings/bookmarks --exestdout=&VR8settings_bookmarks.txt
+ EXE:&VR9 shell content query --uri content://com.google.settings/partners --exestdout=&VR8google_settings_partner.txt
+ EXE:&VR9 shell content query --uri content://nwkinfo/nwkinfo/carriers --exestdout=&VR8nwkinfo_carriers.txt 
+ EXE:&VR9 shell content query --uri content://com.android.settings.personalvibration.PersonalVibrationProvider/ --exestdout=&VR8personal_vibration.txt 
+ EXE:&VR9 shell content query --uri content://settings/system/bluetooth_devices --exestdout=&VR8bluetooth_devices.txt 
+ EXE:&VR9 shell content query --uri content://settings/system/powersavings_appsettings --exestdout=&VR8powersavings_appsettings.txt 
+ Say:[+] Querying User Dictionary Content...
+ EXE:&VR9 shell content query --uri content://user_dictionary/words --exestdout=&VR8user_dictionary_words.txt
+ Say:[+] Querying Browser Content...
+ EXE:&VR9 shell content query --uri content://browser/bookmarks --exestdout=&VR8browser_bookmarks.txt
+ EXE:&VR9 shell content query --uri content://browser/searches --exestdout=&VR8browser_searches.txt
+ Say:[+] Querying Android Browser Content...
+ EXE:&VR9 shell content query --uri content://com.android.browser --exestdout=&VR8android_browser.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/accounts --exestdout=&VR8android_browser_accounts.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/accounts/account_name --exestdout=&VR8android_browser_accounts_account_name.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/accounts/account_type --exestdout=&VR8android_browser_accounts_account_type.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/accounts/sourceid --exestdout=&VR8android_browser_accounts_sourceid.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/settings --exestdout=&VR8android_browser_settings.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/syncstate --exestdout=&VR8android_browser_syncstate.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/images --exestdout=&VR8android_browser_images.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/image_mappings --exestdout=&VR8android_browser_image_mappings.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/bookmarks --exestdout=&VR8android_browser_bookmarks.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/bookmarks/folder --exestdout=&VR8android_browser_bookmarks_folder.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/history --exestdout=&VR8android_browser_history.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/bookmarks/search_suggest_query --exestdout=&VR8android_browser_bookmarks_earch_suggest_query.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/searches --exestdout=&VR8android_browser_searches.txt
+ EXE:&VR9 shell content query --uri content://com.android.browser/combined --exestdout=&VR8android_browser_combined.txt
+ SAY:[+] Now Hashing Artifacts...
+ HSH:ACQ
+End:
+EQU:&VR0 0
+ Say:[+] ADB Does Not Appear to be Attached to a Device...
+End:
+LBL:AllDun
+Say:[+] Processing Complete...
