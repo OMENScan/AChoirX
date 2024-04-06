@@ -14,6 +14,9 @@ CKY:&Acq/&Acn.zip
  Say:[!] Please delete it before running another collection... Exiting...
  JMP:AllDun
 END:
+*******************************************************
+* Setup Zip File Parms                                *
+*******************************************************
 SET:ZipFileName=&Acq/&Acn.zip
 Say:[+] Beginning Basic Collection...
 ACQ:/Android
@@ -56,6 +59,11 @@ ZIP:&For
 SAY:[+] Deleting Local Copy...
 CLN:&Acn/LiveData
 *******************************************************
+* Ignore these files (Previous ACQ-IR- Collections)   *
+*******************************************************
+FLT:FilterExcl.dat
+SET:FILTER=excl, part
+*******************************************************
 * SD Card Acquisition                                 *
 *******************************************************
 Say:[+] Beginning SDCard Collection...
@@ -63,6 +71,10 @@ ACQ:/SDCard
 FOR:/sdcard/**/*
 SET:ZipFileRoot=SDCard
 ZIP:&For
+*******************************************************
+* Remove Filter                                       *
+*******************************************************
+FLT:NONE
 *******************************************************
 * Extract bugreport, dumpsys and appops information   *
 *******************************************************

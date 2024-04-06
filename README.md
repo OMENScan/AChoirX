@@ -132,3 +132,5 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 02/03/2024 - AChoirX v10.01.21 - Release 1.21. Occasionally the TCP STDOut file is not deleted (Add clear file to compensate)
 
 03/18/2024 - AChoirX v10.01.21a - Release 1.21a. Include Beta Android Version. For more info: http://www.musectech.com/2024/03/achoirx-and-android-another-rabbit-hole.html
+
+04/06/2024 - AChoirX v10.01.22 - Release 1.22 Dont allow Files to be zipped into themselves

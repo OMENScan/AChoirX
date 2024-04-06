@@ -198,6 +198,9 @@
 // AChoirX v10.01.21 - Release 1.21
 //                    - Occasionally the TCP STDOut file is not deleted (Add clear file to compensate)
 //
+// AChoirX v10.01.22 - Release 1.22
+//                    - Dont allow Files to be zipped into themselves - Yup
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -266,7 +269,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.21"                       // AChoir Version
+var Version = "v10.01.22"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -2250,6 +2253,14 @@ func main() {
                     ConsOut = fmt.Sprintf("[+] Zipping: %s ==> %s\n", ZipInrec, setOutZipFName)
                     ConsLogSys(ConsOut, 1, 1)
 
+                    //****************************************************************
+                    //* Dont allow zipping a file into itself - Yeah, that can happen*
+                    //****************************************************************
+                    if ZipInrec == setOutZipFName {
+                        ConsOut = fmt.Sprintf("[!] Zipping a File into itself... Im sorry Dave, Im afraid I cant do that.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        break
+                    }
 
                     //****************************************************************
                     //* If we are zipping from the current Acquisition Directory, do *
