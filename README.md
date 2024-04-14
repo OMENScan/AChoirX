@@ -1,11 +1,11 @@
 # AChoirX
  AChoirX is a port of AChoir in Go(lang) for Cross Platform forensic collection, processing, and analysis.
 
-The goal of AChoirX is to create a simple scripting language for Targeted Collection (Live Response) on Windows, Linux, and OSX.  AChoirX (like AChoir) will also support scripting of extraction, parsing, and analysis of mounted forensic images.
+The goal of AChoirX is to create a simple scripting language for Targeted Collection (Live Response) on Windows, Linux, OSX (MacOS), and Android.  AChoirX (like AChoir) will also support scripting of extraction, parsing, and analysis of mounted forensic images.
 
-The AChoirX installation contains a single AChoir collection script, which can run on all three versions of AChoirX. This shows the power of the idea: A single consistent method to gather artifacts and telemetry from all three platforms using a single script.  AChoirX does not to abstract these artifacts - but rather collect the actual platform specific raw artifacts in a consistent manner using the same utility on all three platforms.
+The AChoirX installation contains a single AChoir collection script, which can run on all three primary versions of AChoirX (Windows, Linux, MacOS). This shows the power of the idea: A single consistent method to gather artifacts and telemetry from all three platforms using a single script.  AChoirX does not to abstract these artifacts - but rather collects the actual platform specific raw artifacts in a consistent manner using the same utility on all three platforms.  Please Note: While AChoirX also runs on Android - it is not yet supported in the default script.
 
-AChoir scripts can be modified in nearly endless ways to meet the collection needs of different types of investigations.  AChoirX can also run in interactive console mode, or across TCP using the built in Multi-Handler.  AChoirX also natively supports common upload methods such as SFTP or S3.
+AChoir scripts can be modified in nearly endless ways to meet the collection needs of different types of investigations.  AChoirX can also run in interactive console mode, or across TCP using the built in Multi-Handler.  AChoirX also natively supports common upload methods such as SFTP or S3.  Since AChoirX runs on Windows, Linux, MacOS, and Android - All of these functions, including the multi-handler (client and server modes) and the upload methods, work regardless of platform.
 
 # Change Log:
 10/16/2020 - Alpha 23. Windows, Linux, OSX supported. The default script runs on all three platforms and gathers platform specific Artifacts and Telemetry. Has built in S3 Bucket uploading (using the AWS SDK).
