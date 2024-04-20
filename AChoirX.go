@@ -201,6 +201,9 @@
 // AChoirX v10.01.22 - Release 1.22
 //                    - Dont allow Files to be zipped into themselves - Yup
 //
+// AChoirX v10.01.23 - Release 1.23
+//                    - Improvements in Registry Key Extraction
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -269,7 +272,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.22"                       // AChoir Version
+var Version = "v10.01.23"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])

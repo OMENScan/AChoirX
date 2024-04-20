@@ -134,3 +134,5 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 03/18/2024 - AChoirX v10.01.21a - Release 1.21a. Include Beta Android Version. For more info: http://www.musectech.com/2024/03/achoirx-and-android-another-rabbit-hole.html
 
 04/06/2024 - AChoirX v10.01.22 - Release 1.22 Dont allow Files to be zipped into themselves
+
+04/20/2024 - AChoirX v10.01.23 - Release 1.23 Improvements in Registry Key Extraction

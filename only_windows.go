@@ -210,6 +210,7 @@ func makeKey(khive string) {
     if strings.HasPrefix(strings.ToUpper(khive), "HKLM\\") {
         subKey, err := registry.OpenKey(registry.LOCAL_MACHINE, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
         if err != nil {
+            fmt.Fprintf(RegHndl, "Error Opening Key: %s\n", err)
             ConsOut = fmt.Sprintf("[!] Error Opening Key: %s\n", err)
             ConsLogSys(ConsOut, 1, 1)
             return
@@ -218,6 +219,7 @@ func makeKey(khive string) {
     } else if strings.HasPrefix(strings.ToUpper(khive), "HKCR\\") {
         subKey, err := registry.OpenKey(registry.CLASSES_ROOT, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
         if err != nil {
+            fmt.Fprintf(RegHndl, "Error Opening Key: %s\n", err)
             ConsOut = fmt.Sprintf("[!] Error Opening Key: %s\n", err)
             ConsLogSys(ConsOut, 1, 1)
             return
@@ -226,6 +228,7 @@ func makeKey(khive string) {
     } else if strings.HasPrefix(strings.ToUpper(khive), "HKCU\\") {
         subKey, err := registry.OpenKey(registry.CURRENT_USER, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
         if err != nil {
+            fmt.Fprintf(RegHndl, "Error Opening Key: %s\n", err)
             ConsOut = fmt.Sprintf("[!] Error Opening Key: %s\n", err)
             ConsLogSys(ConsOut, 1, 1)
             return
@@ -234,6 +237,7 @@ func makeKey(khive string) {
     } else if strings.HasPrefix(strings.ToUpper(khive), "HKUS\\") {
         subKey, err := registry.OpenKey(registry.USERS, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
         if err != nil {
+            fmt.Fprintf(RegHndl, "Error Opening Key: %s\n", err)
             ConsOut = fmt.Sprintf("[!] Error Opening Key: %s\n", err)
             ConsLogSys(ConsOut, 1, 1)
             return
@@ -242,6 +246,7 @@ func makeKey(khive string) {
     } else if strings.HasPrefix(strings.ToUpper(khive), "HKCC\\") {
         subKey, err := registry.OpenKey(registry.CURRENT_CONFIG, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
         if err != nil {
+            fmt.Fprintf(RegHndl, "Error Opening Key: %s\n", err)
             ConsOut = fmt.Sprintf("[!] Error Opening Key: %s\n", err)
             ConsLogSys(ConsOut, 1, 1)
             return
