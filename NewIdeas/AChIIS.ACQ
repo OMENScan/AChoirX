@@ -1,6 +1,8 @@
 ******************************************************************
 * Collect IIS Logs using XML Config File                         *
-*  ${systemroot}\System32\inetsrv\config\applicationHost.config  * 
+*  ${systemroot}\System32\inetsrv\config\applicationHost.config  *
+* Note: Powershell could also be used:                           *
+*  "(Get-Website * | % { $_.logFile.Directory})"                 *
 ******************************************************************
 ACQ:IIS
 SAY:[+] Extracting IIS Logs Directory from IIS XML Config... 
@@ -9,8 +11,7 @@ SYS:findstr /i "<logfile " &Acq\config\applicationHost.config --exestdout=&acn\I
 *******************************************************
 * Parse Extracted XML Logfile Location                *
 *******************************************************
-SYS:cmd /c for /f "tokens=1,2,3,4,5 delims= " %G in (&Acq\config\Stage1.dat) do @echo %H --exestdout=&Acn\IIS\config\Stage2.dat
-SYS:cmd /c for /f "tokens=1,2,3,4,5 delims= " %G in (&Acq\config\Stage1.dat) do @echo %I --exestdout=&Acn\IIS\config\Stage2.dat
+SYS:cmd /c for /f "tokens=1,2,3,4,5 delims= " %G in (&Acq\config\Stage1.dat) do @echo %H & @echo %I --exestdout=&Acn\IIS\config\Stage2.dat
 *******************************************************
 * Parse out the Directory                             *
 *******************************************************
