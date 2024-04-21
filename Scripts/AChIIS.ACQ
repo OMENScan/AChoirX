@@ -1,0 +1,48 @@
+******************************************************************
+* Collect IIS Logs using XML Config File                         *
+*  ${systemroot}\System32\inetsrv\config\applicationHost.config  * 
+* Note: Powershell could also be used:                           *
+*  "(Get-Website * | % { $_.logFile.Directory})"                 *
+******************************************************************
+ACQ:IIS
+SAY:[+] Extracting IIS Logs Directory from IIS XML Config... 
+CPY:${systemroot}\System32\inetsrv\config\applicationHost.config &Acq
+SYS:findstr /i "<logfile " &Acq\config\applicationHost.config --exestdout=&acn\IIS\config\stage1.dat
+*******************************************************
+* Parse Extracted XML Logfile Location                *
+*******************************************************
+SYS:cmd /c for /f "tokens=1,2,3,4,5 delims= " %G in (&Acq\config\Stage1.dat) do @echo %H & @echo %I --exestdout=&Acn\IIS\config\Stage2.dat
+*******************************************************
+* Parse out the Directory                             *
+*******************************************************
+SET:delims==\/
+*******************************************************
+* Only collect File in directory= records             *
+*******************************************************
+FLT:AChIISFil.ter
+SET:FILTER=incl, part
+LST:&Acn\IIS\config\Stage2.dat
+*******************************************************
+* Use Echo Command to force expansion of Env Vars     *
+*******************************************************
+SYS:cmd /c echo &ls1 --exestdout=&Acn\IIS\config\Stage3.dat
+*******************************************************
+* Lets Filter on ourself to delete possible Duplicates*
+*******************************************************
+OPN:&Acn\IIS\config\Stage4.dat
+FLT:&Acn\IIS\config\Stage4.dat
+SET:FILTER=excl, full
+LST:&Acn\IIS\config\Stage3.dat
+OUT:&LST
+*******************************************************
+* Remove Filter                                       *
+*******************************************************
+FLT:NONE
+LST:&Acn\IIS\config\Stage4.dat
+SAY:[+] Now Copying IIS Logs...
+ACQ:\IIS\Logs
+CPY:&LST\**\* &Acq
+*******************************************************
+* Reset Delims back to Default                        *
+*******************************************************
+SET:delims=,\/
