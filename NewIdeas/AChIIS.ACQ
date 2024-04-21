@@ -1,0 +1,30 @@
+******************************************************************
+* Collect IIS Logs using XML Config File                         *
+*  ${systemroot}\System32\inetsrv\config\applicationHost.config  * 
+******************************************************************
+ACQ:IIS
+SAY:[+] Extracting IIS Logs Directory from IIS XML Config... 
+CPY:${systemroot}\System32\inetsrv\config\applicationHost.config &Acq
+SYS:findstr /i "<logfile " &Acq\config\applicationHost.config --exestdout=&acn\IIS\config\stage1.dat
+*******************************************************
+* Parse Extracted XML Logfile Location                *
+*******************************************************
+SYS:cmd /c for /f "tokens=1,2,3,4,5 delims= " %G in (&Acq\config\Stage1.dat) do @echo %I --exestdout=&Acn\IIS\config\Stage2.dat
+*******************************************************
+* Parse out the Directory                             *
+*******************************************************
+SET:delims==\/
+LST:&Acn\IIS\config\Stage2.dat
+*******************************************************
+* Use Echo Command to force expansion of Env Vars     *
+*******************************************************
+SYS:cmd /c echo &ls1 --exestdout=&Acn\IIS\config\Stage3.dat
+LST:&Acn\IIS\config\Stage3.dat
+SAY:[+] Now Copying IIS Logs...
+ACQ:\IIS\Logs
+CPY:&LST\**\* &Acq
+*******************************************************
+* Reset Delims back to Default                        *
+*******************************************************
+SET:delims=,\/
+
