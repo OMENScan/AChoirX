@@ -204,6 +204,9 @@
 // AChoirX v10.01.23 - Release 1.23
 //                    - Improvements in Registry Key Extraction
 //
+// AChoirX v10.01.24 - Release 1.24
+//                    - Fix CopyPath=Full Bug 
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -272,7 +275,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.23"                       // AChoir Version
+var Version = "v10.01.24"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -5253,7 +5256,7 @@ func CopyParser(splitString1 string, splitString2 string) {
                 MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
             } else if setCPath == 2 {
                 MCpPath = strings.Replace(MCpPath, ":", "", -1)
-                MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpPath, MCpFName)
+                MCprcO = fmt.Sprintf("%s%c%s%c%s", splitString2, slashDelim, MCpPath, slashDelim, MCpFName)
             }
 
             procf_countr++
@@ -6044,7 +6047,7 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                 MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpShard, MCpFName)
             } else if setCPath == 2 {
                 MCpPath = strings.Replace(MCpPath, ":", "", -1)
-                MCprcO = fmt.Sprintf("%s%c%s%s", splitString2, slashDelim, MCpPath, MCpFName)
+                MCprcO = fmt.Sprintf("%s%c%s%c%s", splitString2, slashDelim, MCpPath, slashDelim, MCpFName)
             }
 
 

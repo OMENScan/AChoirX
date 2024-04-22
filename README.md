@@ -136,3 +136,5 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 04/06/2024 - AChoirX v10.01.22 - Release 1.22 Dont allow Files to be zipped into themselves
 
 04/20/2024 - AChoirX v10.01.23 - Release 1.23 Improvements in Registry Key Extraction
+
+04/22/2024 - AChoirX v10.01.24 - Release 1.24 Fix CopyPath=Full Bug 

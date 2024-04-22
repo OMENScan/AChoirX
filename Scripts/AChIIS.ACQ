@@ -4,10 +4,13 @@
 * Note: Powershell could also be used:                           *
 *  "(Get-Website * | % { $_.logFile.Directory})"                 *
 ******************************************************************
+Set:CopyPath=part
 ACQ:IIS
 SAY:[+] Extracting IIS Logs Directory from IIS XML Config... 
 CPY:${systemroot}\System32\inetsrv\config\applicationHost.config &Acq
 SYS:findstr /i "<logfile " &Acq\config\applicationHost.config --exestdout=&acn\IIS\config\stage1.dat
+SYS:findstr /i "<centralBinaryLogFile " &Acq\config\applicationHost.config --exestdout=&acn\IIS\config\stage1.dat
+SYS:findstr /i "<centralW3CLogFile " &Acq\config\applicationHost.config --exestdout=&acn\IIS\config\stage1.dat
 *******************************************************
 * Parse Extracted XML Logfile Location                *
 *******************************************************
@@ -25,11 +28,24 @@ LST:&Acn\IIS\config\Stage2.dat
 *******************************************************
 * Use Echo Command to force expansion of Env Vars     *
 *******************************************************
-SYS:cmd /c echo &ls1 --exestdout=&Acn\IIS\config\Stage3.dat
+SYS:cmd /c echo &LS1 --exestdout=&Acn\IIS\config\Stage3.dat
+***********************************************************
+* Look for Basic Locations First - In case old Logs exist *
+***********************************************************
+FLT:NONE
+OPN:&Acn\IIS\config\Stage4.dat
+CKY:${systemroot}\System32\LogFiles
+ OUT:${systemroot}\System32\LogFiles
+END:
+CKY:${systemdrive}\Windows.old\Windows\System32\LogFiles
+ OUT:${systemdrive}\Windows.old\Windows\System32\LogFiles
+END:
+CKY:${systemdrive}\inetpub\logs\LogFiles
+ OUT:${systemdrive}\inetpub\logs\LogFiles
+END:
 *******************************************************
 * Lets Filter on ourself to delete possible Duplicates*
 *******************************************************
-OPN:&Acn\IIS\config\Stage4.dat
 FLT:&Acn\IIS\config\Stage4.dat
 SET:FILTER=excl, full
 LST:&Acn\IIS\config\Stage3.dat
@@ -41,6 +57,10 @@ FLT:NONE
 LST:&Acn\IIS\config\Stage4.dat
 SAY:[+] Now Copying IIS Logs...
 ACQ:\IIS\Logs
+*******************************************************
+* Set CopyPath to full - We may have Los all over     *
+*******************************************************
+Set:CopyPath=full
 CPY:&LST\**\* &Acq
 *******************************************************
 * Reset Delims back to Default                        *
