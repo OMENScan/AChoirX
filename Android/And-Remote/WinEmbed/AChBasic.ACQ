@@ -1,0 +1,116 @@
+*******************************************************
+* AChoirX Android remote (ADB) Basic Demo Collection  *
+*******************************************************
+SET:CopyPath=Part
+*******************************************************
+* Verify that ADB is there                            *
+*******************************************************
+VR9:&Dir\Android\adb.exe
+CKN:&VR9
+  Say:
+  Say:[!] adb not found! Exiting...
+  JMP:AllDun
+END:
+*******************************************************
+* Make Sure we have an Android Device attached        *
+*  Note: Windows Delimiter is set to Tab and looks    *
+*        for "device" in column 2 (&LS1)              *
+* VR0=0 is not attached.  VR0=1 is attached           *
+*******************************************************
+LBL:Start
+VR0:0
+Say:[+] Checking for ADB Devices
+EXE:&VR9 devices --exestdout=&VR8Devices.dat
+SET:DELIMS=	\/
+LST:&VR8Devices.dat
+EQU:"&LS1" "device"
+ Say:[+] ADB Appears to be Attached to a Device...
+ SET:DELIMS=,\/
+ VR0:1
+ *******************************************************
+ * Setup ZipFile                                       *
+ *******************************************************
+ VR8:&Acn\
+ VR7:\
+ ACQ:&VR7
+ Say:[+] Checking for Duplicate Collection...
+ CKY:&Acq\&Acn.zip
+  Say:[!] Zip Collection File Already Exist: &Acq\&Acn.zip
+  Say:[!] Please delete it before running another collection... Exiting...
+  JMP:AllDun
+ END:
+ SET:ZipFileName=&Acq\&Acn.zip
+ *******************************************************
+ * Basic Collection                                    *
+ *******************************************************
+ VR8:&Acn\Android\
+ VR7:\Android
+ ACQ:&VR7
+ Say:[+] Beginning Basic Collection...
+ EXE:&VR9 shell getprop --exestdout=&VR8getprop.txt
+ EXE:&VR9 shell settings list system --exestdout=&VR8settings_system.txt
+ EXE:&VR9 shell settings list secure --exestdout=&VR8settings_secure.txt
+ EXE:&VR9 shell settings list global --exestdout=&VR8settings_global.txt
+ SAY:[+] Zipping Android Data...
+ FOR:&Acq\**\*
+ SET:ZipFileRoot=Android
+ ZIP:&For
+ SAY:[+] Deleting Local Copy...
+ CLN:&VR8
+ *******************************************************
+ * Live System Information Collection                  *
+ *******************************************************
+ VR8:&Acn\LiveData\ 
+ VR7:\LiveData
+ ACQ:&VR7
+ Say:[+] Beginning Live System Collection...
+ EXE:&VR9 shell id --exestdout=&VR8id.txt
+ EXE:&VR9 shell uname -a --exestdout=&VR8uname-a.txt
+ EXE:&VR9 shell cat /proc/version --exestdout=&VR8kernel_version.txt
+ EXE:&VR9 shell uptime --exestdout=&VR8uptime.txt
+ EXE:&VR9 shell date --exestdout=&VR8date.txt
+ EXE:&VR9 shell printenv --exestdout=&VR8printenv.txt
+ EXE:&VR9 shell cat /proc/partitions --exestdout=&VR8partitions.txt
+ EXE:&VR9 shell cat /proc/cpuinfo --exestdout=&VR8cpuinfo.txt
+ EXE:&VR9 shell cat /proc/diskstats --exestdout=&VR8diskstats.txt
+ EXE:&VR9 shell df --exestdout=&VR8df.txt
+ EXE:&VR9 shell df -ah --exestdout=&VR8df-ah.txt
+ EXE:&VR9 shell mount --exestdout=&VR8mount.txt
+ EXE:&VR9 shell ip address show wlan0 --exestdout=&VR8ip_wlan0.txt
+ EXE:&VR9 shell ifconfig -a --exestdout=&VR8ifconfig-a.txt
+ EXE:&VR9 shell netstat -an --exestdout=&VR8netstat-an.txt
+ EXE:&VR9 shell lsof --exestdout=&VR8lsof.txt
+ EXE:&VR9 shell ps -ef --exestdout=&VR8ps-ef.txt
+ EXE:&VR9 shell top -n 1 --exestdout=&VR8top-n_1.txt
+ EXE:&VR9 shell cat /proc/sched_debug --exestdout=&VR8proc_sched_debug.txt
+ EXE:&VR9 shell vmstat --exestdout=&VR8vmstat.txt
+ EXE:&VR9 shell sysctl -a --exestdout=&VR8sysctl-a.txt
+ EXE:&VR9 shell ime list --exestdout=&VR8ime_list.txt
+ EXE:&VR9 shell service list --exestdout=&VR8service_list.txt
+ EXE:&VR9 shell logcat -S -b all --exestdout=&VR8logcat-S-b_all.txt
+ EXE:&VR9 shell logcat -d -b all V:* --exestdout=&VR8logcat-d-b_all_V.txt
+ SAY:[+] Now Hashing Artifacts...
+ HSH:ACQ
+ SAY:[+] Zipping Live Data...
+ FOR:&Acq\**\*
+ SET:ZipFileRoot=LiveData
+ ZIP:&For
+ SAY:[+] Deleting Local Copy...
+ CLN:&VR8
+ SAY:[+] Zipping Everything else for Upload...
+ ACQ:\
+ SET:ZipFileRoot=AChoirX
+ ZIP:&Dir\Logs\&Acn.log
+ ZIP:&Acq\ACQHash.txt
+ ZIP:&Acq\Index.htm
+ SET:ZipFileName=close
+ SAY:[+] Deleting Local Copy...
+ CLN:&Acn\Android
+ CLN:&Acn\LiveData
+ CLN:&Acn\RanProg
+End:
+EQU:&VR0 0
+ Say:[+] ADB Does Not Appear to be Attached to a Device...
+End:
+LBL:AllDun
+Say:[+] Processing Complete...

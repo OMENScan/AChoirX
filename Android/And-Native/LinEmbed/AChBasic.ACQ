@@ -1,0 +1,79 @@
+*******************************************************
+* AChoirX Android Collection                          *
+*******************************************************
+SET:CopyPath=Part
+*******************************************************
+* Basic Collection                                    *
+*******************************************************
+Say:[+] Checking for Duplicate Collection...
+ACQ:/
+CKY:&Acq/&Acn.zip
+ Say:[!] Zip Collection File Already Exist: &Acq/&Acn.zip
+ Say:[!] Please delete it before running another collection... Exiting...
+ JMP:AllDun
+END:
+*******************************************************
+* Setup Zip File Parms                                *
+*******************************************************
+SET:ZipFileName=&Acq/&Acn.zip
+Say:[+] Beginning Basic Collection...
+ACQ:/Android
+SYS:getprop --exestdout=&Acn/Android/getprop.txt
+SAY:[+] Zipping Android Data...
+FOR:&Acq/**/*
+SET:ZipFileRoot=Android
+ZIP:&For
+SAY:[+] Deleting Local Copy...
+CLN:&Acn/Android
+*******************************************************
+* Live System Information Collection                  *
+*******************************************************
+Say:[+] Beginning Live Data Collection...
+ACQ:/LiveData
+SYS:id --exestdout=&Acn/LiveData/id.txt
+SYS:uname -a --exestdout=&Acn/LiveData/uname-a.txt
+SYS:cat /proc/version --exestdout=&Acn/LiveData/kernel_version.txt
+SYS:uptime --exestdout=&Acn/LiveData/uptime.txt
+SYS:date --exestdout=&Acn/LiveData/date.txt
+SYS:printenv --exestdout=&Acn/LiveData/printenv.txt
+SYS:cat /proc/partitions --exestdout=&Acn/LiveData/partitions.txt
+SYS:cat /proc/cpuinfo --exestdout=&Acn/LiveData/cpuinfo.txt
+SYS:cat /proc/diskstats --exestdout=&Acn/LiveData/diskstats.txt
+SYS:df --exestdout=&Acn/LiveData/df.txt
+SYS:df -ah --exestdout=&Acn/LiveData/df-ah.txt
+SYS:mount --exestdout=&Acn/LiveData/mount.txt
+SYS:ip address show wlan0 --exestdout=&Acn/LiveData/ip_wlan0.txt
+SYS:ifconfig -a --exestdout=&Acn/LiveData/ifconfig-a.txt
+SYS:netstat -an --exestdout=&Acn/LiveData/netstat-an.txt
+SYS:lsof --exestdout=&Acn/LiveData/lsof.txt
+SYS:ps -ef --exestdout=&Acn/LiveData/ps-ef.txt
+SYS:top -n 1 --exestdout=&Acn/LiveData/top-n_1.txt
+SYS:cat /proc/sched_debug --exestdout=&Acn/LiveData/proc_sched_debug.txt
+SYS:vmstat --exestdout=&Acn/LiveData/vmstat.txt
+SYS:sysctl -a --exestdout=&Acn/LiveData/sysctl-a.txt
+SYS:ime list --exestdout=&Acn/LiveData/ime_list.txt
+SYS:service list --exestdout=&Acn/LiveData/service_list.txt
+SYS:logcat -S -b all --exestdout=&Acn/LiveData/logcat-S-b_all.txt
+SYS:logcat -d -b all V:* --exestdout=&Acn/LiveData/logcat-d-b_all_V.txt
+SYS:cat /data/system/uiderrors.txt --exestdout=&Acn/LiveData/uiderrors.txt
+SAY:[+] Zipping LiveData...
+FOR:&Acq/**/*
+SET:ZipFileRoot=LiveData
+ZIP:&For
+SAY:[+] Deleting Local Copy...
+CLN:&Acn/LiveData
+SAY:[+] Now Hashing Artifacts...
+HSH:ACQ
+SAY:[+] Zipping Everything else for Upload...
+ACQ:/
+SET:ZipFileRoot=AChoirX
+ZIP:&Dir/Logs/&Acn.log
+ZIP:&Acq/ACQHash.txt
+ZIP:&Acq/Index.htm
+SET:ZipFileName=close
+SAY:[+] Deleting Local Copy...
+CLN:&Acn/Android
+CLN:&Acn/LiveData
+CLN:&Acn/RanProg
+LBL:AllDun
+Say:[+] Processing Complete...
