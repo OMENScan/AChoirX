@@ -138,3 +138,5 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 04/20/2024 - AChoirX v10.01.23 - Release 1.23 Improvements in Registry Key Extraction
 
 04/22/2024 - AChoirX v10.01.24 - Release 1.24 Fix CopyPath=Full Bug 
+
+05/19/2024 - AChoirX v10.01.50 - Release 1.50 No code changes per se. Refactoring of the litany of Scripts - Consolidating wherever it makes sense. 
