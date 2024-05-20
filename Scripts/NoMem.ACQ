@@ -12,11 +12,12 @@ SAY:
 SAY: * * *   Please MAKE SURE you are running this as an Administrator  * * * 
 SAY: * * * Administrator right are required for many of these utilities * * * 
 SAY:
-PZZ: Press Any Key to Continue, or q to QUIT
+*PZZ: Press Any Key to Continue, or q to QUIT
 SAY:
-SAY: 1. Bypass Dumping Memory...
+SAY: 1. Bypassing Memory Dump...
 SAY:
 VER:Windows
+ SAY:
  SAY: 2. Extracting Prefetch Directory...
  SAY:
  ACQ:\Prf
@@ -113,7 +114,7 @@ VER:Windows
  SAY:
  SAY: 13. Gathering ARP Information...
  SAY:
- SYS:Arp -a --exestdout=&acn\SYS\ArpInfo.dat
+ SYS:arp -a --exestdout=&acn\SYS\ArpInfo.dat
  SAY:
  SAY: 14. Gathering NetBIOS Information...
  SAY:
@@ -167,9 +168,12 @@ VER:Windows
  SAY:
  SAY: 22b. Gathering All User Registries...
  SAY:
- FOR:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
+ FOR:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]*
  ACQ:\Reg\&FO2
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
+ FOR:${SYSTEMDRIVE}\Users\*\AppData\Local\Microsoft\Windows\[Uu][Ss][Rr][Cc][Ll][Aa][Ss][Ss].[Dd][Aa][Tt]*
+ ACQ:\Reg\&FO2
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3/&FO4/&FO5/&FO6/&FO7 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
  SAY:
  SAY: 23. Now Extracting Browser History...
  SAY:
@@ -194,53 +198,79 @@ VER:Windows
  CPY:"${SYSTEMDRIVE}\Users\*\Desktop\*.lnk" "&Acq"
  CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk" "&Acq"
  SAY:
- SAY: 25. Copying all User PowerShell Logs...
- SAY:
- ACQ:\Psh
- CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\*" "&Acq"
- SAY:
- SAY: 26. Copying all User Recent LNK files...
- SAY:
- ACQ:\Lnk
- CPY:"${SYSTEMDRIVE}\Users\*\Desktop\*.lnk" "&Acq"
- CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk" "&Acq"
- SAY:
  SAY: 27. Copying WMI CIM database files...
  SAY:
  ACQ:\WMI
  CPY:"${SYSTEMDRIVE}\Windows\System32\wbem\Repository\*" "&Acq"
- SAY:
  VER:Windows 10.0.2
   SAY: 28. Windows 11 Detected... Copying Program Compatibility Assistant files...
   SAY:
   ACQ:\PCA
   CPY:"${SYSTEMDRIVE}\Windows\appcompat\pca\*.txt" "&Acq"
  END:
+ SAY: 29. Copying Windows Task XML Files...
+ SAY:
+ ACQ:\Sch
+ CPY:"&Win\System32\Tasks\**\*" "&Acq"
+ SAY:
  SAY: Acquisition Complete...
  SAY:
  SAY: Now Hashing Artifacts...
  HSH:ACQ
  SAY:
- PZZ: All Done!  Press Any Key to Finish.
+ *PZZ: All Done!  Press Any Key to Finish.
  JMP:AllDun
 END:
 Ver:Linux
- SAY:Linux Acquisition (A Work In Progress)...
+ SAY:Linux Acquisition Beginning...
  SAY:
  SAY: 3. Gathering Disk Information...
  SAY:
  ACQ:/Disk
  SYS:mount --exestdout=&acn/Disk/MountedDisks.dat
  SYS:df -h --exestdout=&acn/Disk/DiskUsage.dat
+ SYS:blkid --exestdout=&acn/Sys/blkid.dat
+ SYS:fdisk -l --exestdout=&acn/Sys/fdisk-l.dat
+ SYS:findmnt --ascii --exestdout=&acn/Sys/findmnt--ascii.dat
+ SYS:iscsiadm -m nod --exestdout=&acn/Sys/iscsiadm-mnod.dat
+ SYS:lsblk -l --exestdout=&acn/Sys/lsblk-l.dat
+ SYS:mdadm --detail --scan --verbose --exestdout=&acn/Sys/mdadm--detail--scan--verbose.dat
  SAY:
  SAY: 4. Gathering System Information...
  SAY:
  ACQ:/Sys
+ SYS:cat /proc/cpuinfo --exestdout=&acn/Sys/CPUInfo.dat
+ SYS:hwclock --exestdout=&acn/Sys/hwclock.dat
+ SYS:dmesg --exestdout=&acn/Sys/dmesg.dat
+ SYS:lscpu --exestdout=&acn/Sys/lscpu.dat
+ SYS:lshw --exestdout=&acn/Sys/lshw.dat
+ SYS:lspci -vv --exestdout=&acn/Sys/lscpi-vv.dat
+ SYS:lspci -nn -k --exestdout=&acn/Sys/lscpi-nn-k.dat
+ SYS:lsusb -vv --exestdout=&acn/Sys/lsusb.dat
+ SYS:hostname -f  --exestdout=&acn/Sys/hostname-f.dat
  SYS:uname -a --exestdout=&acn/Sys/Uname.dat
  SYS:cat /proc/version --exestdout=&acn/Sys/Version.dat
  SAY:
  SAY: 5. Gathering IPTables Firewall Rules...
+ SAY:
  SYS:iptables -L --exestdout=&acn/Sys/IPTables.dat
+ SYS:iptables -t nat -L -v -n--exestdout=&acn/Sys/IPTables-tnat-Lvn.dat
+ SYS:ip6tables -L -v -n --exestdout=&acn/Sys/IP6Tables-Lvn.dat
+ SYS:ip6tables -t nat -L -v -n--exestdout=&acn/Sys/IP6Tables-tnat-Lvn.dat
+ SYS:firewall-cmd --get-active-zones --exestdout=&acn/Sys/FireWall-ActiveZones.dat
+ SYS:firewall-cmd --get-default-zone --exestdout=&acn/Sys/FireWall-DefaultZone.dat
+ SYS:firewall-cmd --get-services --exestdout=&acn/Sys/FireWall-Services.dat
+ SYS:firewall-cmd --list-all --exestdout=&acn/Sys/FireWall-Enabled.dat
+ SYS:firewall-cmd --list-all-zones --exestdout=&acn/Sys/FireWall-DefaultZone.dat
+ SYS:ufw status verbose --exestdout=&acn/Sys/UFW-Status.dat
+ SYS:lsmod --exestdout=&acn/Sys/lsmod.dat
+ SYS:sysctl -a --exestdout=&acn/Sys/sysctl-a.dat
+ SYS:ls -l -a -R /sys/module --exestdout=&acn/Sys/ls-l-a-R-sys-module.dat
+ SYS:ls -l -a /sys/module --exestdout=&acn/Sys/ls-l-a-sys-module.dat
+ SYS:timedatectl status --exestdout=&acn/Sys/timedatectl-status.dat
+ SYS:uptime -s --exestdout=&acn/Sys/uptime-s.dat
+ SYS:vmstat --exestdout=&acn/Sys/vmstat.dat
+ SAY:
  SAY: 6. Copying var/log Directory...
  SAY:
  ACQ:/Var/Log
@@ -271,13 +301,23 @@ Ver:Linux
  SYS:sh -c "find /proc/[0-9]*/exe -print0 | xargs -0 ls -lh" --exestdout=&acn/Sys/proc-Executables.dat
  SYS:sh -c "find /proc/[0-9]*/fd -print0 | xargs -0 ls -lh" --exestdout=&acn/Sys/proc-FDLinks.dat
  SYS:sh -c "find -L /proc/[0-9]*/exe -print0 | xargs -0 sha1sum" --exestdout=&acn/Sys/proc-Hashes.dat
+ SYS:sh -c "find /proc/[0-9]*/cwd -print0 | xargs -0 ls -lh" --exestdout=&acn/Sys/proc-CWDs.dat
+ SYS:sh -c "find /proc/[0-9]*/comm | xargs head" --exestdout=&acn/Sys/proc-CommName.dat
+ SYS:sh -c "find /proc/[0-9]*/environ | xargs head" --exestdout=&acn/Sys/proc-Environ.dat
+ SYS:sh -c "find /proc/[0-9]*/task/[0-9]*/children | xargs head" --exestdout=&acn/Sys/proc-Children.dat
+ SYS:sh -c "find /proc/[0-9]*/status | xargs head" --exestdout=&acn/Sys/proc-Status.dat
+ SYS:sh -c "find /proc/[0-9]*/exe -print0 | xargs -0 strings -f" --exestdout=&acn/Sys/proc-Strings.dat
+ SYS:sh -c "find /proc/[0-9]*/exe -print0 | xargs -0 ls -lh | grep \(deleted\)" --exestdout=&acn/Sys/proc-DelExecutables.dat
+ SYS:sh -c "find /proc/[0-9]*/fd -print0 | xargs -0 ls -lh | grep \(deleted\)" --exestdout=&acn/Sys/proc-DelFDLinks.dat
  SAY:
  SAY: 11. Gathering Connection Information...
  SAY:
  ACQ:/Sys
  SYS:netstat -anp --exestdout=&acn/Sys/Netstat-anp.dat
  SYS:netstat -rn --exestdout=&acn/Sys/Netstat-rn.dat
- SYS lsof -i -n -P --exestdout=&acn/Sys/lsofConnections.dat
+ SYS:ss -anp --exestdout=&acn/Sys/ss-tanp.dat
+ SYS:lsof -i -n -P --exestdout=&acn/Sys/lsofConnections.dat
+ SYS:nfsstat --exestdout=&acn/Sys/NFS-Stats.dat
  SAY:
  SAY: 12. Gathering IP Config Information...
  SAY:
@@ -326,7 +366,9 @@ Ver:Linux
  SYS:service --status-all --exestdout=&acn/Sys/Services.dat
  SAY: 19. Gathering Persistence Information...
  SYS:sh -c "find /etc/systemd/ -name '*.service' -print0 | xargs -0 cat" --exestdout=&acn/Sys/SystemD.dat
- SYS:systemctl list-unit-files --exestdout=&acn/Sys/SystemCTL.dat
+ SYS:systemctl list-units --exestdout=&acn/Sys/systemctl-list-units.dat
+ SYS:systemctl list-timers --all --exestdout=&acn/Sys/systemctl-list-timers--all.dat
+ SYS:systemctl list-unit-files --exestdout=&acn/Sys/systemctl-list-unit-files.dat
  SAY:
  SAY: 20. Gathering User Information...
  SAY:
@@ -340,10 +382,11 @@ Ver:Linux
  cpy:/home/**/.* &Acq
  SAY:Enumerating All Files...
  ACQ:/Disk
- SYS: find / -printf "%i, %d, %b, %A+ %AZ, %C+ %CZ, %T+ %TZ, %M, %u, %g, %p\n" --exestdout=&Acn/Disk/AllFiles.csv
+ SYS:find / -printf "0|%p|%i|%M|%U|%G|%s|%A@|%T@|%C@|0\n" --exestdout=&acn/Disk/bodyfile.dat
+ SYS:find / -printf "%i, %d, %b, %A+ %AZ, %C+ %CZ, %T+ %TZ, %M, %u, %g, %p\n" --exestdout=&Acn/Disk/AllFiles.csv
  HSH:ACQ
  SAY:
- PZZ: All Done!  Press Any Key to Finish.
+ *PZZ: All Done!  Press Any Key to Finish.
  JMP:AllDun
 END:
 Ver:OSX
@@ -451,7 +494,7 @@ Ver:OSX
  cpy:/users/**/.* &Acq
  HSH:ACQ
  SAY:
- PZZ: All Done!  Press Any Key to Finish.
  JMP:AllDun
 END:
-LBL:AllDun
+LBL:Alldun
+Say:[+] Exiting Script...

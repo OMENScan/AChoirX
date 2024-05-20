@@ -1,6 +1,0 @@
-*******************************************************
-* Netcat/MSFConsole Testing                           *
-*******************************************************
-SET:CopyPath=Part
-SAY:Spawning Reverse Shell...
-EXA:ncat.exe 127.0.0.1 5555 -e "A-AChoirX-msf.exe /con"

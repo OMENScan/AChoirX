@@ -172,9 +172,12 @@ VER:Windows
  ACQ:\Reg
  SYS:Reg Save HKCU &Acq\NTUSER.DAT
  SAY:[+] 22a. Gathering All User Registries...
- FOR:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
+ FOR:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]*
  ACQ:\Reg\&FO2
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
+ FOR:${SYSTEMDRIVE}\Users\*\AppData\Local\Microsoft\Windows\[Uu][Ss][Rr][Cc][Ll][Aa][Ss][Ss].[Dd][Aa][Tt]*
+ ACQ:\Reg\&FO2
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3/&FO4/&FO5/&FO6/&FO7 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
  SAY:[+] 22a. Copying/Zipping User Registries...
  ACQ:\Reg
  FOR:&Acq\**\*

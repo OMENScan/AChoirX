@@ -207,6 +207,10 @@
 // AChoirX v10.01.24 - Release 1.24
 //                    - Fix CopyPath=Full Bug 
 //
+// AChoirX v10.01.50 - Release 1.50
+//                    - No code changes per se. 
+//                    - Refactoring of the litany of Scripts - Consolidating wherever it makes sense. 
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -275,7 +279,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.24"                       // AChoir Version
+var Version = "v10.01.50"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])

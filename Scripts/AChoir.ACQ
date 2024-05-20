@@ -182,9 +182,12 @@ VER:Windows
  SAY:
  SAY: 22b. Gathering All User Registries...
  SAY:
- FOR:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
+ FOR:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]*
  ACQ:\Reg\&FO2
  EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
+ FOR:${SYSTEMDRIVE}\Users\*\AppData\Local\Microsoft\Windows\[Uu][Ss][Rr][Cc][Ll][Aa][Ss][Ss].[Dd][Aa][Tt]*
+ ACQ:\Reg\&FO2
+ EXE:\TSK\sleuthkit-4.10.0-win32\bin\fcat.exe /&FO1/&FO2/&FO3/&FO4/&FO5/&FO6/&FO7 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
  SAY:
  SAY: 23. Now Extracting Browser History...
  SAY:
@@ -234,7 +237,6 @@ VER:Windows
 END:
 Ver:Linux
  SAY:Linux Acquisition Beginning...
- SAY: 1. Collecting Memory...
  N<<:&Dsa &Mem
   SAY: Not Enough disk space in &ACQ to Capture Memory: &MEM ... 
   SAY: Bypassing Memory Capture!

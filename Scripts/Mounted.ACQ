@@ -91,9 +91,12 @@ ACQ:\Sch
 CPY:"&Drv\Windows\System32\Tasks\**\*" "&Acq"
 SAY:[+] Gathering All User Registries...
 SAY:
-FOR:&Drv\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
+FOR:&Drv\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]*
 ACQ:\Reg\&FO2
 CPY:"&Drv\&FO1\&FO2\&FO3" "&Acn\Reg"
+FOR:&Drv\Users\*\AppData\Local\Microsoft\Windows\[Uu][Ss][Rr][Cc][Ll][Aa][Ss][Ss].[Dd][Aa][Tt]*
+ACQ:\Reg\&FO2
+CPY:"&Drv\&FO1\&FO2\&FO3\&FO4\&FO5\&FO6\&FO7" "&Acn\Reg"
 * *** Remove Offline Autoruns - It is too unreliable ***
 * SAY:
 * SAY:[+] Gathering Autoruns for each User Profile...
