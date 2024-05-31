@@ -7,6 +7,19 @@ The AChoirX installation contains a single AChoir collection script, which can r
 
 AChoir scripts can be modified in nearly endless ways to meet the collection needs of different types of investigations.  AChoirX can also run in interactive console mode, or across TCP using the built in Multi-Handler.  AChoirX also natively supports common upload methods such as SFTP or S3.  Since AChoirX runs on Windows, Linux, MacOS, and Android - All of these functions, including the multi-handler (client and server modes) and the upload methods, work regardless of platform.
 
+
+# Non-Disclaimer
+This repository represents a Project and not a Product.
+
+This software is furnished "as-is". We provide no warranty whatsoever, whether express, implied, or statutory, including, but not limited to, any warranty of merchantability or fitness for a particular reason or purpose, or any warranty that the software will be error-free.
+
+In no respect shall the author or distributors of AChoirX incur any liability for any damages, including, but not limited to, direct, indirect, special, or consequential damages arising out of, resulting from, or any way connected to the use of this software, whether or not based upon warranty, contract, tort, or otherwise; whether or not injury was sustained by persons or property or otherwise; and whether or not loss was sustained from, or arose out of, the results of, the software, or any services that may be provided by the software.
+
+You agree to install and use this software solely at your own risk.
+
+AChoirX is an Open Source Project and carries no formal support expressed or implied.
+
+
 # Change Log:
 10/16/2020 - Alpha 23. Windows, Linux, OSX supported. The default script runs on all three platforms and gathers platform specific Artifacts and Telemetry. Has built in S3 Bucket uploading (using the AWS SDK).
 
@@ -140,3 +153,5 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 04/22/2024 - AChoirX v10.01.24 - Release 1.24 Fix CopyPath=Full Bug 
 
 05/19/2024 - AChoirX v10.01.50 - Release 1.50 No code changes per se. Refactoring of the litany of Scripts - Consolidating wherever it makes sense. 
+
+
