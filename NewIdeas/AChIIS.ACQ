@@ -48,11 +48,30 @@ OUT:&LST
 * Remove Filter                                       *
 *******************************************************
 FLT:NONE
+SET:FILTER=none
 LST:&Acn\IIS\config\IISLogDirs.txt
 SAY:[+] Now Copying IIS Logs...
 ACQ:\IIS\Logs
-*******************************************************
-* Set CopyPath to full - We may have Los all over     *
-*******************************************************
+*****************************************************************
+* Set CopyPath to full - We may have Logs in Duplicated Dirs    *
+*****************************************************************
 Set:CopyPath=full
 CPY:&LST\**\* &Acq
+HSH:
+*******************************************************
+* Zip it all up...                                    *
+*******************************************************
+SAY:[+] Now Hashing Artifacts...
+HSH:ACQ
+SAY:[+] Now Zipping IIS Logs...
+FOR:&Acq\**\*
+SET:ZipFileName=&Dir\&Acn\IISLogs.zip
+SET:ZipFileRoot=IISLogs
+ZIP:&For
+ZIP:&Dir\Logs\&Acn.log
+ZIP:&Dir\&Acn\ACQHash.txt
+SET:ZipFileName=close
+CLN:&Acn\Cache
+CLN:&Acn\IIS
+CLN:&Acn\RanProg
+SAY:[+] IIS Log Collection Complete...
