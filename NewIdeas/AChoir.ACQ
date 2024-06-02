@@ -31,45 +31,35 @@ SYS:Powershell "Select-Xml -Path &Acq\applicationHost.config -XPath '/configurat
 SYS:Powershell "Select-Xml -Path &Acq\applicationHost.config -XPath '/configuration/system.applicationHost/sites/site/logFile' | ForEach-Object { $_.Node.directory } | Add-Content -Path '&Acq\DirOutput.txt'"
 SYS:Powershell "Select-Xml -Path &Acq\applicationHost.config -XPath '/configuration/system.applicationHost/sites/siteDefaults/logFile' | ForEach-Object { $_.Node.directory } | Add-Content -Path '&Acq\DirOutput.txt'"
 SYS:Powershell "Select-Xml -Path &Acq\applicationHost.config -XPath '/configuration/system.applicationHost/sites/siteDefaults/traceFailedRequestsLogging' | ForEach-Object { $_.Node.directory } | Add-Content -Path '&Acq\DirOutput.txt'"
-******************************************************
+*******************************************************
 * Use Echo Command to force expansion of Env Vars     *
 *******************************************************
 LST:&Acn\IIS\config\DirOutput.txt
 SYS:cmd /c echo &LST --exestdout=&Acn\IIS\config\DirXPandOutput.txt
-*******************************************************
-* Lets Filter on ourself to delete possible Duplicates*
-*******************************************************
+********************************************************
+* Lets Filter on ourself to delete possible Duplicates *
+********************************************************
 OPN:&Acn\IIS\config\IISLogDirs.txt
 FLT:&Acn\IIS\config\IISLogDirs.txt
 SET:FILTER=excl, full
 LST:&Acn\IIS\config\DirXPandOutput.txt
 OUT:&LST
 *******************************************************
-* Remove Filter                                       *
+* Now Expand All the files in the Directories         *
 *******************************************************
 FLT:NONE
 SET:FILTER=none
 LST:&Acn\IIS\config\IISLogDirs.txt
-SAY:[+] Now Copying IIS Logs...
-ACQ:\IIS\Logs
-*****************************************************************
-* Set CopyPath to full - We may have Logs in Duplicated Dirs    *
-*****************************************************************
-Set:CopyPath=full
-CPY:&LST\**\* &Acq
-HSH:
+SYS:cmd /c Dir &Lst\*.* /b /a-d /s --exestdout=&Acn\IIS\config\IISLogFiles.txt
 *******************************************************
 * Zip it all up...                                    *
 *******************************************************
-SAY:[+] Now Hashing Artifacts...
-HSH:ACQ
 SAY:[+] Now Zipping IIS Logs...
-FOR:&Acq\**\*
+LST:&Acn\IIS\config\IISLogFiles.txt
 SET:ZipFileName=&Dir\&Acn\IISLogs.zip
 SET:ZipFileRoot=IISLogs
-ZIP:&For
+ZIP:&Lst
 ZIP:&Dir\Logs\&Acn.log
-ZIP:&Dir\&Acn\ACQHash.txt
 SET:ZipFileName=close
 CLN:&Acn\Cache
 CLN:&Acn\IIS
