@@ -211,6 +211,10 @@
 //                    - No code changes per se. 
 //                    - Refactoring of the litany of Scripts - Consolidating wherever it makes sense. 
 //
+// AChoirX v10.01.51 - Release 1.51
+//                    - Change behavior of &LST when it is used with FOR: (i.e. to do FOR: on a list of directories)
+//                      - When in Looping mode, Append &FOR file names into ForFiles instead of overwriting them 
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -279,7 +283,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.50"                       // AChoir Version
+var Version = "v10.01.51"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -3210,13 +3214,22 @@ func main() {
                     ForFile = fmt.Sprintf("%s%cForFiles", CachDir, slashDelim)
                     TempDir = Inrec[4:]
 
-                    ForHndl, for_err = os.OpenFile(ForFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+                    //*****************************************************************
+                    //* If we are using FOR: with a ListFile (FOR:&LST), Append the   *
+                    //*  data in ForFile - unless it's our first &LST, then open      *
+                    //*  New/Truncate -  Otherwise always open New/Truncate           *
+                    //*****************************************************************
+                    if (LstMe == 1) && (LoopNum > 0) {
+                      ForHndl, for_err = os.OpenFile(ForFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+                    } else {
+                      ForHndl, for_err = os.OpenFile(ForFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+                    }
+
                     if for_err != nil {
                         ConsOut = fmt.Sprintf("[!] System File Tracking File Could not be opened.\n")
                         ConsLogSys(ConsOut, 1, 1)
                         break
                     }
-
 
                     //*****************************************************************
                     //* Golang does not support ** - So this code approximates it     *

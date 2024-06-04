@@ -45,20 +45,16 @@ SET:FILTER=excl, full
 LST:&Acn\IIS\config\DirXPandOutput.txt
 OUT:&LST
 *******************************************************
-* Now Expand All the files in the Directories         *
+* Zip it all up...                                    *
 *******************************************************
 FLT:NONE
 SET:FILTER=none
-LST:&Acn\IIS\config\IISLogDirs.txt
-SYS:cmd /c Dir &Lst\*.* /b /a-d /s --exestdout=&Acn\IIS\config\IISLogFiles.txt
-*******************************************************
-* Zip it all up...                                    *
-*******************************************************
 SAY:[+] Now Zipping IIS Logs...
-LST:&Acn\IIS\config\IISLogFiles.txt
+LST:&Acn\IIS\config\IISLogDirs.txt
+FOR:&LST\**\*
 SET:ZipFileName=&Dir\&Acn\IISLogs.zip
 SET:ZipFileRoot=IISLogs
-ZIP:&Lst
+ZIP:&For
 ZIP:&Dir\Logs\&Acn.log
 SET:ZipFileName=close
 CLN:&Acn\Cache
