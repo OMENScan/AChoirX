@@ -47,7 +47,7 @@ AChoirX is an Open Source Project and carries no formal support expressed or imp
 
 12/20/2020 - Beta 35. Fix &CNR Counter
 
-12/27/2020 - Beta 36. Change Conditional Logic to only count a single occurance of &FOR and &LST comparisons. This prevents the need for multiple END: statements.
+12/27/2020 - Beta 36. Change Conditional Logic to only count a single occurrence of &FOR and &LST comparisons. This prevents the need for multiple END: statements.
 Multiple comparisons only get a single hit if ANY match is found. THIS IS IMPORTANT!! Wherever &FOR and &LST are used in CONDITIONAL LOGIC - A SINGLE HIT WILL BE 
 TRUE.  To Test for INDIVIDUAL cases use a specific check and NOT a Check Against a list (&LST, &FOR). Expand &FOR and &LST Support to more Actions. Add 
 HSH:<Filename> Will put the File hash in the &HSH Variable (Only supports a single File for now). Trim quotes for CKN: and CKY:
@@ -118,7 +118,7 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 
 06/24/2023 - AChoirX v10.01.11 - Release 1.11. Improvements in remote Multi-Handler
 
-06/30/2023 - AChoirX v10.01.12 - Release 1.12. Change Behavior: If Console or CLI was invoked. Drop back into Interractive Mode after INI: Processing
+06/30/2023 - AChoirX v10.01.12 - Release 1.12. Change Behavior: If Console or CLI was invoked. Drop back into Interactive Mode after INI: Processing
 
 07/02/2023 - AChoirX v10.01.13 - Release 1.13. Get input from Stdin or TCP Server 
 
@@ -156,4 +156,4 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 
 06/03/2024 - AChoirX v10.01.51 - Release 1.51 Change behavior of &LST when it is used with FOR: (i.e. to do FOR: on a list of directories). When in Looping mode, Append &FOR file names into ForFiles instead of overwriting them 
 
-06/20/2024 - AChoirX v10.01.52 - Release 1.52 - Change behavior of &LST and &FOR on parsing error - &LST and &FOR will work even on parse error. Add Set:ParseQuote:Strict or Lazy
+06/20/2024 - AChoirX v10.01.52 - Release 1.52 - Change behavior of &LST and &FOR on parsing error - &LST and &FOR will work even on parse error. Add Set:ParseQuote=Strict or Lazy
