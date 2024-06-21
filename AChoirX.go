@@ -215,6 +215,10 @@
 //                    - Change behavior of &LST when it is used with FOR: (i.e. to do FOR: on a list of directories)
 //                      - When in Looping mode, Append &FOR file names into ForFiles instead of overwriting them 
 //
+// AChoirX v10.01.52 - Release 1.52
+//                    - Change behavior of &LST and &FOR on parsing error - &LST and &FOR will work even on parse error
+//                    - Add Set:ParseQuote:<Strict> or <Lazy>
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -283,7 +287,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.51"                       // AChoir Version
+var Version = "v10.01.52"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -360,6 +364,7 @@ var RunStrt_err error                           // Run or Start command error st
 var tokRec scanner.Scanner                      // Used to Tokenize Records into Slices
 var tokCount = 0                                // Token Counter
 var Delims = ",\\/"                             // Tokenizing Delimiters (Lst, For(Win), For(Lin)
+var iParseQuote = 0                             // CSV Quoted String Parsing (0=Strict, 1=Lazy) 
 var CntsTring = ""                              // Convert Cnt Integer Array Variable to String
 var MCpFName = "File.Name"                      // Parseing Multiple Files with Glob (Wildcards)
 var MCprcO = "FilePath"                         // Build Output File Name from Glob (Wildcards)
@@ -1642,7 +1647,22 @@ func main() {
                     o32VarRec = repl_Win.Replace(o32VarRec)
                 }
 
-                if CaseInsensitiveContains(o32VarRec, "&Fo") {
+
+                // First process &FOR - This should prevent unnecessary parsing
+                if CaseInsensitiveContains(o32VarRec, "&For") {
+                    repl_For := NewCaseInsensitiveReplacer("&For", Filrec)
+                    o32VarRec = repl_For.Replace(o32VarRec)
+                }
+
+
+                // If any &FO_ are left, process those 
+               if CaseInsensitiveContains(o32VarRec, "&Fo") {
+
+                    // Always allow &For - Even if Parsing Fails
+                    if CaseInsensitiveContains(o32VarRec, "&For") {
+                        repl_For := NewCaseInsensitiveReplacer("&For", Filrec)
+                        o32VarRec = repl_For.Replace(o32VarRec)
+                    }
 
                     // Split string, we will likely need it split 
                     runeDelims := []rune(Delims)
@@ -1658,39 +1678,53 @@ func main() {
 
                     tokRdr.FieldsPerRecord = -1
                     tokRdr.TrimLeadingSpace = true
+
+                    if iParseQuote == 1 {
+                        // Does not enforce strict matching quotes when parsing
+                        tokRdr.LazyQuotes = true
+                    }
+
                     tokFields, tok_err := tokRdr.Read()
 
                     if tok_err != nil {
                         ConsOut = fmt.Sprintf("[!] Parsing Error for Record(%d): %s\n", LoopNum, tok_err)
                         ConsLogSys(ConsOut, 1, 2)
-                        continue
-                    }                    
-    
-                    tokCount = len(tokFields)
-                    if tokCount < 25 {
-                        for i := tokCount; i < 26; i++ {
-                            tokFields = append(tokFields, "")
-                        }
-                    }
-
-                    if CaseInsensitiveContains(o32VarRec, "&For") {
-
-                        repl_For := NewCaseInsensitiveReplacer("&For", Filrec)
+                        repl_For := NewCaseInsensitiveReplacer("&Fo", "Parse_Err_")
                         o32VarRec = repl_For.Replace(o32VarRec)
-                    }
+                    } else {
+                        tokCount = len(tokFields)
+                        if tokCount < 25 {
+                            for i := tokCount; i < 26; i++ {
+                                tokFields = append(tokFields, "")
+                            }
+                        }
 
 
-                    // Look for Replacements &Fo0 - FoP
-                    for iFor = 0; iFor < 26; iFor++ {
-                        if CaseInsensitiveContains(o32VarRec, ForsArray[iFor]) {
-                            repl_For := NewCaseInsensitiveReplacer(ForsArray[iFor], tokFields[iFor])
-                            o32VarRec = repl_For.Replace(o32VarRec)
+                        // Look for Replacements &Fo0 - FoP
+                        for iFor = 0; iFor < 26; iFor++ {
+                            if CaseInsensitiveContains(o32VarRec, ForsArray[iFor]) {
+                                repl_For := NewCaseInsensitiveReplacer(ForsArray[iFor], tokFields[iFor])
+                                o32VarRec = repl_For.Replace(o32VarRec)
+                            }
                         }
                     }
                 }
 
 
+                //Clear out the &LST - This should prevent unnecessary parsing
+                if CaseInsensitiveContains(o32VarRec, "&Lst") {
+                    repl_Lst := NewCaseInsensitiveReplacer("&Lst", Lstrec)
+                    o32VarRec = repl_Lst.Replace(o32VarRec)
+                }
+
+                // If any &LS_ are left, process those 
                 if CaseInsensitiveContains(o32VarRec, "&Ls") {
+
+                    // Always allow &LST - Even if Parsing Fails
+                    if CaseInsensitiveContains(o32VarRec, "&Lst") {
+                        repl_Lst := NewCaseInsensitiveReplacer("&Lst", Lstrec)
+                        o32VarRec = repl_Lst.Replace(o32VarRec)
+                    }
 
                     // Split string, we will likely need it split 
                     runeDelims := []rune(Delims)
@@ -1698,33 +1732,33 @@ func main() {
                     tokRdr.Comma = runeDelims[0]
                     tokRdr.FieldsPerRecord = -1
                     tokRdr.TrimLeadingSpace = true
-                    //tokRdr.LazyQuotes = true
+
+                    if iParseQuote == 1 {
+                        // Does not enforce strict matching quotes when parsing
+                        tokRdr.LazyQuotes = true
+                    }
+
                     tokFields, tok_err := tokRdr.Read()
 
                     if tok_err != nil {
                         ConsOut = fmt.Sprintf("[!] Parsing Error for Record(%d): %s\n", LoopNum, tok_err)
                         ConsLogSys(ConsOut, 1, 2)
-                        continue
-                    }                    
-    
-                    tokCount = len(tokFields)
-                    if tokCount < 25 {
-                        for i := tokCount; i < 26; i++ {
-                            tokFields = append(tokFields, "")
-                        }
-                    }
-
-                    if CaseInsensitiveContains(o32VarRec, "&Lst") {
-
-                        repl_Lst := NewCaseInsensitiveReplacer("&Lst", Lstrec)
+                        repl_Lst := NewCaseInsensitiveReplacer("&Ls", "Parse_Err_")
                         o32VarRec = repl_Lst.Replace(o32VarRec)
-                    }
+                    } else {
+                        tokCount = len(tokFields)
+                        if tokCount < 25 {
+                            for i := tokCount; i < 26; i++ {
+                                tokFields = append(tokFields, "")
+                            }
+                        }
 
-                    // Look for Replacements &Ls0 - LsP
-                    for iLst = 0; iLst < 26; iLst++ {
-                        if CaseInsensitiveContains(o32VarRec, LstsArray[iLst]) {
-                            repl_Lst := NewCaseInsensitiveReplacer(LstsArray[iLst], tokFields[iLst])
-                            o32VarRec = repl_Lst.Replace(o32VarRec)
+                        // Look for Replacements &Ls0 - LsP
+                        for iLst = 0; iLst < 26; iLst++ {
+                            if CaseInsensitiveContains(o32VarRec, LstsArray[iLst]) {
+                                repl_Lst := NewCaseInsensitiveReplacer(LstsArray[iLst], tokFields[iLst])
+                                o32VarRec = repl_Lst.Replace(o32VarRec)
+                            }
                         }
                     }
                 }
@@ -3299,6 +3333,10 @@ func main() {
                     os.Exit(LastRC);
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:DELIMS=") && len(Inrec) > 13 {
                     Delims = Inrec[11:]
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:PARSEQUOTE=STRICT") {
+                    iParseQuote=0
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:PARSEQUOTE=LAZY") {
+                    iParseQuote=1
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=NONE") {
                     setCPath = 0
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=PART") {

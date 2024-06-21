@@ -169,6 +169,10 @@ SET:CopyPath=Part Set the CPY: Copy Path to Partial.
                   This will copy ONLY the path after the first wildcards.
                   This allows the examiner to see the RELATIVE path the 
                   the source files were found in.
+SET:ParseQuote=<Strict> or <Lazy> - Determines if the &For and &Lst parser
+                  enforces proper quote placement in CSV Files.
+                  "Strict" enforces matching Quotes. "Lazy" Allows Unmatched
+                  quotes or quotes not on CSV Delimiter boundaries. 
 SET:DELIMS=<chars> These are the delimiters that the &FOR and &LST objects 
                    will use to Parse out &FO0-&FO9 and &LS0-&LS9
 SET:ZipFileName=<FileName> Name of the Zip File to Write To
