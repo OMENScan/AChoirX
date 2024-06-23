@@ -1,0 +1,317 @@
+********************************************************
+* Experimental script to collect Windows ASEP Run Keys *
+********************************************************
+SET:CopyPath=Part
+SAY:[+] VERY Beta AChoir script to collect Windows ASEP Information
+SAY:[+] Output will be Tab Separated.
+********************************************************
+* Filter Out not Found ASEP Run Keys                   *
+********************************************************
+FLT:WinRunKey.FLT
+SET:FILTER=excl, full
+SET:delims=	\/
+SET:ParseQuote=Strict
+********************************************************
+* Collect ASEP Run Keys                                *
+********************************************************
+ACQ:\ASEP
+OPN:&Acn\ASEP\ASEP.CSV
+
+SAY:[+] Gathering HKLM\System Run Keys.
+REG:HKLM\System\CurrentControlSet\Services
+LST:&Acn\ASEP\HKLM-System-CurrentControlSet-Services.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\System\CurrentControlSet\Control\Session Manager\KnownDlls
+LST:&Acn\ASEP\HKLM-System-CurrentControlSet-Control-Session Manager-KnownDlls.csv
+OUT:Reg	&Lst
+***
+
+SAY:[+] Gathering HKLM\Software Run Keys.
+REG:HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows-CurrentVersion-Policies-Explorer-Run.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+LST:&Acn\ASEP\HKLM-SOFTWARE-Microsoft-Windows-CurrentVersion-Run.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Run
+LST:&Acn\ASEP\HKLM-SOFTWARE-Wow6432Node-Microsoft-Windows-CurrentVersion-Run.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Microsoft\Windows\CurrentVersion\RunOnce
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows-CurrentVersion-RunOnce.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Microsoft\Windows\CurrentVersion\RunOnceEx
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows-CurrentVersion-RunOnceEx.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Microsoft\Windows\CurrentVersion\RunServices
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows-CurrentVersion-RunServices.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows-CurrentVersion-RunServicesOnce.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components
+LST:&Acn\ASEP\HKLM-SOFTWARE-Microsoft-Active Setup-Installed Components.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Wow6432Node\Microsoft\Active Setup\Installed Components
+LST:&Acn\ASEP\HKLM-SOFTWARE-Wow6432Node-Microsoft-Active Setup-Installed Components.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\SharedTaskScheduler
+LST:&Acn\ASEP\HKLM-SOFTWARE-Microsoft-Windows-CurrentVersion-Explorer-SharedTaskScheduler.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\SharedTaskScheduler
+LST:&Acn\ASEP\HKLM-SOFTWARE-Wow6432Node-Microsoft-Windows-CurrentVersion-Explorer-SharedTaskScheduler.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellServiceObjects
+LST:&Acn\ASEP\HKLM-SOFTWARE-Microsoft-Windows-CurrentVersion-Explorer-ShellServiceObjects.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\ShellServiceObjects
+LST:&Acn\ASEP\HKLM-SOFTWARE-Wow6432Node-Microsoft-Windows-CurrentVersion-Explorer-ShellServiceObjects.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\ShellServiceObjectDelayLoad
+LST:&Acn\ASEP\HKLM-SOFTWARE-Microsoft-Windows-CurrentVersion-ShellServiceObjectDelayLoad.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\ShellServiceObjectDelayLoad
+LST:&Acn\ASEP\HKLM-SOFTWARE-Wow6432Node-Microsoft-Windows-CurrentVersion-ShellServiceObjectDelayLoad.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Classes\*\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes---ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Classes\Drive\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes-Drive-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Classes\Drive\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes-Drive-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\*\ShellEx\PropertySheetHandlers
+LST:&Acn\ASEP\HKLM-Software-Classes---ShellEx-PropertySheetHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Classes\*\ShellEx\PropertySheetHandlers
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes---ShellEx-PropertySheetHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Classes\Directory\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKCU-Software-Classes-Directory-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\Directory\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKLM-Software-Classes-Directory-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Classes\Directory\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes-Directory-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Classes\Directory\Shellex\DragDropHandlers
+LST:&Acn\ASEP\HKCU-Software-Classes-Directory-Shellex-DragDropHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Classes\Directory\Shellex\DragDropHandlers
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes-Directory-Shellex-DragDropHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\Directory\Shellex\CopyHookHandlers
+LST:&Acn\ASEP\HKLM-Software-Classes-Directory-Shellex-CopyHookHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\Directory\Background\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKLM-Software-Classes-Directory-Background-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Classes\Directory\Background\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes-Directory-Background-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\Folder\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKLM-Software-Classes-Folder-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Classes\Folder\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes-Folder-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\Folder\ShellEx\DragDropHandlers
+LST:&Acn\ASEP\HKLM-Software-Classes-Folder-ShellEx-DragDropHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Classes\Folder\ShellEx\DragDropHandlers
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes-Folder-ShellEx-DragDropHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows-CurrentVersion-Explorer-ShellIconOverlayIdentifiers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Microsoft-Windows-CurrentVersion-Explorer-ShellIconOverlayIdentifiers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Font Drivers
+LST:&Acn\ASEP\HKLM-SOFTWARE-Microsoft-Windows NT-CurrentVersion-Font Drivers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Microsoft\Windows NT\CurrentVersion\Drivers32
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows NT-CurrentVersion-Drivers32.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Drivers32
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Microsoft-Windows NT-CurrentVersion-Drivers32.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\Filter
+LST:&Acn\ASEP\HKLM-Software-Classes-Filter.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\CLSID\{083863F1-70DE-11d0-BD40-00A0C911CE86}\Instance
+LST:&Acn\ASEP\HKLM-Software-Classes-CLSID-{083863F1-70DE-11d0-BD40-00A0C911CE86}-Instance.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Classes\CLSID\{083863F1-70DE-11d0-BD40-00A0C911CE86}\Instance
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes-CLSID-{083863F1-70DE-11d0-BD40-00A0C911CE86}-Instance.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Classes\CLSID\{083863F1-70DE-11d0-BD40-00A0C911CE86}\Instance
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes-CLSID-{083863F1-70DE-11d0-BD40-00A0C911CE86}-Instance.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\CLSID\{7ED96837-96F0-4812-B211-F13C24117ED3}\Instance
+LST:&Acn\ASEP\HKLM-Software-Classes-CLSID-{7ED96837-96F0-4812-B211-F13C24117ED3}-Instance.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Classes\CLSID\{7ED96837-96F0-4812-B211-F13C24117ED3}\Instance
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes-CLSID-{7ED96837-96F0-4812-B211-F13C24117ED3}-Instance.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\System\CurrentControlSet\Services\WinSock2\Parameters\Protocol_Catalog9\Catalog_Entries
+LST:&Acn\ASEP\HKLM-System-CurrentControlSet-Services-WinSock2-Parameters-Protocol_Catalog9-Catalog_Entries.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\System\CurrentControlSet\Services\WinSock2\Parameters\Protocol_Catalog9\Catalog_Entries64
+LST:&Acn\ASEP\HKLM-System-CurrentControlSet-Services-WinSock2-Parameters-Protocol_Catalog9-Catalog_Entries64.csv
+OUT:Reg	&Lst
+***
+
+SAY:[+] Gathering HKCU\Software Run Keys.
+REG:HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run
+LST:&Acn\ASEP\HKCU-Software-Microsoft-Windows-CurrentVersion-Policies-Explorer-Run.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+LST:&Acn\ASEP\HKCU-SOFTWARE-Microsoft-Windows-CurrentVersion-Run.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Run
+LST:&Acn\ASEP\HKCU-SOFTWARE-Wow6432Node-Microsoft-Windows-CurrentVersion-Run.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Microsoft\Windows NT\CurrentVersion\Windows\Run
+LST:&Acn\ASEP\HKCU-Software-Microsoft-Windows NT-CurrentVersion-Windows-Run.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce
+LST:&Acn\ASEP\HKCU-Software-Microsoft-Windows-CurrentVersion-RunOnce.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnceEx
+LST:&Acn\ASEP\HKCU-Software-Microsoft-Windows-CurrentVersion-RunOnceEx.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Microsoft\Windows\CurrentVersion\RunServices
+LST:&Acn\ASEP\HKCU-Software-Microsoft-Windows-CurrentVersion-RunServices.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce
+LST:&Acn\ASEP\HKCU-Software-Microsoft-Windows-CurrentVersion-RunServicesOnce.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Classes\*\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKCU-Software-Classes---ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Classes\Drive\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKCU-Software-Classes-Drive-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Classes\Directory\Background\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKCU-Software-Classes-Directory-Background-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Control Panel\Desktop\Scrnsave.exe
+LST:&Acn\ASEP\HKCU-Control Panel-Desktop-Scrnsave.exe.csv
+OUT:Reg	&Lst
+***
+SAY:[+] Gathering Startup File Locations.
+FLT:NONE
+SET:delims=,\/
+FOR:${appdata}\Microsoft\Windows\Start Menu\Programs\Startup\*
+OUT:File	Startup	${appdata}\Microsoft\Windows\Start Menu\Programs\Startup\*	&For
+***
+FOR:C:\Users\*\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\*
+OUT:File	Startup	C:\Users\*\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Startup\*	&For
+***
+FOR:${programdata}\Microsoft\Windows\Start Menu\Programs\Startup\*
+OUT:File	Startup	${programdata}\Microsoft\Windows\Start Menu\Programs\Startup\*	&For
+***
+FOR:C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\*
+OUT:File	Startup	C:\ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\*	&For
+***
+FOR:C:\Windows\Tasks\*
+OUT:File	Startup	C:\Windows\Tasks\*	&For
+***
+FOR:C:\Windows\System32\Tasks\*
+OUT:File	Startup	C:\Windows\System32\Tasks\*	&For
+***
+FOR:c:\autoexec.bat
+OUT:File	Startup	c:\autoexec.bat	&For
+***
+FOR:c:\config.sys
+OUT:File	Startup	c:\config.sys	&For
+***
+FOR:c:\windows\winstart.bat
+OUT:File	Startup	c:\windows\winstart.bat	&For
+***
+FOR:c:\windows\wininit.ini
+OUT:File	Startup	c:\windows\wininit.ini	&For
+***
+FOR:c:\windows\dosstart.bat
+OUT:File	Startup	c:\windows\dosstart.bat	&For
+***
+FOR:c:\windows\system.ini
+OUT:File	Startup	c:\windows\system.ini	&For
+***
+FOR:c:\windows\win.ini
+OUT:File	Startup	c:\windows\win.ini	&For
+***
+FOR:c:\windows\system\autoexec.nt
+OUT:File	Startup	c:\windows\system\autoexec.nt	&For
+***
+FOR:c:\windows\system\config.nt
+OUT:File	Startup	c:\windows\system\config.nt	&For
+***
+
+SAY:[+] Gathering Scheduled Tasks.
+SYS:Schtasks /query /fo CSV /NH /v --exestdout=&acn\ASEP\SchedTask.csv
+SET:ParseQuote=Lazy
+LST:&Acn\ASEP\SchedTask.csv
+OUT:Sched	Task	&LS1	&LS8
+***
+
+Say:[+] Collection Complete!
