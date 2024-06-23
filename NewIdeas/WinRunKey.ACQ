@@ -26,7 +26,6 @@ REG:HKLM\System\CurrentControlSet\Control\Session Manager\KnownDlls
 LST:&Acn\ASEP\HKLM-System-CurrentControlSet-Control-Session Manager-KnownDlls.csv
 OUT:Reg	&Lst
 ***
-
 SAY:[+] Gathering HKLM\Software Run Keys.
 REG:HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run
 LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows-CurrentVersion-Policies-Explorer-Run.csv
@@ -54,6 +53,26 @@ OUT:Reg	&Lst
 ***
 REG:HKLM\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce
 LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows-CurrentVersion-RunServicesOnce.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\*\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKLM-Software-Classes---ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\Drive\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKLM-Software-Classes-Drive-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\Directory\Shellex\DragDropHandlers
+LST:&Acn\ASEP\HKLM-Software-Classes-Directory-Shellex-DragDropHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\Folder\ShellEx\ColumnHandlers
+LST:&Acn\ASEP\HKLM-Software-Classes-Folder-ShellEx-ColumnHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\System\CurrentControlSet\Control\SafeBoot\AlternateShell
+LST:&Acn\ASEP\HKLM-System-CurrentControlSet-Control-SafeBoot-AlternateShell.csv
 OUT:Reg	&Lst
 ***
 REG:HKLM\SOFTWARE\Microsoft\Active Setup\Installed Components
@@ -108,20 +127,12 @@ REG:HKLM\Software\Wow6432Node\Classes\*\ShellEx\PropertySheetHandlers
 LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes---ShellEx-PropertySheetHandlers.csv
 OUT:Reg	&Lst
 ***
-REG:HKCU\Software\Classes\Directory\ShellEx\ContextMenuHandlers
-LST:&Acn\ASEP\HKCU-Software-Classes-Directory-ShellEx-ContextMenuHandlers.csv
-OUT:Reg	&Lst
-***
 REG:HKLM\Software\Classes\Directory\ShellEx\ContextMenuHandlers
 LST:&Acn\ASEP\HKLM-Software-Classes-Directory-ShellEx-ContextMenuHandlers.csv
 OUT:Reg	&Lst
 ***
 REG:HKLM\Software\Wow6432Node\Classes\Directory\ShellEx\ContextMenuHandlers
 LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes-Directory-ShellEx-ContextMenuHandlers.csv
-OUT:Reg	&Lst
-***
-REG:HKCU\Software\Classes\Directory\Shellex\DragDropHandlers
-LST:&Acn\ASEP\HKCU-Software-Classes-Directory-Shellex-DragDropHandlers.csv
 OUT:Reg	&Lst
 ***
 REG:HKLM\Software\Wow6432Node\Classes\Directory\Shellex\DragDropHandlers
@@ -208,8 +219,69 @@ REG:HKLM\System\CurrentControlSet\Services\WinSock2\Parameters\Protocol_Catalog9
 LST:&Acn\ASEP\HKLM-System-CurrentControlSet-Services-WinSock2-Parameters-Protocol_Catalog9-Catalog_Entries64.csv
 OUT:Reg	&Lst
 ***
+REG:HKLM\Software\Microsoft\Windows\CurrentVersion\Explorer\Browser Helper Objects
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows-CurrentVersion-Explorer-Browser Helper Objects.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\Explorer\Browser Helper Objects
+LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Microsoft-Windows-CurrentVersion-Explorer-Browser Helper Objects.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Classes\HtmlFile\Shell\Open\Command\(Default)
+LST:&Acn\ASEP\HKLM-Software-Classes-HtmlFile-Shell-Open-Command-(Default).csv
+OUT:Reg	&Lst
+***
+REG:HKLM\System\CurrentControlSet\Control\Terminal Server\Wds\rdpwd\StartupPrograms
+LST:&Acn\ASEP\HKLM-System-CurrentControlSet-Control-Terminal Server-Wds-rdpwd-StartupPrograms.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\AppSetup
+LST:&Acn\ASEP\HKLM-SOFTWARE-Microsoft-Windows NT-CurrentVersion-Winlogon-AppSetup.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System\Shell
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows-CurrentVersion-Policies-System-Shell.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell
+LST:&Acn\ASEP\HKLM-SOFTWARE-Microsoft-Windows NT-CurrentVersion-Winlogon-Shell.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\TaskMan
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows NT-CurrentVersion-Winlogon-TaskMan.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\UserInit
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows NT-CurrentVersion-Winlogon-UserInit.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\VmApplet
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows NT-CurrentVersion-Winlogon-VmApplet.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\AlternateShells\AvailableShells
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows NT-CurrentVersion-Winlogon-AlternateShells-AvailableShells.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Environment\UserInitMprLogonScript
+LST:&Acn\ASEP\HKLM-Environment-UserInitMprLogonScript.csv
+OUT:Reg	&Lst
+***
+REG:HKLM\Software\Microsoft\Windows NT\CurrentVersion\Windows\IconServiceLib
+LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows NT-CurrentVersion-Windows\IconServiceLib.csv
+OUT:Reg	&Lst
+***
+
 
 SAY:[+] Gathering HKCU\Software Run Keys.
+REG:HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System\Shell
+LST:&Acn\ASEP\HKCU-Software-Microsoft-Windows-CurrentVersion-Policies-System-Shell.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell
+LST:&Acn\ASEP\HKCU-SOFTWARE-Microsoft-Windows NT-CurrentVersion-Winlogon-Shell.csv
+OUT:Reg	&Lst
+***
 REG:HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run
 LST:&Acn\ASEP\HKCU-Software-Microsoft-Windows-CurrentVersion-Policies-Explorer-Run.csv
 OUT:Reg	&Lst
@@ -230,8 +302,24 @@ REG:HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnce
 LST:&Acn\ASEP\HKCU-Software-Microsoft-Windows-CurrentVersion-RunOnce.csv
 OUT:Reg	&Lst
 ***
+REG:HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce
+LST:&Acn\ASEP\HKCU-Software-Wow6432Node-Microsoft-Windows-CurrentVersion-RunOnce.csv
+OUT:Reg	&Lst
+***
 REG:HKCU\Software\Microsoft\Windows\CurrentVersion\RunOnceEx
 LST:&Acn\ASEP\HKCU-Software-Microsoft-Windows-CurrentVersion-RunOnceEx.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx
+LST:&Acn\ASEP\HKCU-Software-Wow6432Node-Microsoft-Windows-CurrentVersion-RunOnceEx.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Environment\UserInitMprLogonScript
+LST:&Acn\ASEP\HKCU-Environment-UserInitMprLogonScript.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Microsoft\Windows NT\CurrentVersion\Windows\Load
+LST:&Acn\ASEP\HKCU-Software-Microsoft-Windows NT-CurrentVersion-Windows-Load.csv
 OUT:Reg	&Lst
 ***
 REG:HKCU\Software\Microsoft\Windows\CurrentVersion\RunServices
@@ -240,6 +328,14 @@ OUT:Reg	&Lst
 ***
 REG:HKCU\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce
 LST:&Acn\ASEP\HKCU-Software-Microsoft-Windows-CurrentVersion-RunServicesOnce.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Classes\Directory\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKCU-Software-Classes-Directory-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\Software\Classes\Directory\Shellex\DragDropHandlers
+LST:&Acn\ASEP\HKCU-Software-Classes-Directory-Shellex-DragDropHandlers.csv
 OUT:Reg	&Lst
 ***
 REG:HKCU\Software\Classes\*\ShellEx\ContextMenuHandlers
@@ -258,6 +354,24 @@ REG:HKCU\Control Panel\Desktop\Scrnsave.exe
 LST:&Acn\ASEP\HKCU-Control Panel-Desktop-Scrnsave.exe.csv
 OUT:Reg	&Lst
 ***
+REG:HKCU\Software\Classes\AllFileSystemObjects\ShellEx\ContextMenuHandlers
+LST:&Acn\ASEP\HKCU-Software-Classes-AllFileSystemObjects-ShellEx-ContextMenuHandlers.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunOnce
+LST:&Acn\ASEP\HKCU-SOFTWARE-Microsoft-Windows NT-CurrentVersion-Terminal Server-Install-Softwar-\Microsoft-Windows-CurrentVersion-RunOnce.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunOnceEx
+LST:&Acn\ASEP\HKCU-SOFTWARE-Microsoft-Windows NT-CurrentVersion-Terminal Server-Install-Software-Microsoft-Windows-CurrentVersion-RunOnceEx.csv
+OUT:Reg	&Lst
+***
+REG:HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run
+LST:&Acn\ASEP\HKCU-SOFTWARE-Microsoft-Windows NT-CurrentVersion-Terminal Server-Install-Software-Microsoft-Windows-CurrentVersion-Run.csv
+OUT:Reg	&Lst
+***
+
+
 SAY:[+] Gathering Startup File Locations.
 FLT:NONE
 SET:delims=,\/
@@ -313,5 +427,15 @@ SET:ParseQuote=Lazy
 LST:&Acn\ASEP\SchedTask.csv
 OUT:Sched	Task	&LS1	&LS8
 ***
+
+SAY:[+] Removing Duplicates
+*******************************************************
+* Lets Filter on ourself to delete possible Duplicates*
+*******************************************************
+OPN:&Acn\ASEP\ASEP-Dedup.csv
+FLT:&Acn\ASEP\ASEP-Dedup.csv
+SET:FILTER=excl, full
+LST:&Acn\ASEP\ASEP.csv
+OUT:&LST
 
 Say:[+] Collection Complete!
