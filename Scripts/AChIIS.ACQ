@@ -47,8 +47,8 @@ OUT:&LST
 *******************************************************
 * Zip it all up...                                    *
 *******************************************************
-FLT:NONE
-SET:FILTER=none
+FLT:AChIIS.Flt
+SET:FILTER=excl, part
 SAY:[+] Now Zipping IIS Logs...
 LST:&Acn\IIS\config\IISLogDirs.txt
 FOR:&LST\**\*
