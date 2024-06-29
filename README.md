@@ -157,3 +157,7 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 06/03/2024 - AChoirX v10.01.51 - Release 1.51 Change behavior of &LST when it is used with FOR: (i.e. to do FOR: on a list of directories). When in Looping mode, Append &FOR file names into ForFiles instead of overwriting them 
 
 06/20/2024 - AChoirX v10.01.52 - Release 1.52 - Change behavior of &LST and &FOR on parsing error - &LST and &FOR will work even on parse error. Add Set:ParseQuote=Strict or Lazy
+
+06/20/2024 - AChoirX v10.01.53 - Release 1.53 - Change REG: output file name to replace any invalid chars with "-"
+06/20/2024 - AChoirX v10.01.54 - Release 1.54 - Add LST: and FOR: Counters
+

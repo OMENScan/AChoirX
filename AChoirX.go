@@ -219,6 +219,11 @@
 //                    - Change behavior of &LST and &FOR on parsing error - &LST and &FOR will work even on parse error
 //                    - Add Set:ParseQuote:<Strict> or <Lazy>
 //
+// AChoirX v10.01.53 - Release 1.53
+//                    - Change REG: output file name to replace any invalid chars with "-"
+//
+// AChoirX v10.01.54 - Release 1.54 - Add LST: and FOR: Counters
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -287,7 +292,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.52"                       // AChoir Version
+var Version = "v10.01.54"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -336,6 +341,8 @@ var iLst = 0                                    // Loop Counter LST, LS0 - LSP
 var ifFor = 0                                   // Flag contains FOR, FO0 - FOP
 var ifLst = 0                                   // Flag contains LST, LS0 - LSP
 var iMaxCnt = 0                                 // Maximum Record Count (Set by FOR:, LST: &FOR, &LST)
+var iLstCnt = 0                                 // LST Record Counter
+var iForCnt = 0                                 // FOR Record Counter
 var LastRC = 0                                  // Last Return Code From External Executable
 var iVrx = 0                                    // Index of VR0 - VR9 Variable array
 var iCnx = 0                                    // Index of CN0 - CN9 Variable array
@@ -580,6 +587,7 @@ var DrvsArray = []string{"C:\\", "D:\\", "E:\\", "F:\\", "G:\\", "H:\\", "I:\\",
                          "M:\\", "N:\\", "O:\\", "P:\\", "Q:\\", "R:\\", "S:\\", "T:\\", "U:\\", "V:\\",
                          "W:\\", "X:\\", "Y:\\", "Z:\\"}
 var ConsArray = []string{"none", "none", "none", "none", "none", "none", "none", "none", "none", "none"}
+var BadFNChar = []string{"/", "\\", "|", "?", "*", "^", "<", ">", "\"", "'"}
 
 // File Signature Copy Table Variables
 var iSigCount = 0
@@ -1338,6 +1346,7 @@ func main() {
                 }
 
                 iMaxCnt = 0
+                iForCnt = 0
                 ForScan = bufio.NewScanner(ForHndl)
             } else {
                 ForMe = 0
@@ -1372,6 +1381,7 @@ func main() {
                 }
 
                 iMaxCnt = 0
+                iLstCnt = 0
                 LstScan = bufio.NewScanner(LstHndl)
             } else {
                 LstMe = 0
@@ -1421,6 +1431,7 @@ func main() {
                         Looper = 1
                         LoopNum++
                         iMaxCnt++
+                        iForCnt++
 
                         //****************************************************************
                         //* Get Just the File Name                                       *
@@ -1456,6 +1467,7 @@ func main() {
                         Looper = 1
                         LoopNum++
                         iMaxCnt++
+                        iLstCnt++
                     } else {
                         ConsOut = fmt.Sprintf("[+] Lst Records Processed: %d\n", LoopNum)
                         ConsLogSys(ConsOut, 3, 2)
@@ -2007,7 +2019,13 @@ func main() {
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "REG:") {
                     RegFile = fmt.Sprintf("%s", Inrec[4:])
-                    RegFile = strings.Replace(RegFile, "\\", "-", -1) 
+
+                    // Replace any invalid Chars in the File Name with a dash "-"
+                    // RegFile = strings.Replace(RegFile, "\\", "-", -1) 
+                    for iChar := 0; iChar < 10; iChar++ {
+                        RegFile = strings.Replace(RegFile, BadFNChar[iChar], "-", -1)
+                    }
+
                     RegPath = fmt.Sprintf("%s%c%s%c%s.csv", BACQDir, slashDelim, ACQDir, slashDelim, RegFile)
 
                     ConsOut = fmt.Sprintf("[+] Extracting Registry Keys and Sub-Keys to: %s\n", RegPath)
@@ -3253,7 +3271,7 @@ func main() {
                     //*  data in ForFile - unless it's our first &LST, then open      *
                     //*  New/Truncate -  Otherwise always open New/Truncate           *
                     //*****************************************************************
-                    if (LstMe == 1) && (LoopNum > 0) {
+                    if (LstMe == 1) && (iLstCnt > 1) {
                       ForHndl, for_err = os.OpenFile(ForFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
                     } else {
                       ForHndl, for_err = os.OpenFile(ForFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
