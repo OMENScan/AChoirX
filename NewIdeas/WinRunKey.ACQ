@@ -131,10 +131,6 @@ REG:HKLM\System\CurrentControlSet\Control\SafeBoot\AlternateShell
 LST:&Acn\ASEP\HKLM-System-CurrentControlSet-Control-SafeBoot-AlternateShell.csv
 OUT:Reg	&Lst
 ***
-REG:HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\TaskMan
-LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows NT-CurrentVersion-Winlogon-TaskMan.csv
-OUT:Reg	&Lst
-***
 REG:HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon\UserInit
 LST:&Acn\ASEP\HKLM-Software-Microsoft-Windows NT-CurrentVersion-Winlogon-UserInit.csv
 OUT:Reg	&Lst
@@ -651,10 +647,6 @@ REG:HKCU\Software\Wow6432Node\Classes\CLSID\{083863F1-70DE-11d0-BD40-00A0C911CE8
 LST:&Acn\ASEP\HKCU-Software-Wow6432Node-Classes-CLSID-{083863F1-70DE-11d0-BD40-00A0C911CE86}-Instance.csv
 OUT:Reg	&Lst
 ***
-REG:HKLM\Software\Wow6432Node\Classes\CLSID\{083863F1-70DE-11d0-BD40-00A0C911CE86}\Instance
-LST:&Acn\ASEP\HKLM-Software-Wow6432Node-Classes-CLSID-{083863F1-70DE-11d0-BD40-00A0C911CE86}-Instance.csv
-OUT:Reg	&Lst
-***
 REG:HKCU\Software\Wow6432Node\Classes\CLSID\{AC757296-3522-4E11-9862-C17BE5A1767E}\Instance
 LST:&Acn\ASEP\HKCU-Software-Wow6432Node-Classes-CLSID-{AC757296-3522-4E11-9862-C17BE5A1767E}-Instance.csv
 OUT:Reg	&Lst
@@ -1088,5 +1080,9 @@ FLT:&Acn\ASEP\ASEP-Dedup.csv
 SET:FILTER=excl, full
 LST:&Acn\ASEP\ASEP.csv
 OUT:&LST
+
+SAY:[+] Cleanup HKCU and HKLM Temp Files
+DEL:&Acn\ASEP\HKCU-*.csv
+DEL:&Acn\ASEP\HKLM-*.csv
 
 Say:[+] Collection Complete!
