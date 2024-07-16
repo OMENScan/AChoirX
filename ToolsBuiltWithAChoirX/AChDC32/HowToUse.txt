@@ -1,0 +1,14 @@
+*******************************************************
+* AChDC32 - Collect and Zip - Upload to S3            *
+*  Version 1.00 - 05/06/2024 - BTV OBsidian (DC32)    *
+* - /VR0 = S3 Bucket                                  *
+* - /VR1 = S3 Region                                  *
+* - /VR2 = S3 AWS ID                                  *
+* - /VR3 = S3 Secret Key                              *
+*******************************************************
+
+Command Usage Windows: Must be run as Admin (It will auto escalate if not)
+A-AChDC32.exe /VR0:<Name of S3 Bucket> /VR1:<Reion> /VR2:<AWS ID> /VR3:<AWS Secret Key>
+
+Command Usage Linux: Must be run as root
+AChDC32 /VR0:<Name of S3 Bucket> /VR1:<Reion> /VR2:<AWS ID> /VR3:<AWS Secret Key>
