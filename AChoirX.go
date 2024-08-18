@@ -224,6 +224,8 @@
 //
 // AChoirX v10.01.54 - Release 1.54 - Add LST: and FOR: Counters
 //
+// AChoirX v10.01.55 - Release 1.55 - Add INC: (Include an INI - Allowing Netsted INI Files)
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -292,7 +294,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.54"                       // AChoir Version
+var Version = "v10.01.55"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -489,6 +491,7 @@ var iConLast = 0                                // Are we in Redisplay (CON:LAST
 
 // Global File Names
 var IniFile = "C:\\AChoir\\AChoir.Acq"          // AChoir Script File
+var IncFile = "C:\\AChoir\\AChoir.Acq"          // AChoir Include (INC:) Script File
 var B64File = "C:\\AChoir\\AChoirB64.Acq"       // AChoir Decoded B64 Script File
 var LogFile = "C:\\AChoir\\LogFile.dat"         // AChoir Log File
 var CpyFile = "C:\\AChoir\\LogFile.dat"         // Copy To this File
@@ -529,7 +532,7 @@ var host_err error                              // HostName Errors
 var MyPID = 0                                   // This Programs Process ID
 
 // Global File Handles
-var IniScan *bufio.Scanner                      // IO Reader for File or Console
+// var IniScan *bufio.Scanner                      // IO Reader for File or Console - Deprecated for an array of 10 Handles
 var ForScan *bufio.Scanner                      // IO Reader for ForFile
 var LstScan *bufio.Scanner                      // IO Reader for LstFile
 var FltScan *bufio.Scanner                      // IO Reader for FltFile
@@ -537,7 +540,7 @@ var DskScan *bufio.Scanner                      // IO Reader for DskFile
 var LogHndl *os.File                            // File Handle for the LogFile
 var HtmHndl *os.File                            // File Handle for the HtmFile
 var RegHndl *os.File                            // File Handle for the Registry Parse Output
-var IniHndl *os.File                            // File Handle for the IniFile
+// var IniHndl *os.File                         // File Handle for the IniFile - Deprecated for an array of 10 Handles
 var ForHndl *os.File                            // File Handle for the ForFile
 var LstHndl *os.File                            // File Handle for the LstFile
 var FltHndl *os.File                            // File Handle for the FltFile
@@ -608,7 +611,7 @@ var HstTabl [100]string
 // Max CPU for Throttleing
 var cpu_max float64 = 999
 
-//Multi-Handler Server Arrays
+// Multi-Handler Server Arrays
 var SessArry []int
 var SessStat []string
 var SessKeys []string
@@ -618,6 +621,10 @@ var SessIPV4 []string
 var SessCount = 0 
 var CurrSess = -1
 
+// INC: Nested Arrays
+var HndlArry [10]*os.File
+var ScanArry[10]*bufio.Scanner
+var iIniCount = 0
 
 // Main Line
 func main() {
@@ -1191,7 +1198,7 @@ func main() {
         ConsLogSys(ConsOut, 1, 1)
         fmt.Printf(">>>")
 
-        IniScan = bufio.NewScanner(os.Stdin)
+        ScanArry[iIniCount] = bufio.NewScanner(os.Stdin)
 
     } else {
         // If the IniFile and/or the Default IniFile (AChoir.ACQ) do not exist, extract the Embedded Files
@@ -1210,13 +1217,13 @@ func main() {
         }
 
 
-        IniHndl, ini_err = os.Open(IniFile)
+        HndlArry[iIniCount], ini_err = os.Open(IniFile)
         if ini_err != nil {
             ConsOut = fmt.Sprintf("[!] Error Opening Ini File: %s\n", IniFile)
             ConsLogSys(ConsOut, 1, 2)
         }
 
-        IniScan = bufio.NewScanner(IniHndl)
+        ScanArry[iIniCount] = bufio.NewScanner(HndlArry[iIniCount])
     }
 
     RunMe = 0  // Conditional run Script default is yes
@@ -1227,7 +1234,7 @@ func main() {
         // Input Scan (File and Console) until Error (EOF)
         if RunMode != "Cli" {
             // If we ran an INI and we are connected, reset input to CLI
-            if !IniScan.Scan() {
+            if !ScanArry[iIniCount].Scan() {
                 if TCPCli_Status == 1 {
                     consOrFile = 1
                     RunMode = "Cli"
@@ -1245,21 +1252,32 @@ func main() {
                     ConsOut = fmt.Sprintf("[+] Switching Back to Console (Interactive Mode)\n")
                     ConsLogSys(ConsOut, 1, 1)
 
-                    IniHndl.Close()
+                    HndlArry[iIniCount].Close()
                     //fmt.Printf(">>>")
-                    IniScan = bufio.NewScanner(os.Stdin)
+                    ScanArry[iIniCount] = bufio.NewScanner(os.Stdin)
                 } else {
                     // End of INI, Exit Out
-                    ConsOut = fmt.Sprintf("[!] End of Input...  Exiting...\n")
-                    ConsLogSys(ConsOut, 1, 1)
-                    cleanUp_Exit(LastRC);
-                    os.Exit(LastRC);
-                    break
+                    //****************************************************************
+                    // See if this was a child INI (INC:). If so, return to parent   *
+                    //****************************************************************
+                    if iIniCount > 0 {
+                        ConsOut = fmt.Sprintf("[+] End of INC: Input...  Returning...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        HndlArry[iIniCount].Close()
+                        iIniCount--
+                        continue
+                    } else {
+                        ConsOut = fmt.Sprintf("[+] End of Input...  Exiting...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        cleanUp_Exit(LastRC);
+                        os.Exit(LastRC);
+                        break
+                    }
                 }
             }
 
             //Remove any preceding blanks
-            Tmprec = strings.TrimSpace(IniScan.Text())
+            Tmprec = strings.TrimSpace(ScanArry[iIniCount].Text())
 
         } else {
             // Wait for TCP Server Input
@@ -1937,13 +1955,13 @@ func main() {
                         // Rewind File and Jump to a Label (LBL:)
                         // Note: For This to work we have to Reset both the Handle and the Scanner!
                         RunMe = 0
-                        IniHndl.Seek(0, 0)
-                        IniScan = bufio.NewScanner(IniHndl)
+                        HndlArry[iIniCount].Seek(0, 0)
+                        ScanArry[iIniCount] = bufio.NewScanner(HndlArry[iIniCount])
 
                         JmpLbl = fmt.Sprintf("LBL:%s", Inrec[4:])
 
-                        for IniScan.Scan() {
-                            Tmprec = strings.TrimSpace(IniScan.Text())
+                        for ScanArry[iIniCount].Scan() {
+                            Tmprec = strings.TrimSpace(ScanArry[iIniCount].Text())
                             if Tmprec == JmpLbl {
                                 break
                             }
@@ -2145,9 +2163,9 @@ func main() {
                             ConsOut = fmt.Sprintf("[+] Switching to Console (Interactive Mode)\n")
                             ConsLogSys(ConsOut, 1, 1)
 
-                            IniHndl.Close()
+                            HndlArry[iIniCount].Close()
                             //fmt.Printf(">>>")
-                            IniScan = bufio.NewScanner(os.Stdin)
+                            ScanArry[iIniCount] = bufio.NewScanner(os.Stdin)
                         }
                     } else {
                         // _, exist_err := os.Stat(IniFile)
@@ -2159,12 +2177,12 @@ func main() {
 
                             // Only close the handle if its not Console. If it is Console Set it back to File
                             if consOrFile == 0 {
-                                IniHndl.Close()
+                                HndlArry[iIniCount].Close()
                             } else {
                                 consOrFile = 0
                             }
 
-                            IniHndl, ini_err = os.Open(IniFile)
+                            HndlArry[iIniCount], ini_err = os.Open(IniFile)
                             if ini_err != nil {
                                 ConsOut = fmt.Sprintf("[!] Error Opening Ini File: %s - Exiting.\n", IniFile)
                                 ConsLogSys(ConsOut, 1, 2)
@@ -2174,11 +2192,43 @@ func main() {
                             }
 
                             RunMode = "Ini"
-                            IniScan = bufio.NewScanner(IniHndl)
+                            ScanArry[iIniCount] = bufio.NewScanner(HndlArry[iIniCount])
                             RunMe = 0  // Conditional run Script default is yes
 
                         } else {
                             ConsOut = fmt.Sprintf("[!] Requested INI File Not Found: %s - Ignored.\n", Inrec[4:])
+                            ConsLogSys(ConsOut, 1, 2)
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "INC:") {
+                    // Include an INI file - All variables, Labels, Etc. Remain the same
+                    // It is essentially an injected INI file that is inline
+                    IncFile = Inrec[4:]
+
+                    if iIniCount > 8 {
+                        ConsOut = fmt.Sprintf("[!] Maximum Nested INC: Files has been exceeded.  Ignoring: %s...\n", IncFile)
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        if FileExists(IncFile) {
+                            ConsOut = fmt.Sprintf("[+] Including INC File: %s\n", Inrec[4:])
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            // Programming note: Here we DO NOT Close the parent file. But bump the array 
+                            // to have an additonal open file
+                            iIniCount++
+
+                            HndlArry[iIniCount], ini_err = os.Open(IncFile)
+                            if ini_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Opening Include File: %s - Ignoring.\n", IncFile)
+                                ConsLogSys(ConsOut, 1, 2)
+                                iIniCount--
+                            } else {
+                                RunMode = "Ini"
+                                ScanArry[iIniCount] = bufio.NewScanner(HndlArry[iIniCount])
+                                RunMe = 0  // Conditional run Script default is yes
+                            }
+                        } else {
+                            ConsOut = fmt.Sprintf("[!] Requested INC File Not Found: %s - Ignored.\n", Inrec[4:])
                             ConsLogSys(ConsOut, 1, 2)
                         }
                     }
@@ -4839,7 +4889,7 @@ func cleanUp_Exit(exitRC int) {
     showTime("Acquisition Completed");
 
     if consOrFile == 0 {
-        IniHndl.Close()
+        HndlArry[iIniCount].Close()
     }
 
     if iXitCmd == 1 {
