@@ -1085,4 +1085,4 @@ SAY:[+] Cleanup HKCU and HKLM Temp Files
 DEL:&Acn\ASEP\HKCU-*.csv
 DEL:&Acn\ASEP\HKLM-*.csv
 
-Say:[+] Collection Complete!
+Say:[+] ASEP Collection Complete!

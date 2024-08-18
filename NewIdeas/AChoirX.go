@@ -1261,13 +1261,13 @@ func main() {
                     // See if this was a child INI (INC:). If so, return to parent   *
                     //****************************************************************
                     if iIniCount > 0 {
-                        ConsOut = fmt.Sprintf("[!] End of INC: Input...  Returning...\n")
+                        ConsOut = fmt.Sprintf("[+] End of INC: Input...  Returning...\n")
                         ConsLogSys(ConsOut, 1, 1)
                         HndlArry[iIniCount].Close()
                         iIniCount--
                         continue
                     } else {
-                        ConsOut = fmt.Sprintf("[!] End of Input...  Exiting...\n")
+                        ConsOut = fmt.Sprintf("[+] End of Input...  Exiting...\n")
                         ConsLogSys(ConsOut, 1, 1)
                         cleanUp_Exit(LastRC);
                         os.Exit(LastRC);
@@ -2210,7 +2210,7 @@ func main() {
                         ConsLogSys(ConsOut, 1, 1)
                     } else {
                         if FileExists(IncFile) {
-                            ConsOut = fmt.Sprintf("[!] Including INC File: %s\n", Inrec[4:])
+                            ConsOut = fmt.Sprintf("[+] Including INC File: %s\n", Inrec[4:])
                             ConsLogSys(ConsOut, 1, 1)
 
                             // Programming note: Here we DO NOT Close the parent file. But bump the array 
