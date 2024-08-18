@@ -2,12 +2,12 @@
 * Experimental script to collect Windows ASEP Run Keys *
 ********************************************************
 SET:CopyPath=Part
-SAY:[+] VERY Beta AChoir script to collect Windows ASEP Information
+SAY:[+] Beta AChoir script to collect Windows ASEP Information
 SAY:[+] Output will be Tab Separated.
 ********************************************************
 * Filter Out not Found ASEP Run Keys                   *
 ********************************************************
-FLT:WinRunKey.FLT
+FLT:Scripts\WinRunKey.FLT
 SET:FILTER=excl, full
 SET:delims=	\/
 SET:ParseQuote=Strict
@@ -1071,15 +1071,15 @@ LST:&Acn\ASEP\SchedTask.csv
 OUT:Sched	Task	&LS1	&LS8
 ***
 
-SAY:[+] Removing Duplicates
 *******************************************************
 * Lets Filter on ourself to delete possible Duplicates*
+* Default: Commented out because it takes a long time *
 *******************************************************
-OPN:&Acn\ASEP\ASEP-Dedup.csv
-FLT:&Acn\ASEP\ASEP-Dedup.csv
-SET:FILTER=excl, full
-LST:&Acn\ASEP\ASEP.csv
-OUT:&LST
+*SAY:[+] Removing DuplicatesOPN:&Acn\ASEP\ASEP-Dedup.csv
+*FLT:&Acn\ASEP\ASEP-Dedup.csv
+*SET:FILTER=excl, full
+*LST:&Acn\ASEP\ASEP.csv
+*OUT:&LST
 
 SAY:[+] Cleanup HKCU and HKLM Temp Files
 DEL:&Acn\ASEP\HKCU-*.csv
