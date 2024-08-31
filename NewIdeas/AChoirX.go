@@ -1826,12 +1826,6 @@ func main() {
                     o32VarRec = repl_Fnm.Replace(o32VarRec)
                 }
 
-                if CaseInsensitiveContains(o32VarRec, "&Rcd") {
-
-                    repl_Rcd := NewCaseInsensitiveReplacer("&Rcd", strconv.Itoa(LastRC))
-                    o32VarRec = repl_Rcd.Replace(o32VarRec)
-                }
-
                 if CaseInsensitiveContains(o32VarRec, "&Chk") {
 
                     repl_Chk := NewCaseInsensitiveReplacer("&Chk", ChkFile)
@@ -1905,7 +1899,6 @@ func main() {
                     o32VarRec = repl_Dsa.Replace(o32VarRec)
                 }
 
-
                 if CaseInsensitiveContains(o32VarRec, "&Mem") {
 
                     TotMemry := sysTotalMemory()
@@ -1919,26 +1912,7 @@ func main() {
                     o32VarRec = repl_Mem.Replace(o32VarRec)
                 }
 
-                // Look for Replacements &VR0 - VR9
-                for iVrx = 0; iVrx < 10; iVrx++ {
-                    if CaseInsensitiveContains(o32VarRec, VarsArray[iVrx]) {
-                        repl_Vrx := NewCaseInsensitiveReplacer(VarsArray[iVrx], VardArray[iVrx])
-                        o32VarRec = repl_Vrx.Replace(o32VarRec)
-                    }
-                }
 
-                // Look for Replacements &CN0 - CN9
-                for iCnx = 0; iCnx < 10; iCnx++ {
-                    if CaseInsensitiveContains(o32VarRec, CntsArray[iCnx]) {
-                        CntsTring = strconv.Itoa(CntiArray[iCnx])
-                        repl_Cnx := NewCaseInsensitiveReplacer(CntsArray[iCnx], CntsTring)
-                        o32VarRec = repl_Cnx.Replace(o32VarRec)
-                    }
-                }
-
-
-                //****************************************************************
-                //* Now execute the Actions                                      *
                 //****************************************************************
                 //* v10.1.56 - Add the ability to execute multiple functions on  * 
                 //*   a single line.  This allows a subroutine-ish capability    *
@@ -1956,6 +1930,39 @@ func main() {
                 for io32 = 0; io32 < len(o32Slice); io32++ {
                     Inrec = strings.TrimSpace(o32Slice[io32])
 
+
+                    //****************************************************************
+                    //* Multi-Function Lines are meant to be generally static, but   *
+                    //*  setting variables and return code changes makes sense.      *
+                    //****************************************************************
+                    // Look for Replacements &VR0 - VR9
+                    for iVrx = 0; iVrx < 10; iVrx++ {
+                        if CaseInsensitiveContains(Inrec, VarsArray[iVrx]) {
+                            repl_Vrx := NewCaseInsensitiveReplacer(VarsArray[iVrx], VardArray[iVrx])
+                            Inrec = repl_Vrx.Replace(Inrec)
+                        }
+                    }
+
+                    // Look for Replacements &CN0 - CN9
+                    for iCnx = 0; iCnx < 10; iCnx++ {
+                        if CaseInsensitiveContains(Inrec, CntsArray[iCnx]) {
+                            CntsTring = strconv.Itoa(CntiArray[iCnx])
+                            repl_Cnx := NewCaseInsensitiveReplacer(CntsArray[iCnx], CntsTring)
+                            Inrec = repl_Cnx.Replace(Inrec)
+                        }
+                    }
+
+                    if CaseInsensitiveContains(Inrec, "&Rcd") {
+
+                        repl_Rcd := NewCaseInsensitiveReplacer("&Rcd", strconv.Itoa(LastRC))
+                        o32VarRec = repl_Rcd.Replace(Inrec)
+                    }
+
+
+
+                    //****************************************************************
+                    //* Now execute the Actions                                      *
+                    //****************************************************************
                     if len(Inrec) < 1 {
                         continue
                     } else if strings.HasPrefix(Inrec, "*") {
