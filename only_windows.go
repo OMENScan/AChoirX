@@ -216,6 +216,7 @@ func makeKey(khive string) {
             return
         }
         walkKey(subKey, khive)
+        subKey.Close()
     } else if strings.HasPrefix(strings.ToUpper(khive), "HKCR\\") {
         subKey, err := registry.OpenKey(registry.CLASSES_ROOT, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
         if err != nil {
@@ -225,6 +226,7 @@ func makeKey(khive string) {
             return
         }
         walkKey(subKey, khive)
+        subKey.Close()
     } else if strings.HasPrefix(strings.ToUpper(khive), "HKCU\\") {
         subKey, err := registry.OpenKey(registry.CURRENT_USER, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
         if err != nil {
@@ -234,6 +236,7 @@ func makeKey(khive string) {
             return
         }
         walkKey(subKey, khive)
+        subKey.Close()
     } else if strings.HasPrefix(strings.ToUpper(khive), "HKUS\\") {
         subKey, err := registry.OpenKey(registry.USERS, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
         if err != nil {
@@ -243,6 +246,7 @@ func makeKey(khive string) {
             return
         }
         walkKey(subKey, khive)
+        subKey.Close()
     } else if strings.HasPrefix(strings.ToUpper(khive), "HKCC\\") {
         subKey, err := registry.OpenKey(registry.CURRENT_CONFIG, khive[5:], registry.ENUMERATE_SUB_KEYS|registry.QUERY_VALUE)
         if err != nil {
@@ -252,6 +256,7 @@ func makeKey(khive string) {
             return
         }
         walkKey(subKey, khive)
+        subKey.Close()
     }
 }
 

@@ -226,6 +226,9 @@
 //
 // AChoirX v10.01.55 - Release 1.55 - Add INC: (Include an INI - Allowing Netsted INI Files)
 //
+// AChoirX v10.01.56 - Release 1.56 - Add OPTIONAL output file name to REG: to allow all extractions to go to the same CSV
+//                   - Close Registry Key Properly so it can be unloaded
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -294,7 +297,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.55"                       // AChoir Version
+var Version = "v10.01.56"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -496,6 +499,7 @@ var B64File = "C:\\AChoir\\AChoirB64.Acq"       // AChoir Decoded B64 Script Fil
 var LogFile = "C:\\AChoir\\LogFile.dat"         // AChoir Log File
 var CpyFile = "C:\\AChoir\\LogFile.dat"         // Copy To this File
 var HtmFile = "C:\\AChoir\\Index.htm"           // AChoir HTML Output File
+var RegKeyy = "HKLM\\Registry\\Key"             // AChoir REG: Key to extract
 var RegFile = "Registry.csv"                    // AChoir REG: Output File Name
 var RegPath = "C:\\AChoir\\Registry.csv"        // AChoir REG: Full Path Output File
 var WGetFile = "C:\\AChoir\\Download.dat"       // Downloaded WGet File
@@ -2036,26 +2040,41 @@ func main() {
 
                     }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "REG:") {
-                    RegFile = fmt.Sprintf("%s", Inrec[4:])
+                    splitString1, splitString2, SplitRC := twoSplit(Inrec[4:])
 
-                    // Replace any invalid Chars in the File Name with a dash "-"
-                    // RegFile = strings.Replace(RegFile, "\\", "-", -1) 
-                    for iChar := 0; iChar < 10; iChar++ {
-                        RegFile = strings.Replace(RegFile, BadFNChar[iChar], "-", -1)
-                    }
-
-                    RegPath = fmt.Sprintf("%s%c%s%c%s.csv", BACQDir, slashDelim, ACQDir, slashDelim, RegFile)
-
-                    ConsOut = fmt.Sprintf("[+] Extracting Registry Keys and Sub-Keys to: %s\n", RegPath)
-                    ConsLogSys(ConsOut, 1, 2)
-
-                    RegHndl, reg_err = os.Create(RegPath)
-                    if reg_err != nil {
-                        ConsOut = fmt.Sprintf("[!] Error Opening Reg Output File: %s - Registry Parse Bypassed.\n", RegPath)
+                    if len(splitString1) < 1 {
+                        ConsOut = fmt.Sprintf("[!] No Registry Key Specified to Extract\n")
                         ConsLogSys(ConsOut, 1, 2)
                     } else {
-                        makeKey(Inrec[4:])
-                        RegHndl.Close()
+                        RegKeyy = fmt.Sprintf("%s", splitString1)
+
+                        if SplitRC == 1 {
+                            RegFile = fmt.Sprintf("%s", RegKeyy)
+  
+                            for iChar := 0; iChar < 10; iChar++ {
+                                RegFile = strings.Replace(RegFile, BadFNChar[iChar], "-", -1)
+                            }
+
+                            ConsOut = fmt.Sprintf("[*] Generating Registry Output File Name: %s\n", RegFile)
+                            ConsLogSys(ConsOut, 1, 1)
+
+                        } else {
+                            RegFile = splitString2
+                        }
+
+                        RegPath = fmt.Sprintf("%s%c%s%c%s.csv", BACQDir, slashDelim, ACQDir, slashDelim, RegFile)
+
+                        ConsOut = fmt.Sprintf("[+] Extracting Registry Keys and Sub-Keys to: %s\n", RegPath)
+                        ConsLogSys(ConsOut, 1, 2)
+
+                        RegHndl, reg_err = os.OpenFile(RegPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+                        if reg_err != nil {
+                            ConsOut = fmt.Sprintf("[!] Error Opening Reg Output File: %s - Registry Parse Bypassed.\n", RegPath)
+                            ConsLogSys(ConsOut, 1, 2)
+                        } else {
+                            makeKey(RegKeyy)
+                            RegHndl.Close()
+                        }
                     }                
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "DIR:") {
                     //****************************************************************
