@@ -226,7 +226,12 @@
 //
 // AChoirX v10.01.55 - Release 1.55 - Add INC: (Include an INI - Allowing Netsted INI Files)
 //
-// AChoirX v10.01.56 - Release 1.56 - Add Multi-function lines (Separated by ;)
+// AChoirX v10.01.56 - Release 1.56 - Add OPTIONAL output file name to REG: to allow all extractions to go to the same CSV
+//                   - Close Registry Key Properly so it can be unloaded
+//
+// AChoirX v10.01.57 - Release 1.57 - Add NCP: NTFS Raw Copy 
+//                   - Only implemented in Windows - Not Applicable to Linux, MacOS, or Android
+//                   - Most of the code for this was copied from: https://github.com/kmahyyg/go-rawcopy
 //
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
@@ -238,6 +243,9 @@
 //  SFTP:     go get golang.org/x/crypto/ssh
 //  cpu:      go get github.com/shirou/gopsutil/cpu
 //  Registry: go get golang.org/x/sys/windows/registry
+//  NTFS:     go get www.velocidex.com/golang/go-ntfs
+//            go get github.com/davecgh/go-spew
+//            go get github.com/hashicorp/golang-lru
 //
 // Changes from AChoir:
 //  Environment Variable Expansion now uses GoLang $Var or ${Var} 
@@ -296,7 +304,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.56"                       // AChoir Version
+var Version = "v10.01.57"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -340,7 +348,6 @@ var sNative = ""                                // Native String (blank or Non-)
 var iIsAdmin = 0                                // Are we an Admin 
 var sIsAdmin = ""                               // Are we an Admin String (blank or Non-) 
 var yIsAdmin = "No"                             // Are we an Admin (Yes | No)
-var io32 = 0                                    // Loop Counter for multiple actions per line (separated by ;)
 var iFor = 0                                    // Loop Counter FOR, FO0 - FOP
 var iLst = 0                                    // Loop Counter LST, LS0 - LSP
 var ifFor = 0                                   // Flag contains FOR, FO0 - FOP
@@ -499,6 +506,7 @@ var B64File = "C:\\AChoir\\AChoirB64.Acq"       // AChoir Decoded B64 Script Fil
 var LogFile = "C:\\AChoir\\LogFile.dat"         // AChoir Log File
 var CpyFile = "C:\\AChoir\\LogFile.dat"         // Copy To this File
 var HtmFile = "C:\\AChoir\\Index.htm"           // AChoir HTML Output File
+var RegKeyy = "HKLM\\Registry\\Key"             // AChoir REG: Key to extract
 var RegFile = "Registry.csv"                    // AChoir REG: Output File Name
 var RegPath = "C:\\AChoir\\Registry.csv"        // AChoir REG: Full Path Output File
 var WGetFile = "C:\\AChoir\\Download.dat"       // Downloaded WGet File
@@ -1826,6 +1834,12 @@ func main() {
                     o32VarRec = repl_Fnm.Replace(o32VarRec)
                 }
 
+                if CaseInsensitiveContains(o32VarRec, "&Rcd") {
+
+                    repl_Rcd := NewCaseInsensitiveReplacer("&Rcd", strconv.Itoa(LastRC))
+                    o32VarRec = repl_Rcd.Replace(o32VarRec)
+                }
+
                 if CaseInsensitiveContains(o32VarRec, "&Chk") {
 
                     repl_Chk := NewCaseInsensitiveReplacer("&Chk", ChkFile)
@@ -1899,6 +1913,7 @@ func main() {
                     o32VarRec = repl_Dsa.Replace(o32VarRec)
                 }
 
+
                 if CaseInsensitiveContains(o32VarRec, "&Mem") {
 
                     TotMemry := sysTotalMemory()
@@ -1912,160 +1927,146 @@ func main() {
                     o32VarRec = repl_Mem.Replace(o32VarRec)
                 }
 
+                // Look for Replacements &VR0 - VR9
+                for iVrx = 0; iVrx < 10; iVrx++ {
+                    if CaseInsensitiveContains(o32VarRec, VarsArray[iVrx]) {
+                        repl_Vrx := NewCaseInsensitiveReplacer(VarsArray[iVrx], VardArray[iVrx])
+                        o32VarRec = repl_Vrx.Replace(o32VarRec)
+                    }
+                }
+
+                // Look for Replacements &CN0 - CN9
+                for iCnx = 0; iCnx < 10; iCnx++ {
+                    if CaseInsensitiveContains(o32VarRec, CntsArray[iCnx]) {
+                        CntsTring = strconv.Itoa(CntiArray[iCnx])
+                        repl_Cnx := NewCaseInsensitiveReplacer(CntsArray[iCnx], CntsTring)
+                        o32VarRec = repl_Cnx.Replace(o32VarRec)
+                    }
+                }
+
 
                 //****************************************************************
-                //* v10.1.56 - Add the ability to execute multiple functions on  * 
-                //*   a single line.  This allows a subroutine-ish capability    *
-                //*   without adding subroutines to the lanuage.  The primary    * 
-                //*   reason for this capability will be to allow &FOR and &LST  *
-                //*   objects to have multiple actions for a single record.      *
-                //*   This is a good compromise to allow multiple actions without*
-                //*   adding the complications of creating a whole subroutine    *
-                //*   paradigm & syntax to the lanuage.                          *
-                //* Multiple actions are separated by a semicolon(;)             *
+                //* Now execute the Actions                                      *
                 //****************************************************************
-                // Deprecated - Add multi-function lines
-                // Inrec = o32VarRec
-                o32Slice := strings.Split(o32VarRec, ";")
-                for io32 = 0; io32 < len(o32Slice); io32++ {
-                    Inrec = strings.TrimSpace(o32Slice[io32])
+                Inrec = o32VarRec
+
+                if len(Inrec) < 1 {
+                    continue
+                } else if strings.HasPrefix(Inrec, "*") {
+                    continue
+                } else if len(Inrec) < 4 {
+                    continue
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "LBL:") {
+                    continue
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "JMP:") && len(Inrec) > 4 {
+                    if consOrFile == 1 {
+                        ConsOut = fmt.Sprintf("[*] Jumping Does not make sense in Interactive Mode.  Ignoring...\n")
+                        ConsLogSys(ConsOut, 1, 2)
+                    } else {
+                        // Rewind File and Jump to a Label (LBL:)
+                        // Note: For This to work we have to Reset both the Handle and the Scanner!
+                        RunMe = 0
+                        HndlArry[iIniCount].Seek(0, 0)
+                        ScanArry[iIniCount] = bufio.NewScanner(HndlArry[iIniCount])
+
+                        JmpLbl = fmt.Sprintf("LBL:%s", Inrec[4:])
+
+                        for ScanArry[iIniCount].Scan() {
+                            Tmprec = strings.TrimSpace(ScanArry[iIniCount].Text())
+                            if Tmprec == JmpLbl {
+                                break
+                            }
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CSE:") {
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "CSE:GET") {
+                        getCaseInfo(1)
+                    } else {
+                        getCaseInfo(0)
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "ACQ:") {
+                    // Sanity Check - Replace Delimiters base on OS
+                    if iopSystem == 0 {
+                        Inrec = strings.Replace(Inrec, "/", "\\", -1) 
+                    } else {
+                        Inrec = strings.Replace(Inrec, "\\", "/", -1) 
+                    }
 
 
-                    //****************************************************************
-                    //* Multi-Function Lines are meant to be generally static, but   *
-                    //*  setting variables and return code changes makes sense.      *
-                    //****************************************************************
-                    // Look for Replacements &VR0 - VR9
-                    for iVrx = 0; iVrx < 10; iVrx++ {
-                        if CaseInsensitiveContains(Inrec, VarsArray[iVrx]) {
-                            repl_Vrx := NewCaseInsensitiveReplacer(VarsArray[iVrx], VardArray[iVrx])
-                            Inrec = repl_Vrx.Replace(Inrec)
+                    // Have we created the Base Acquisition Directory Yet?
+                    if _, BACQ_err := os.Stat(BACQDir); os.IsNotExist(BACQ_err) {
+                        // Set iRunMode=1 to be sure we post-process the Acquired Artifacts
+                        // (In case we had not set it originally due to remote BACQDIR)
+                        iRunMode = 1
+
+                        DirAllocErr(BACQDir)
+                        DirAllocErr(CachDir)
+                        PreIndex()
+                    }
+
+                    // Explicit Path (Dependent upon OS!
+                    osACQ := fmt.Sprintf("ACQ:%c", slashDelim)
+                    if strings.HasPrefix(strings.ToUpper(Inrec), osACQ) {
+                        if len(Inrec) > 5 {
+                            ACQDir = fmt.Sprintf("%s", Inrec[5:])
+                            TempDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
+                        } else  {
+                            ACQDir = ""
+                            TempDir = BACQDir
+                        }
+                    } else {
+                        if len(Inrec) > 4 {
+                            //Check to see if it is an append or new &Acq
+                            //Dont add // if it's new!
+                            if len(ACQDir) > 0 {
+                                ACQDir += slashDelimS
+                            }
+
+                            ACQDir += Inrec[4:]
+                            TempDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
                         }
                     }
 
-                    // Look for Replacements &CN0 - CN9
-                    for iCnx = 0; iCnx < 10; iCnx++ {
-                        if CaseInsensitiveContains(Inrec, CntsArray[iCnx]) {
-                            CntsTring = strconv.Itoa(CntiArray[iCnx])
-                            repl_Cnx := NewCaseInsensitiveReplacer(CntsArray[iCnx], CntsTring)
-                            Inrec = repl_Cnx.Replace(Inrec)
-                        }
-                    }
+                    // Determine the Level 1 Directory to see if we have it yet
+                    // If not, we will want to add it to the HTML file
+                    LvlSplit := strings.Split(ACQDir, slashDelimS)
+                    LevelOne := fmt.Sprintf("%s%c%s", BACQDir, slashDelim, LvlSplit[0])
 
-                    if CaseInsensitiveContains(Inrec, "&Rcd") {
-
-                        repl_Rcd := NewCaseInsensitiveReplacer("&Rcd", strconv.Itoa(LastRC))
-                        o32VarRec = repl_Rcd.Replace(Inrec)
+                    if _, level_err := os.Stat(LevelOne); os.IsNotExist(level_err) && iHtmMode == 1 {
+                        fmt.Fprintf(HtmHndl, "</td><td align=center>\n")
+                        fmt.Fprintf(HtmHndl, "<a href=file:%s target=AFrame> %s </a>\n", LvlSplit[0], LvlSplit[0])
                     }
 
 
+                    // Have we created this Directory already?
+                    if _, ACQDir_err := os.Stat(TempDir); os.IsNotExist(ACQDir_err) {
+                        ConsOut = fmt.Sprintf("[+] Creating Acquisition Sub-Directory: %s\n", ACQDir)
+                        ConsLogSys(ConsOut, 1, 1)
 
-                    //****************************************************************
-                    //* Now execute the Actions                                      *
-                    //****************************************************************
-                    if len(Inrec) < 1 {
-                        continue
-                    } else if strings.HasPrefix(Inrec, "*") {
-                        continue
-                    } else if len(Inrec) < 4 {
-                        continue
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "LBL:") {
-                        continue
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "JMP:") && len(Inrec) > 4 {
-                        if consOrFile == 1 {
-                            ConsOut = fmt.Sprintf("[*] Jumping Does not make sense in Interactive Mode.  Ignoring...\n")
-                            ConsLogSys(ConsOut, 1, 2)
-                        } else {
-                            // Rewind File and Jump to a Label (LBL:)
-                            // Note: For This to work we have to Reset both the Handle and the Scanner!
-                            RunMe = 0
-                            HndlArry[iIniCount].Seek(0, 0)
-                            ScanArry[iIniCount] = bufio.NewScanner(HndlArry[iIniCount])
+                        ExpandDirs(TempDir)
 
-                            JmpLbl = fmt.Sprintf("LBL:%s", Inrec[4:])
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "REG:") {
+                    splitString1, splitString2, SplitRC := twoSplit(Inrec[4:])
 
-                            for ScanArry[iIniCount].Scan() {
-                                Tmprec = strings.TrimSpace(ScanArry[iIniCount].Text())
-                                if Tmprec == JmpLbl {
-                                    break
-                                }
+                    if len(splitString1) < 1 {
+                        ConsOut = fmt.Sprintf("[!] No Registry Key Specified to Extract\n")
+                        ConsLogSys(ConsOut, 1, 2)
+                    } else {
+                        RegKeyy = fmt.Sprintf("%s", splitString1)
+
+                        if SplitRC == 1 {
+                            RegFile = fmt.Sprintf("%s", RegKeyy)
+  
+                            for iChar := 0; iChar < 10; iChar++ {
+                                RegFile = strings.Replace(RegFile, BadFNChar[iChar], "-", -1)
                             }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CSE:") {
-                        if strings.HasPrefix(strings.ToUpper(Inrec), "CSE:GET") {
-                            getCaseInfo(1)
-                        } else {
-                            getCaseInfo(0)
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "ACQ:") {
-                        // Sanity Check - Replace Delimiters base on OS
-                        if iopSystem == 0 {
-                            Inrec = strings.Replace(Inrec, "/", "\\", -1) 
-                        } else {
-                            Inrec = strings.Replace(Inrec, "\\", "/", -1) 
-                        }
 
-
-                        // Have we created the Base Acquisition Directory Yet?
-                        if _, BACQ_err := os.Stat(BACQDir); os.IsNotExist(BACQ_err) {
-                            // Set iRunMode=1 to be sure we post-process the Acquired Artifacts
-                            // (In case we had not set it originally due to remote BACQDIR)
-                            iRunMode = 1
-
-                            DirAllocErr(BACQDir)
-                            DirAllocErr(CachDir)
-                            PreIndex()
-                        }
-
-                        // Explicit Path (Dependent upon OS!
-                        osACQ := fmt.Sprintf("ACQ:%c", slashDelim)
-                        if strings.HasPrefix(strings.ToUpper(Inrec), osACQ) {
-                            if len(Inrec) > 5 {
-                                ACQDir = fmt.Sprintf("%s", Inrec[5:])
-                                TempDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
-                            } else  {
-                                ACQDir = ""
-                                TempDir = BACQDir
-                            }
-                        } else {
-                            if len(Inrec) > 4 {
-                                //Check to see if it is an append or new &Acq
-                                //Dont add // if it's new!
-                                if len(ACQDir) > 0 {
-                                    ACQDir += slashDelimS
-                                }
-
-                                ACQDir += Inrec[4:]
-                                TempDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
-                            }
-                        }
-
-                        // Determine the Level 1 Directory to see if we have it yet
-                        // If not, we will want to add it to the HTML file
-                        LvlSplit := strings.Split(ACQDir, slashDelimS)
-                        LevelOne := fmt.Sprintf("%s%c%s", BACQDir, slashDelim, LvlSplit[0])
-
-                        if _, level_err := os.Stat(LevelOne); os.IsNotExist(level_err) && iHtmMode == 1 {
-                            fmt.Fprintf(HtmHndl, "</td><td align=center>\n")
-                            fmt.Fprintf(HtmHndl, "<a href=file:%s target=AFrame> %s </a>\n", LvlSplit[0], LvlSplit[0])
-                        }
-
-
-                        // Have we created this Directory already?
-                        if _, ACQDir_err := os.Stat(TempDir); os.IsNotExist(ACQDir_err) {
-                            ConsOut = fmt.Sprintf("[+] Creating Acquisition Sub-Directory: %s\n", ACQDir)
+                            ConsOut = fmt.Sprintf("[*] Generating Registry Output File Name: %s\n", RegFile)
                             ConsLogSys(ConsOut, 1, 1)
 
-                            ExpandDirs(TempDir)
-
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "REG:") {
-                        RegFile = fmt.Sprintf("%s", Inrec[4:])
-
-                        // Replace any invalid Chars in the File Name with a dash "-"
-                        // RegFile = strings.Replace(RegFile, "\\", "-", -1) 
-                        for iChar := 0; iChar < 10; iChar++ {
-                            RegFile = strings.Replace(RegFile, BadFNChar[iChar], "-", -1)
+                        } else {
+                            RegFile = splitString2
                         }
 
                         RegPath = fmt.Sprintf("%s%c%s%c%s.csv", BACQDir, slashDelim, ACQDir, slashDelim, RegFile)
@@ -2073,498 +2074,1750 @@ func main() {
                         ConsOut = fmt.Sprintf("[+] Extracting Registry Keys and Sub-Keys to: %s\n", RegPath)
                         ConsLogSys(ConsOut, 1, 2)
 
-                        RegHndl, reg_err = os.Create(RegPath)
+                        RegHndl, reg_err = os.OpenFile(RegPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
                         if reg_err != nil {
                             ConsOut = fmt.Sprintf("[!] Error Opening Reg Output File: %s - Registry Parse Bypassed.\n", RegPath)
                             ConsLogSys(ConsOut, 1, 2)
                         } else {
-                            makeKey(Inrec[4:])
+                            makeKey(RegKeyy)
                             RegHndl.Close()
                         }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "DIR:") {
-                        //****************************************************************
-                        //* Set Current Directory                                        *
-                        //****************************************************************
-                        // Sanity Check - Replace Delimiters base on OS
-                        if iopSystem == 0 {
-                            Inrec = strings.Replace(Inrec, "/", "\\", -1) 
-                        } else {
-                            Inrec = strings.Replace(Inrec, "\\", "/", -1) 
+                    }                
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "DIR:") {
+                    //****************************************************************
+                    //* Set Current Directory                                        *
+                    //****************************************************************
+                    // Sanity Check - Replace Delimiters base on OS
+                    if iopSystem == 0 {
+                        Inrec = strings.Replace(Inrec, "/", "\\", -1) 
+                    } else {
+                        Inrec = strings.Replace(Inrec, "\\", "/", -1) 
+                    }
+
+                    // Explicit Path (Dependent upon OS!
+                    osDir := fmt.Sprintf("DIR:%c", slashDelim)
+                    if strings.HasPrefix(strings.ToUpper(Inrec), osDir) {
+                        if len(Inrec) > 5 {
+                            CurrDir = fmt.Sprintf("%s", Inrec[5:])
+                            TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
+                        } else  {
+                            CurrDir = ""
+                            TempDir = BaseDir
                         }
-
-                        // Explicit Path (Dependent upon OS!
-                        osDir := fmt.Sprintf("DIR:%c", slashDelim)
-                        if strings.HasPrefix(strings.ToUpper(Inrec), osDir) {
-                            if len(Inrec) > 5 {
-                                CurrDir = fmt.Sprintf("%s", Inrec[5:])
-                                TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
-                            } else  {
-                                CurrDir = ""
-                                TempDir = BaseDir
+                    } else {
+                        if len(Inrec) > 4 {
+                            //Check to see if it is an append or new &Dir
+                            //Dont add // if it's new!
+                            if len(CurrDir) > 0 {
+                                CurrDir += slashDelimS
                             }
-                        } else {
-                            if len(Inrec) > 4 {
-                                //Check to see if it is an append or new &Dir
-                                //Dont add // if it's new!
-                                if len(CurrDir) > 0 {
-                                    CurrDir += slashDelimS
-                                }
 
-                                CurrDir += Inrec[4:]
-                                TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
+                            CurrDir += Inrec[4:]
+                            TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
+                        }
+                    }
+
+                    // Have we created this Directory already?
+                    if _, CurrDir_err := os.Stat(TempDir); os.IsNotExist(CurrDir_err) {
+                        ConsOut = fmt.Sprintf("[+] Creating Sub-Directory: %s\n", CurrDir)
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        ExpandDirs(TempDir)
+
+                    }
+
+                    // Reset The WorkingDirectory to the new Directory
+                    CurrWorkDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
+                    os.Chdir(CurrWorkDir)
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "FIL:") {
+                    CurrFil = Inrec[4:]
+                    TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
+
+                    if _, CurrDir_err := os.Stat(TempDir); os.IsNotExist(CurrDir_err) {
+                        ConsOut = fmt.Sprintf("[+] Creating Sub-Directory: %s\n", CurrDir)
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        ExpandDirs(TempDir)
+                    }
+
+                    ConsOut = fmt.Sprintf("[+] File has been Set to: %s\n", CurrFil)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "VR") {
+                    // Look for Replacements VR0: - VR9:
+                    for iVrx = 0; iVrx < 10; iVrx++ {
+                        if strings.HasPrefix(strings.ToUpper(Inrec), VarxArray[iVrx]) {
+                            VardArray[iVrx] = Inrec[4:]
+                        }
+                    }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CN") {
+                    // Look for Replacements CN0: - CN9:
+                    for iCnx = 0; iCnx < 10; iCnx++ {
+                        if strings.HasPrefix(strings.ToUpper(Inrec), CntxArray[iCnx]) {
+                            if Inrec[4:] == "++" {
+                                CntiArray[iCnx]++
+                            } else if Inrec[4:] == "--" {
+                                CntiArray[iCnx]--
+                            } else {
+                                CntiArray[iCnx], _ = strconv.Atoi(Inrec[4:])
                             }
                         }
+                    }
 
-                        // Have we created this Directory already?
-                        if _, CurrDir_err := os.Stat(TempDir); os.IsNotExist(CurrDir_err) {
-                            ConsOut = fmt.Sprintf("[+] Creating Sub-Directory: %s\n", CurrDir)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "DRV:") {
+                    DiskDrive = Inrec[4:]
+
+                    ConsOut = fmt.Sprintf("[+] Disk Drive Set to: %s\n", DiskDrive)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "XTR:") {
+                    // Force Extraction of the embedded toolkit - Be careful with this one
+                    ConsOut = fmt.Sprintf("[*] UnEmbedding the ToolKit\n")
+                    ConsLogSys(ConsOut, 1, 2)
+                    UnEmbed(embdata)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "INI:") {
+                    IniFile = Inrec[4:]
+
+                    if strings.ToUpper(IniFile) == "CONSOLE" {
+                        if consOrFile == 0 {
+                            RunMode = "Con"
+                            inFnam = "Console"
+                            Console_Status = 1
+                            iRunMode = 1
+                            consOrFile = 1
+
+                            ConsOut = fmt.Sprintf("[+] Switching to Console (Interactive Mode)\n")
                             ConsLogSys(ConsOut, 1, 1)
 
-                            ExpandDirs(TempDir)
-
+                            HndlArry[iIniCount].Close()
+                            //fmt.Printf(">>>")
+                            ScanArry[iIniCount] = bufio.NewScanner(os.Stdin)
                         }
+                    } else {
+                        // _, exist_err := os.Stat(IniFile)
+                        // if os.IsNotExist(exist_err) {
 
-                        // Reset The WorkingDirectory to the new Directory
-                        CurrWorkDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
-                        os.Chdir(CurrWorkDir)
-
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "FIL:") {
-                        CurrFil = Inrec[4:]
-                        TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, CurrDir)
-
-                        if _, CurrDir_err := os.Stat(TempDir); os.IsNotExist(CurrDir_err) {
-                            ConsOut = fmt.Sprintf("[+] Creating Sub-Directory: %s\n", CurrDir)
+                        if FileExists(IniFile) {
+                            ConsOut = fmt.Sprintf("[!] Switching to INI File: %s\n", Inrec[4:])
                             ConsLogSys(ConsOut, 1, 1)
 
-                            ExpandDirs(TempDir)
-                        }
-
-                        ConsOut = fmt.Sprintf("[+] File has been Set to: %s\n", CurrFil)
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "VR") {
-                        // Look for Replacements VR0: - VR9:
-                        for iVrx = 0; iVrx < 10; iVrx++ {
-                            if strings.HasPrefix(strings.ToUpper(Inrec), VarxArray[iVrx]) {
-                                VardArray[iVrx] = Inrec[4:]
-                            }
-                        }
-
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CN") {
-                        // Look for Replacements CN0: - CN9:
-                        for iCnx = 0; iCnx < 10; iCnx++ {
-                            if strings.HasPrefix(strings.ToUpper(Inrec), CntxArray[iCnx]) {
-                                if Inrec[4:] == "++" {
-                                    CntiArray[iCnx]++
-                                } else if Inrec[4:] == "--" {
-                                    CntiArray[iCnx]--
-                                } else {
-                                    CntiArray[iCnx], _ = strconv.Atoi(Inrec[4:])
-                                }
-                            }
-                        }
-
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "DRV:") {
-                        DiskDrive = Inrec[4:]
-
-                        ConsOut = fmt.Sprintf("[+] Disk Drive Set to: %s\n", DiskDrive)
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "XTR:") {
-                        // Force Extraction of the embedded toolkit - Be careful with this one
-                        ConsOut = fmt.Sprintf("[*] UnEmbedding the ToolKit\n")
-                        ConsLogSys(ConsOut, 1, 2)
-                        UnEmbed(embdata)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "INI:") {
-                        IniFile = Inrec[4:]
-
-                        if strings.ToUpper(IniFile) == "CONSOLE" {
+                            // Only close the handle if its not Console. If it is Console Set it back to File
                             if consOrFile == 0 {
-                                RunMode = "Con"
-                                inFnam = "Console"
-                                Console_Status = 1
-                                iRunMode = 1
-                                consOrFile = 1
-
-                                ConsOut = fmt.Sprintf("[+] Switching to Console (Interactive Mode)\n")
-                                ConsLogSys(ConsOut, 1, 1)
-
                                 HndlArry[iIniCount].Close()
-                                //fmt.Printf(">>>")
-                                ScanArry[iIniCount] = bufio.NewScanner(os.Stdin)
+                            } else {
+                                consOrFile = 0
                             }
+
+                            HndlArry[iIniCount], ini_err = os.Open(IniFile)
+                            if ini_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Opening Ini File: %s - Exiting.\n", IniFile)
+                                ConsLogSys(ConsOut, 1, 2)
+
+                                cleanUp_Exit(3)
+                                os.Exit(3)
+                            }
+
+                            RunMode = "Ini"
+                            ScanArry[iIniCount] = bufio.NewScanner(HndlArry[iIniCount])
+                            RunMe = 0  // Conditional run Script default is yes
+
                         } else {
-                            // _, exist_err := os.Stat(IniFile)
-                            // if os.IsNotExist(exist_err) {
+                            ConsOut = fmt.Sprintf("[!] Requested INI File Not Found: %s - Ignored.\n", Inrec[4:])
+                            ConsLogSys(ConsOut, 1, 2)
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "INC:") {
+                    // Include an INI file - All variables, Labels, Etc. Remain the same
+                    // It is essentially an injected INI file that is inline
+                    IncFile = Inrec[4:]
 
-                            if FileExists(IniFile) {
-                                ConsOut = fmt.Sprintf("[!] Switching to INI File: %s\n", Inrec[4:])
-                                ConsLogSys(ConsOut, 1, 1)
+                    if iIniCount > 8 {
+                        ConsOut = fmt.Sprintf("[!] Maximum Nested INC: Files has been exceeded.  Ignoring: %s...\n", IncFile)
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        if FileExists(IncFile) {
+                            ConsOut = fmt.Sprintf("[+] Including INC File: %s\n", Inrec[4:])
+                            ConsLogSys(ConsOut, 1, 1)
 
-                                // Only close the handle if its not Console. If it is Console Set it back to File
-                                if consOrFile == 0 {
-                                    HndlArry[iIniCount].Close()
-                                } else {
-                                    consOrFile = 0
-                                }
+                            // Programming note: Here we DO NOT Close the parent file. But bump the array 
+                            // to have an additonal open file
+                            iIniCount++
 
-                                HndlArry[iIniCount], ini_err = os.Open(IniFile)
-                                if ini_err != nil {
-                                    ConsOut = fmt.Sprintf("[!] Error Opening Ini File: %s - Exiting.\n", IniFile)
-                                    ConsLogSys(ConsOut, 1, 2)
-
-                                    cleanUp_Exit(3)
-                                    os.Exit(3)
-                                }
-
+                            HndlArry[iIniCount], ini_err = os.Open(IncFile)
+                            if ini_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Opening Include File: %s - Ignoring.\n", IncFile)
+                                ConsLogSys(ConsOut, 1, 2)
+                                iIniCount--
+                            } else {
                                 RunMode = "Ini"
                                 ScanArry[iIniCount] = bufio.NewScanner(HndlArry[iIniCount])
                                 RunMe = 0  // Conditional run Script default is yes
-
-                            } else {
-                                ConsOut = fmt.Sprintf("[!] Requested INI File Not Found: %s - Ignored.\n", Inrec[4:])
-                                ConsLogSys(ConsOut, 1, 2)
                             }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "INC:") {
-                        // Include an INI file - All variables, Labels, Etc. Remain the same
-                        // It is essentially an injected INI file that is inline
-                        IncFile = Inrec[4:]
-
-                        if iIniCount > 8 {
-                            ConsOut = fmt.Sprintf("[!] Maximum Nested INC: Files has been exceeded.  Ignoring: %s...\n", IncFile)
-                            ConsLogSys(ConsOut, 1, 1)
                         } else {
-                            if FileExists(IncFile) {
-                                ConsOut = fmt.Sprintf("[+] Including INC File: %s\n", Inrec[4:])
-                                ConsLogSys(ConsOut, 1, 1)
-
-                                // Programming note: Here we DO NOT Close the parent file. But bump the array 
-                                // to have an additonal open file
-                                iIniCount++
-
-                                HndlArry[iIniCount], ini_err = os.Open(IncFile)
-                                if ini_err != nil {
-                                    ConsOut = fmt.Sprintf("[!] Error Opening Include File: %s - Ignoring.\n", IncFile)
-                                    ConsLogSys(ConsOut, 1, 2)
-                                    iIniCount--
-                                } else {
-                                    RunMode = "Ini"
-                                    ScanArry[iIniCount] = bufio.NewScanner(HndlArry[iIniCount])
-                                    RunMe = 0  // Conditional run Script default is yes
-                                }
-                            } else {
-                                ConsOut = fmt.Sprintf("[!] Requested INC File Not Found: %s - Ignored.\n", Inrec[4:])
-                                ConsLogSys(ConsOut, 1, 2)
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "ADM:CHECK") {
-                        ConsOut = fmt.Sprintf("[+] Running as %sAdmin/Root\n", sIsAdmin)
-                        ConsLogSys(ConsOut, 1, 1)
-
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "ADM:FORCE") {
-                        if iIsAdmin == 1 {
-                            ConsOut = fmt.Sprintf("[+] Running as Admin/Root - Continuing...\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                        } else {
-                            ConsOut = fmt.Sprintf("[+] NOT Running as Admin/Root - Exiting...\n")
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            cleanUp_Exit(3)
-                            os.Exit(3)
-                        }
-
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:HIDE") {
-                        ConsOut = fmt.Sprintf("[+] Hiding Console...\n")
-                        ConsLogSys(ConsOut, 1, 1)
-                        winConHideShow(0)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:SHOW") {
-                        ConsOut = fmt.Sprintf("[+] Showing Console...\n")
-                        ConsLogSys(ConsOut, 1, 1)
-                        winConHideShow(1)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:LAST") {
-                        ConsLastTen()
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=MIN") {
-                        setMSGLvl = 1
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=STD") {
-                        setMSGLvl = 2
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=MAX") {
-                        setMSGLvl = 3
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=DEBUG") {
-                        setMSGLvl = 4
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SLP:") {
-                        iSleep, _ = strconv.Atoi(Inrec[4:])
-                        time.Sleep (time.Duration(iSleep) * time.Second)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "INP:") {
-                        consInput(Inrec[4:], 1, 0)
-                        Inprec = Conrec
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "VCK:") {
-                        isNTFS = 0
-                        volType = winGetVolInfo(Inrec[4:])
-
-                        // This should only work in Windows - Linux and OSX will be UNKNOWN
-                        if volType == "NTFS" {
-                            isNTFS = 1
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "USR:") {
-                        inUser = Inrec[4:]
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "PWD:") {
-                        inPass = Inrec[4:]
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "ENC:") {
-                        //****************************************************************
-                        //* Encrypt File From => To                                      *
-                        //****************************************************************
-                        ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
-                        ConsLogSys(ConsOut, 1, 1)
-
-                        Encrec = Inrec[4:]
-
-                        splitString1, splitString2, SplitRC := twoSplit(Encrec)
-
-                        if len(splitString1) < 1 {
-                            ConsOut = fmt.Sprintf("[!] No File Specified to Encrypt\n")
+                            ConsOut = fmt.Sprintf("[!] Requested INC File Not Found: %s - Ignored.\n", Inrec[4:])
                             ConsLogSys(ConsOut, 1, 2)
-                        } else {
-                            if SplitRC == 1 {
-                                // Set Output file by appending .ECR to it if no output specified
-                                splitString2 = fmt.Sprintf("%s.ECR", splitString1)
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "ADM:CHECK") {
+                    ConsOut = fmt.Sprintf("[+] Running as %sAdmin/Root\n", sIsAdmin)
+                    ConsLogSys(ConsOut, 1, 1)
 
-                                ConsOut = fmt.Sprintf("[*] Generating Encryption File Name: %s\n", splitString2)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "ADM:FORCE") {
+                    if iIsAdmin == 1 {
+                        ConsOut = fmt.Sprintf("[+] Running as Admin/Root - Continuing...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        ConsOut = fmt.Sprintf("[+] NOT Running as Admin/Root - Exiting...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        cleanUp_Exit(3)
+                        os.Exit(3)
+                    }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:HIDE") {
+                    ConsOut = fmt.Sprintf("[+] Hiding Console...\n")
+                    ConsLogSys(ConsOut, 1, 1)
+                    winConHideShow(0)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:SHOW") {
+                    ConsOut = fmt.Sprintf("[+] Showing Console...\n")
+                    ConsLogSys(ConsOut, 1, 1)
+                    winConHideShow(1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:LAST") {
+                    ConsLastTen()
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=MIN") {
+                    setMSGLvl = 1
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=STD") {
+                    setMSGLvl = 2
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=MAX") {
+                    setMSGLvl = 3
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CON:MSGLEVEL=DEBUG") {
+                    setMSGLvl = 4
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SLP:") {
+                    iSleep, _ = strconv.Atoi(Inrec[4:])
+                    time.Sleep (time.Duration(iSleep) * time.Second)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "INP:") {
+                    consInput(Inrec[4:], 1, 0)
+                    Inprec = Conrec
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "VCK:") {
+                    isNTFS = 0
+                    volType = winGetVolInfo(Inrec[4:])
+
+                    // This should only work in Windows - Linux and OSX will be UNKNOWN
+                    if volType == "NTFS" {
+                        isNTFS = 1
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "USR:") {
+                    inUser = Inrec[4:]
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "PWD:") {
+                    inPass = Inrec[4:]
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "ENC:") {
+                    //****************************************************************
+                    //* Encrypt File From => To                                      *
+                    //****************************************************************
+                    ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    Encrec = Inrec[4:]
+
+                    splitString1, splitString2, SplitRC := twoSplit(Encrec)
+
+                    if len(splitString1) < 1 {
+                        ConsOut = fmt.Sprintf("[!] No File Specified to Encrypt\n")
+                        ConsLogSys(ConsOut, 1, 2)
+                    } else {
+                        if SplitRC == 1 {
+                            // Set Output file by appending .ECR to it if no output specified
+                            splitString2 = fmt.Sprintf("%s.ECR", splitString1)
+
+                            ConsOut = fmt.Sprintf("[*] Generating Encryption File Name: %s\n", splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } 
+
+                        if FileExists(splitString1) {
+                            plaindata, _ := ioutil.ReadFile(splitString1)
+                            encryptFile(splitString2, plaindata, inPass)
+
+                            if inPass == "none" {
+                                ConsOut = fmt.Sprintf("[*] Warning: You are Encrypting with the DEFAULT PASSWORD. This is not recommended.\n")
                                 ConsLogSys(ConsOut, 1, 1)
-                            } 
+                            }
+                        } else {
+                            ConsOut = fmt.Sprintf("[!] File to Encrypt Not Found: %s\n", splitString1)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "DEC:") {
+                    //****************************************************************
+                    //* Decrypt File From => To                                      *
+                    //****************************************************************
+                    ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
+                    ConsLogSys(ConsOut, 1, 1)
 
-                            if FileExists(splitString1) {
-                                plaindata, _ := ioutil.ReadFile(splitString1)
-                                encryptFile(splitString2, plaindata, inPass)
+                    Encrec = Inrec[4:]
 
-                                if inPass == "none" {
-                                    ConsOut = fmt.Sprintf("[*] Warning: You are Encrypting with the DEFAULT PASSWORD. This is not recommended.\n")
+                    splitString1, splitString2, SplitRC := twoSplit(Encrec)
+
+                    if len(splitString1) < 1 {
+                        ConsOut = fmt.Sprintf("[!] No File Specified to Decrypt\n")
+                        ConsLogSys(ConsOut, 1, 2)
+                    } else {
+
+                        if SplitRC == 1 {
+                            // Set Output file by appending .DCR to it if no output specified
+                            splitString2 = fmt.Sprintf("%s.DCR", splitString1)
+
+                            ConsOut = fmt.Sprintf("[*] Generating Decryption File Name: %s\n", splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } 
+
+                        if FileExists(splitString1) {
+                            plaindata := decryptFile(splitString1, inPass)
+
+                            decFileName, _ := os.Create(splitString2)
+                            defer decFileName.Close()
+                            decFileName.Write(plaindata)
+                        } else {
+                            ConsOut = fmt.Sprintf("[!] File to Decrypt Not Found: %s\n", splitString1)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "ZIP:") {
+                    //****************************************************************
+                    //* Improved Zipping Routine - v10.00.58                         *
+                    //****************************************************************
+                    if len(Inrec) < 5 {
+                        ConsOut = fmt.Sprintf("[!] No Input File Specified to Zip.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        break
+                    }
+
+                    ZipInrec := Inrec[4:]
+                    ConsOut = fmt.Sprintf("[+] Zipping: %s ==> %s\n", ZipInrec, setOutZipFName)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    //****************************************************************
+                    //* Dont allow zipping a file into itself - Yeah, that can happen*
+                    //****************************************************************
+                    if ZipInrec == setOutZipFName {
+                        ConsOut = fmt.Sprintf("[!] Zipping a File into itself... Im sorry Dave, Im afraid I cant do that.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        break
+                    }
+
+                    //****************************************************************
+                    //* If we are zipping from the current Acquisition Directory, do *
+                    //*  Not inlude the root.  Just the Subdirs                      *
+                    //* IMPORTANT: Check FULL ACQDir FIRST, then Base ACQ Directory  *
+                    //****************************************************************
+                    TempDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
+
+                    if strings.HasPrefix(strings.ToUpper(ZipInrec), strings.ToUpper(TempDir)) {
+                        zipOffset = len(TempDir)
+
+                        // Dont Land on a Delimiter
+                        if ZipInrec[zipOffset] == slashDelim {
+                            zipOffset++
+                        }
+                          
+                    } else if strings.HasPrefix(strings.ToUpper(ZipInrec), strings.ToUpper(BACQDir)) {
+                        zipOffset = len(BACQDir)
+
+                        // Dont Land on a Delimiter
+                        if ZipInrec[zipOffset] == slashDelim {
+                            zipOffset++
+                        }
+
+                    } else if strings.HasPrefix(strings.ToUpper(ZipInrec), strings.ToUpper(BaseDir)) {
+                        zipOffset = len(BaseDir)
+
+                        // Dont Land on a Delimiter
+                        if ZipInrec[zipOffset] == slashDelim {
+                            zipOffset++
+                        }
+                    } else {
+                        //****************************************************************
+                        //* Ignore our Root Directory, but presere everything under it   *
+                        //****************************************************************
+                        zipOffset = strings.IndexByte(ZipInrec, slashDelim)
+                        if (zipOffset == -1) {
+                            zipOffset = 0
+                        } else if len(ZipInrec[zipOffset+1:]) < 2 {
+                            zipOffset = 0
+                        } else {
+                            zipOffset++
+                        }
+                    }
+
+                    if iWasZipping == 0 {
+                        if FileExists(setOutZipFName) {
+                            ConsOut = fmt.Sprintf("[!] Zip File Aready Exists. Please Create a New Zip File: %s\n", setOutZipFName)
+                            ConsLogSys(ConsOut, 1, 1)
+                            break
+                        }
+
+                        ConsOut = fmt.Sprintf("[+] Opening Zip File: %s\n", setOutZipFName)
+                        ConsLogSys(ConsOut, 3, 3)
+                        iWasZipping = 1
+
+
+                        //****************************************************************
+                        //* Open/Create the Output Zip File                              *
+                        //****************************************************************
+                        ZipHndl, zip_err = os.OpenFile(setOutZipFName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+                        if zip_err != nil {
+                            ConsOut = fmt.Sprintf("[!] Error Opening Zip File: %s\n", setOutZipFName)
+                            ConsLogSys(ConsOut, 1, 1)
+                            break
+                        }
+
+                        //****************************************************************
+                        //* Create a Zip Writer                                          *
+                        //****************************************************************
+                        ConsOut = fmt.Sprintf("[+] Opening Zip Writer\n")
+                        ConsLogSys(ConsOut, 3, 3)
+                        zipWriter = zip.NewWriter(ZipHndl)
+                    }
+
+
+                    //****************************************************************
+                    //* Read Input & Add it to Zip Archive                           *
+                    //****************************************************************
+                    ConsOut = fmt.Sprintf("[+] Opening Input File: %s\n", ZipInrec)
+                    ConsLogSys(ConsOut, 3, 3)
+
+                    fileToZip, zipi_err := os.Open(ZipInrec)
+                    if zipi_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Opening Input File: %s\n", ZipInrec)
+                        ConsLogSys(ConsOut, 3, 3)
+                        continue
+                    }
+
+
+                    //****************************************************************
+                    //* Get the file information                                     *
+                    //****************************************************************
+                    ConsOut = fmt.Sprintf("[+] Checking Input File Metadata: %s\n", ZipInrec)
+                    ConsLogSys(ConsOut, 3, 3)
+
+                    zipInfo, zips_err := fileToZip.Stat()
+                    if zips_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Checking Input File Metadata: %s\n", ZipInrec)
+                        ConsLogSys(ConsOut, 3, 3)
+                        continue
+                    }
+
+                    ConsOut = fmt.Sprintf("[+] Checking Input File Header: %s\n", ZipInrec)
+                    ConsLogSys(ConsOut, 3, 3)
+
+                    Zipheader, ziph_err := zip.FileInfoHeader(zipInfo)
+                    if ziph_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Checking Input File Header: %s\n", ZipInrec)
+                        ConsLogSys(ConsOut, 3, 3)
+                        continue 
+                    }
+
+                    //*****************************************************************
+                    //* Using FileInfoHeader() above only uses the basename of the    *
+                    //* file. Preserve the folder structure by using the first Offset *
+                    //*****************************************************************
+                    if len(setOutZipFRoot) < 1 {
+                        Zipheader.Name = fmt.Sprintf("%s", ZipInrec[zipOffset:])
+                    } else {
+                        Zipheader.Name = fmt.Sprintf("%s%c%s", setOutZipFRoot, slashDelim, ZipInrec[zipOffset:])
+                    }
+
+                    ConsOut = fmt.Sprintf("[+] OutZipFileHeader: %s - Offset: %d\n", Zipheader.Name, zipOffset)
+                    ConsLogSys(ConsOut, 3, 3)
+
+
+                    //*****************************************************************
+                    //* Change to deflate to gain better compression                  *
+                    //* see http://golang.org/pkg/archive/zip/#pkg-constants          *
+                    //*****************************************************************
+                    Zipheader.Method = zip.Deflate
+
+                    OutZipWriter, ozip_err := zipWriter.CreateHeader(Zipheader)
+                    if ozip_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Creating ZipWriter/Header\n")
+                        ConsLogSys(ConsOut, 3, 3)
+                        continue
+                    }
+
+                    procwz_countr++
+                    ConsOut = fmt.Sprintf("[+] Writing File into Zip Archive: %d\n", procwz_countr)
+                    ConsLogSys(ConsOut, 3, 3)
+
+                    _, ozip_err = io.Copy(OutZipWriter, fileToZip)
+
+                    fileToZipClose(fileToZip)
+
+
+
+
+
+
+                // BETA Test of NCP:
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "NCP:") {
+                    ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    Cpyrec = Inrec[4:]
+
+                    splitString1, splitString2, SplitRC := twoSplit(Cpyrec)
+                    // Remove any duplicate Delimiters - This is necessary to prevent indexing errors when
+                    //  The found file does not match the search string (OS ignore duplicated delimiters)
+                    oneDelim := fmt.Sprintf("%c", slashDelim)
+                    twoDelim := fmt.Sprintf("%c%c", slashDelim, slashDelim)
+
+                    iOldLen = 1
+                    iNewLen = 0
+                    for iOldLen != iNewLen {
+                        iOldLen = len(splitString1)
+                        splitString1 = strings.Replace(splitString1, twoDelim, oneDelim, -1)
+                        iNewLen = len(splitString1)
+                    }
+
+                    iOldLen = 1
+                    iNewLen = 0
+                    for iOldLen != iNewLen {
+                        iOldLen = len(splitString2)
+                        splitString2 = strings.Replace(splitString2, twoDelim, oneDelim, -1)
+                        iNewLen = len(splitString2)
+                    }
+
+                    if SplitRC == 1 {
+                        ConsOut = fmt.Sprintf("[!] Copying Requires both a FROM File and a TO Directory\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        //ConsOut = fmt.Sprintf("CPY: %s to %s\n", splitString1, splitString2)
+                        //ConsLogSys(ConsOut, 1, 1)
+                        NTFSRawCopy(splitString1, splitString2)
+                    }
+                // BETA Test of NCP:
+
+
+
+
+
+
+
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CPY:") || strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
+                    //****************************************************************
+                    //* Binary Copy From => To                                       *
+                    //****************************************************************
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
+                        iCPS = 1
+                    } else {
+                        iCPS = 0
+                    }
+
+                    ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    Cpyrec = Inrec[4:]
+
+                    splitString1, splitString2, SplitRC := twoSplit(Cpyrec)
+
+                    // Remove any duplicate Delimiters - This is necessary to prevent indexing errors when
+                    //  The found file does not match the search string (OS ignore duplicated delimiters)
+                    oneDelim := fmt.Sprintf("%c", slashDelim)
+                    twoDelim := fmt.Sprintf("%c%c", slashDelim, slashDelim)
+
+                    iOldLen = 1
+                    iNewLen = 0
+                    for iOldLen != iNewLen {
+                        iOldLen = len(splitString1)
+                        splitString1 = strings.Replace(splitString1, twoDelim, oneDelim, -1)
+                        iNewLen = len(splitString1)
+                    }
+
+                    iOldLen = 1
+                    iNewLen = 0
+                    for iOldLen != iNewLen {
+                        iOldLen = len(splitString2)
+                        splitString2 = strings.Replace(splitString2, twoDelim, oneDelim, -1)
+                        iNewLen = len(splitString2)
+                    }
+
+                    if SplitRC == 1 {
+                        ConsOut = fmt.Sprintf("[!] Copying Requires both a FROM File and a TO Directory\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        //ConsOut = fmt.Sprintf("CPY: %s to %s\n", splitString1, splitString2)
+                        //ConsLogSys(ConsOut, 1, 1)
+
+
+                        //*****************************************************************
+                        //* Golang does not support ** - So this code approximates it     *
+                        //*  using filepath.Walk.  The limitation is that the string cant *
+                        //*  contain another * BEFORE the ** because filepath.Walk does   *
+                        //*  not support wildcards. This code is a decent compromise.     *
+                        //*****************************************************************
+                        DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
+                        if strings.Contains(splitString1, DubGlob) {
+                            iDblShard = strings.Index(splitString1, DubGlob)
+                            if iDblShard > 0 {
+                                WalkDir := splitString1[:iDblShard]
+                                WalkfileWild = splitString1[iDblShard+3:]
+                                WalkfileToo = splitString2
+
+                                BasicCopy := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
+                                CopyParser(BasicCopy, splitString2)
+
+                                filepath.Walk(WalkDir, WalkCopyGlob)
+                            }
+                        } else {
+                            CopyParser(splitString1, splitString2)
+                        }
+                    }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SIG:") {
+                    /****************************************************************/
+                    /* Clear the File Signature Table, or Load a signature          */
+                    /****************************************************************/
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "SIG:CLEAR") {
+                        iSigCount = 0
+                    } else {
+                        if strings.Contains(Inrec, "=") {
+                            SigSplit := strings.Split(Inrec, "=")
+                            if len(SigSplit[0]) > 4 && len(SigSplit[1]) > 0 {
+                                TypTabl[iSigCount] = SigSplit[0][4:]
+                                SigTabl[iSigCount] = SigSplit[1]
+
+                                // Max Signatures?
+                                if iSigCount < iSigTMax {
+                                    ConsOut = fmt.Sprintf("[+] Signature Added. Type: %s, Sig: %s, Count: %d/100\n", TypTabl[iSigCount], SigTabl[iSigCount], iSigCount+1)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                    iSigCount++
+                                } else {
+                                    ConsOut = fmt.Sprintf("[+] Signature Not Added. Maximum Signature Count is 100\n")
                                     ConsLogSys(ConsOut, 1, 1)
                                 }
-                            } else {
-                                ConsOut = fmt.Sprintf("[!] File to Encrypt Not Found: %s\n", splitString1)
-                                ConsLogSys(ConsOut, 1, 1)
                             }
                         }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "DEC:") {
-                        //****************************************************************
-                        //* Decrypt File From => To                                      *
-                        //****************************************************************
-                        ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "REX:") {
+                    /****************************************************************/
+                    /* Clear the File REGEX Signature Table, or Load a REGEX        */
+                    /****************************************************************/
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "REX:CLEAR") {
+                        iRexCount = 0
+                    } else {
+                        if len(Inrec) > 4 {
+                            _, rex_err := regexp.Compile(Inrec[4:])
+                            if rex_err != nil {
+                                ConsOut = fmt.Sprintf("[!] REGEX Invalid and Ignored: %s\n", Inrec[4:])
+                                ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                RexTabl[iSigCount] = Inrec[4:]
+
+                                // Max Signatures?
+                                if iRexCount < iRexTMax {
+                                    ConsOut = fmt.Sprintf("[+] REGEX Added: %s, Count: %d/100\n", RexTabl[iSigCount], iRexCount+1)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                    iRexCount++
+                                } else {
+                                    ConsOut = fmt.Sprintf("[+] REGEX Not Added. Maximum REGEX Count is 100\n")
+                                    ConsLogSys(ConsOut, 1, 1)
+                                }
+                            }
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "HST:") {
+                    /****************************************************************/
+                    /* Clear the File HASH Signature Table, or Load a HASH          */
+                    /****************************************************************/
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "HST:CLEAR") {
+                        iHstCount = 0
+                    } else {
+                        HstTabl[iHstCount] = Inrec[4:]
+
+                        // Max Signatures?
+                        if iHstCount < iHstTMax {
+                            ConsOut = fmt.Sprintf("[+] Hash Added: %s, Count: %d/100\n", HstTabl[iHstCount], iHstCount+1)
+                            ConsLogSys(ConsOut, 1, 1)
+                            iHstCount++
+                        } else {
+                            ConsOut = fmt.Sprintf("[+] Hash Not Added. Maximum Hash Count is 100\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "EQU:") {
+                    Cmprec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Cmprec)
+
+                    if(consOrFile == 1) {
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else if splitString1 != splitString2 {
+                            ConsOut = fmt.Sprintf("[*] Strings Are NOT Equal: %s != %s\n", splitString1, splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Strings ARE Equal: %s == %s\n", splitString1, splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings - Comparison Set To False.\n")
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        } else if splitString1 == splitString2 {
+                            // Yes on First Match Only
+                            if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                            RunMe++
+                            NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "N>>:") || strings.HasPrefix(strings.ToUpper(Inrec), "N<<:") || strings.HasPrefix(strings.ToUpper(Inrec), "N==:") {
+                    Cmprec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Cmprec)
+
+                    if SplitRC == 1 {
+                        ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Numbers - Setting missing number(s) to Zero.\n")
                         ConsLogSys(ConsOut, 1, 1)
 
-                        Encrec = Inrec[4:]
+                        if len(splitString1) < 1 { splitString1 = "0" }
+                        if len(splitString2) < 1 { splitString2 = "0" }
+                    }
 
-                        splitString1, splitString2, SplitRC := twoSplit(Encrec)
 
-                        if len(splitString1) < 1 {
-                            ConsOut = fmt.Sprintf("[!] No File Specified to Decrypt\n")
-                            ConsLogSys(ConsOut, 1, 2)
-                        } else {
 
-                            if SplitRC == 1 {
-                                // Set Output file by appending .DCR to it if no output specified
-                                splitString2 = fmt.Sprintf("%s.DCR", splitString1)
+                    longString1, _ := strconv.Atoi(splitString1)
+                    longString2, _ := strconv.Atoi(splitString2)
 
-                                ConsOut = fmt.Sprintf("[*] Generating Decryption File Name: %s\n", splitString2)
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "N>>:") {
+                        if longString1 > longString2 {
+                            if(consOrFile == 1) {
+                                ConsOut = fmt.Sprintf("[*] %d Is Greater Than %d\n", longString1, longString2)
                                 ConsLogSys(ConsOut, 1, 1)
-                            } 
-
-                            if FileExists(splitString1) {
-                                plaindata := decryptFile(splitString1, inPass)
-
-                                decFileName, _ := os.Create(splitString2)
-                                defer decFileName.Close()
-                                decFileName.Write(plaindata)
                             } else {
-                                ConsOut = fmt.Sprintf("[!] File to Decrypt Not Found: %s\n", splitString1)
+                                // Yes on First Match Only
+                                if YesFound == 0 {
+                                    YesFound = 1
+                                }
+                            }
+                        } else {
+                            if(consOrFile == 1) {
+                                ConsOut = fmt.Sprintf("[*] %d Is NOT Greater Than %d\n", longString1, longString2)
                                 ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                // No On First Not Match Only
+                                if NotFound == 0 {
+                                    NotFound = 1
+                                }
                             }
                         }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "ZIP:") {
-                        //****************************************************************
-                        //* Improved Zipping Routine - v10.00.58                         *
-                        //****************************************************************
-                        if len(Inrec) < 5 {
-                            ConsOut = fmt.Sprintf("[!] No Input File Specified to Zip.\n")
+
+                        if(consOrFile != 1) {
+                            if NotFound == 1 && YesFound == 0 {
+                                 // Not Found, Increment Just Once
+                                 RunMe++
+                                 NotFound = 2
+                            } else if YesFound == 1 && NotFound == 2 {
+                                // undo the Previous Runme++ and make sure we dont do it again.
+                                RunMe--
+                                YesFound = 2
+                            }
+                        }
+
+                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "N<<:") {
+                        if longString1 < longString2 {
+                            if(consOrFile == 1) {
+                                ConsOut = fmt.Sprintf("[*] %d Is Less Than %d\n", longString1, longString2)
+                                ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                // Yes on First Match Only
+                                if YesFound == 0 {
+                                    YesFound = 1
+                                }
+                            }
+                        } else {
+                            if(consOrFile == 1) {
+                                ConsOut = fmt.Sprintf("[*] %d Is NOT Less Than %d\n", longString1, longString2)
+                                ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                // No On First Not Match Only
+                                if NotFound == 0 {
+                                    NotFound = 1
+                                }
+                            }
+                        }
+
+                        if(consOrFile != 1) {
+                            if NotFound == 1 && YesFound == 0 {
+                                 // Not Found, Increment Just Once
+                                 RunMe++
+                                 NotFound = 2
+                            } else if YesFound == 1 && NotFound == 2 {
+                                // undo the Previous Runme++ and make sure we dont do it again.
+                                RunMe--
+                                YesFound = 2
+                            }
+                        }
+
+                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "N==:") {
+                        if longString1 == longString2 {
+                            if(consOrFile == 1) {
+                                ConsOut = fmt.Sprintf("[*] %d Is Equal To %d\n", longString1, longString2)
+                                ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                // Yes on First Match Only
+                                if YesFound == 0 {
+                                    YesFound = 1
+                                }
+                            }
+                        } else {
+                            if(consOrFile == 1) {
+                                ConsOut = fmt.Sprintf("[*] %d Is NOT Equal To %d\n", longString1, longString2)
+                                ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                // No On First Not Match Only
+                                if NotFound == 0 {
+                                    NotFound = 1
+                                }
+                            }
+                        }
+
+                        if(consOrFile != 1) {
+                            if NotFound == 1 && YesFound == 0 {
+                                 // Not Found, Increment Just Once
+                                 RunMe++
+                                 NotFound = 2
+                            } else if YesFound == 1 && NotFound == 2 {
+                                // undo the Previous Runme++ and make sure we dont do it again.
+                                RunMe--
+                                YesFound = 2
+                            }
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "NEQ:") {
+                    //****************************************************************
+                    //* Check for NOT EQUAL                                          *
+                    //****************************************************************
+                    Cmprec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Cmprec)
+
+                    if(consOrFile == 1) {
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else if splitString1 == splitString2 {
+                            ConsOut = fmt.Sprintf("[*] Strings are (NOT NOT) Equal: %s == %s\n", splitString1, splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Strings are NOT Equal: %s != %s\n", splitString1, splitString2)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings - Comparison Set to True.\n")
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            // Yes on First Match Only
+                            if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else if splitString1 != splitString2 {
+                            // Yes on First Match Only
+                            if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
+                        }
+                    }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "VER:") {
+                    //****************************************************************
+                    //* Check the Input String for Version.  This can be Partial.    *
+                    //*  For Example: Windows 10.0.18362 will get a TRUE for         *
+                    //*  Ver:Win, Ver:Windows 10, Ver:Windows 10.0.183, etc...       *
+                    //****************************************************************
+                    if consOrFile == 1 {
+                        ConsOut = fmt.Sprintf("[*] OS Version Detected: %s\n", OSVersion)
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        if strings.HasPrefix(strings.ToUpper(OSVersion), strings.ToUpper(Inrec[4:])) {
+                            // Yes on First Match Only
+                            if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC=:") {
+                    ChkRC, _ := strconv.Atoi(Inrec[4:]);
+                    if consOrFile == 1 {
+                        if LastRC != ChkRC {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was not: %d - It was: %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was: %d\n", LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if LastRC == ChkRC {
+                           // Yes on First Match Only
+                           if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC!:") {
+                    ChkRC, _ := strconv.Atoi(Inrec[4:]);
+                    if consOrFile == 1 {
+                        if LastRC == ChkRC {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was (NOT NOT): %d - It was: %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was not: %d - It was %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if LastRC != ChkRC {
+                           // Yes on First Match Only
+                           if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC<:") {
+                    ChkRC, _ := strconv.Atoi(Inrec[4:]);
+                    if consOrFile == 1 {
+                        if LastRC >= ChkRC {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was not Less Than: %d - It was: %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was Less Than: %d - It was: %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if LastRC < ChkRC {
+                           // Yes on First Match Only
+                           if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC>:") {
+                    ChkRC, _ := strconv.Atoi(Inrec[4:]);
+                    if consOrFile == 1 {
+                        if LastRC <= ChkRC {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was not Greater Than: %d - It was: %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Last Return Code was Greater Than: %d - It was: %d\n", ChkRC, LastRC)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if LastRC > ChkRC {
+                           // Yes on First Match Only
+                           if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CKY:") {
+                    ChkFile = strings.Trim(Inrec[4:], "\"")
+
+                    if consOrFile == 1 {
+                        if !FileExists(ChkFile) {
+                            ConsOut = fmt.Sprintf("[*] File Does Not Exist: %s\n", ChkFile)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] File Exists: %s\n", ChkFile)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if FileExists(ChkFile) {
+                           // Yes on First Match Only
+                           if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CKN:") {
+                    ChkFile = strings.Trim(Inrec[4:], "\"")
+                    if consOrFile == 1 {
+                        if FileExists(ChkFile) {
+                            ConsOut = fmt.Sprintf("[*] File Does (NOT NOT) Exist: %s\n", ChkFile)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] File Does Not Exist: %s\n", ChkFile)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if !FileExists(ChkFile) {
+                           // Yes on First Match Only
+                           if YesFound == 0 {
+                                YesFound = 1
+                            }
+                        } else {
+                            // No On First Not Match Only
+                            if NotFound == 0 {
+                                NotFound = 1
+                            }
+                        }
+
+                        if NotFound == 1 && YesFound == 0 {
+                            // Not Found, Increment Just Once
+                             RunMe++
+                             NotFound = 2
+                        } else if YesFound == 1 && NotFound == 2 {
+                            // undo the Previous Runme++ and make sure we dont do it again.
+                            RunMe--
+                            YesFound = 2
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "64B:") {
+                    if consOrFile == 1 {
+                        if strings.ToUpper(Procesr) != "AMD64" {
+                            ConsOut = fmt.Sprintf("[*] Not running in 64Bit. Processor: %s\n", Procesr)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Running in 64Bit. Processor: %s\n", Procesr)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if strings.ToUpper(Procesr) != "AMD64" {
+                            RunMe++
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "32B:") {
+                    if consOrFile == 1 {
+                        if strings.ToUpper(Procesr) != "386" {
+                            ConsOut = fmt.Sprintf("[*] Not running in 32Bit. Processor: %s\n", Procesr)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            ConsOut = fmt.Sprintf("[*] Running in 32Bit. Processor: %s\n", Procesr)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        if strings.ToUpper(Procesr) != "386" {
+                            RunMe++
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "REQ:") {
+                    if FileExists(Inrec[4:]) {
+                        ConsOut = fmt.Sprintf("[*] [!] Required File Found: %s\n", Inrec[4:])
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        ConsOut = fmt.Sprintf("[*] [*] Required File Not Found: %s - Exiting!\n", Inrec[4:])
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        cleanUp_Exit(3)
+                        os.Exit(3)
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SAY:") {
+                    ConsOut = fmt.Sprintf("%s\n", Inrec[4:])
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    //After writing, force the Log to be written to disk.
+                    if iLogOpen == 1 {
+                        LogHndl.Sync()
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "ECHO ") {
+                    ConsOut = fmt.Sprintf("%s\n", Inrec[5:])
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    //After writing, force the Log to be written to disk.
+                    if iLogOpen == 1 {
+                        LogHndl.Sync()
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "END:") {
+                    if len(Inrec) > 4 {
+                        // Is there a parameter after the END: Statement
+                        if strings.ToUpper(Inrec[4:]) == "RESET" {
+                            // The Parameter is RESET
+                            ConsOut = fmt.Sprintf("[+] Resetting Internal Conditional Execution Flag...\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                            RunMe = 0
+                        }
+                    } else if RunMe > 0 {
+                        RunMe--
+                    } else if RunMe < 0 {
+                        //* Something went wrong and our logic created a negative RunMe - Reset to 0
+                        ConsOut = fmt.Sprintf("[!] Internal Error, Resetting Internal Conditional Execution Flag...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        RunMe = 0
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "OPN:") {
+                    // If we already had a file open, close it now.
+                    if iOPNisOpen == 1 {
+                        ConsOut = fmt.Sprintf("[*] Previously Opened File has been Closed.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        OpnHndl.Close()
+                    }
+
+                    OpnHndl, opn_err = os.OpenFile(Inrec[4:], os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+                    if opn_err != nil {
+                        ConsOut = fmt.Sprintf("[!] File Could not be opened for Append:\n    %s\n", Inrec[4:])
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        iOPNisOpen = 0
+                    } else {
+                        ConsOut = fmt.Sprintf("[+] File Opened for Append:\n    %s\n", Inrec[4:])
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        iOPNisOpen = 1
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "OUT:") {
+                    if iOPNisOpen == 1 {
+                        OpnHndl.WriteString(Inrec[4:]+"\n")
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] No File OPN:(ed) for Append:\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "PZZ:") {
+                    ConsOut = fmt.Sprintf("%s\n", Inrec[4:])
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    consInput(Inrec[4:], 1, 0)
+                    Inprec = Conrec
+
+                    if len(Inprec) > 0 {
+                        if Inprec[0] == 'q' || Inprec[0] == 'Q' {
+                            ConsOut = fmt.Sprintf("[+] You Have Requested AChoirX to Quit.\n")
+                            ConsLogSys(ConsOut, 1, 1)
+
+                            cleanUp_Exit(0)
+                            os.Exit(0)
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "HSH:") {
+                    if len(Inrec) > 4 {
+                        if strings.ToUpper(Inrec[4:]) == "ACQ" {
+                            ConsOut = fmt.Sprintf("[+] Now Hashing  Acquisition Files.\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                            MD5File = fmt.Sprintf("%s%cACQHash.txt", BACQDir, slashDelim)
+                            TempDir = BACQDir
+                        } else if strings.ToUpper(Inrec[4:]) == "DIR" {
+                            ConsOut = fmt.Sprintf("[+] Now Hashing  Entire AChoirX Directory.\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                            MD5File = fmt.Sprintf("%s%cDirHash.txt", BaseDir, slashDelim)
+                            TempDir = BaseDir
+                        } else {
+                            LastHash = GetMD5File(strings.Trim(Inrec[4:], "\""))
+                            break
+                        }
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] No Hashing Parameter Specified.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        break
+                    }
+                    //****************************************************************
+                    // Do File Search using Walk because Glob does not support **    *
+                    //****************************************************************
+                    MD5Hndl, opn_err = os.OpenFile(MD5File, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+                    if opn_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Openning Hash Log: %s\n", opn_err)
+                        ConsLogSys(ConsOut, 1, 1)
+                        break
+                    }
+
+                    filepath.Walk(TempDir, MD5FileOut)
+
+                    MD5Hndl.Close()
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "DSK:") {
+                    // Checking Drive Types for Windows only
+                    // DRIVE_CDROM = 5, DRIVE_FIXED = 3, DRIVE_RAMDISK = 6, DRIVE_REMOTE = 4, DRIVE_REMOVABLE = 2
+                    if iopSystem == 0 {
+                        ExpandDirs(CachDir)
+                        ForDisk = fmt.Sprintf("%s%cForDisks", CachDir, slashDelim)
+
+                        if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "REMOV") {
+                            dskTyp = 2
+                        } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "FIXED") {
+                            dskTyp = 3
+                        } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "REMOT") {
+                            dskTyp = 4
+                        } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "CDROM") {
+                            dskTyp = 5
+                        } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "RAMDI") {
+                            dskTyp = 6
+                        } else {
+                            dskTyp = 3
+                        }
+
+                        DskHndl, dsk_err = os.OpenFile(ForDisk, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+                        if dsk_err != nil {
+                            ConsOut = fmt.Sprintf("[!] System Disk Tracking File Could not be opened.\n")
                             ConsLogSys(ConsOut, 1, 1)
                             break
                         }
 
-                        ZipInrec := Inrec[4:]
-                        ConsOut = fmt.Sprintf("[+] Zipping: %s ==> %s\n", ZipInrec, setOutZipFName)
+
+                        for iDrv := 0; iDrv < 24; iDrv++ {
+                            GotDriveType := GetDriveType(DrvsArray[iDrv])
+
+                            if GotDriveType == dskTyp {
+                                //DskHndl.WriteString(DrvsArray[iDrv] + "\n")
+
+                                DrvLtr := fmt.Sprintf("%c\n", DrvsArray[iDrv][0])
+                                DskHndl.WriteString(DrvLtr)
+                            }
+                        }
+
+                        DskHndl.Close()
+
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] Bypassing Drive and Memory Routines - We are not running on Windows\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "FOR:") {
+                    ExpandDirs(CachDir)
+                    ForFile = fmt.Sprintf("%s%cForFiles", CachDir, slashDelim)
+                    TempDir = Inrec[4:]
+
+                    //*****************************************************************
+                    //* If we are using FOR: with a ListFile (FOR:&LST), Append the   *
+                    //*  data in ForFile - unless it's our first &LST, then open      *
+                    //*  New/Truncate -  Otherwise always open New/Truncate           *
+                    //*****************************************************************
+                    if (LstMe == 1) && (iLstCnt > 1) {
+                      ForHndl, for_err = os.OpenFile(ForFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
+                    } else {
+                      ForHndl, for_err = os.OpenFile(ForFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+                    }
+
+                    if for_err != nil {
+                        ConsOut = fmt.Sprintf("[!] System File Tracking File Could not be opened.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        break
+                    }
+
+                    //*****************************************************************
+                    //* Golang does not support ** - So this code approximates it     *
+                    //*  using filepath.Walk.  The limitation is that the string cant *
+                    //*  contain another * BEFORE the ** because filepath.Walk does   *
+                    //*  not support wildcards. This code is a decent compromise.     *
+                    //*****************************************************************
+                    DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
+                    if strings.Contains(TempDir, DubGlob) {
+                        iDblShard = strings.Index(TempDir, DubGlob)
+                        if iDblShard > 0 {
+                            WalkDir := TempDir[:iDblShard]
+                            WalkfileWild = TempDir[iDblShard+3:]
+
+                            BasicFor := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
+                            ForParser(BasicFor)
+
+                            filepath.Walk(WalkDir, WalkForGlob)
+                        }
+                    } else {
+                        ForParser(TempDir)
+                    }
+
+                    ForHndl.Close()
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "DEL:") {
+                    TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[4:])
+
+                    //*****************************************************************
+                    //* Golang does not support ** - So this code approximates it     *
+                    //*  using filepath.Walk.  The limitation is that the string cant *
+                    //*  contain another * BEFORE the ** because filepath.Walk does   *
+                    //*  not support wildcards. This code is a decent compromise.     *
+                    //*****************************************************************
+                    DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
+                    if strings.Contains(TempDir, DubGlob) {
+                        iDblShard = strings.Index(TempDir, DubGlob)
+                        if iDblShard > 0 {
+                            WalkDir := TempDir[:iDblShard]
+                            WalkfileWild = TempDir[iDblShard+3:]
+
+                            BasicDel := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
+                            DelParser(BasicDel)
+
+                            filepath.Walk(WalkDir, WalkDelGlob)
+                        }
+                    } else {
+                        DelParser(TempDir)
+                    }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CLN:") {
+
+                    TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[4:])
+
+                    remov_err := os.RemoveAll(TempDir)
+                    if remov_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Cleaning Directory: %s\n", remov_err)
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "LST:") {
+                    LstFile = fmt.Sprintf("%s%c%s", BaseDir,slashDelim, Inrec[4:])
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "FLT:") {
+                    FltFile = fmt.Sprintf("%s%c%s", BaseDir,slashDelim, Inrec[4:])
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "BYE:") {
+                    cleanUp_Exit(LastRC);
+                    os.Exit(LastRC);
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:DELIMS=") && len(Inrec) > 13 {
+                    Delims = Inrec[11:]
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:PARSEQUOTE=STRICT") {
+                    iParseQuote=0
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:PARSEQUOTE=LAZY") {
+                    iParseQuote=1
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=NONE") {
+                    setCPath = 0
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=PART") {
+                    setCPath = 1
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=FULL") {
+                    setCPath = 2
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYDEPTH=") {
+                    setCDepth, _ = strconv.Atoi(Inrec[14:])
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:ZIPFILENAME=") {
+                    // If we were already Writing A Zip File, Close it.
+                    if iWasZipping == 1 {
+                        zipWriterClose(zipWriter)
+                        CloseZipWritZ(ZipHndl)
+                        iWasZipping = 0
+                    }
+
+                    // Check if we get a new File Name, Closed, or Blank
+                    if len(Inrec) > 16 {
+
+                        if strings.HasPrefix(strings.ToUpper(Inrec[16:]), "CLOSE") {
+                            setOutZipFName = fmt.Sprintf("%s%c%s-%d.zip", BACQDir, slashDelim, ACQName, ozipw_countr) 
+                        } else {
+                            setOutZipFName = Inrec[16:]
+                        }
+                    } else {
+                        // Blank! So give it the Default Name.
+                        setOutZipFName = fmt.Sprintf("%s%c%s-%d.zip", BACQDir, slashDelim, ACQName, ozipw_countr) 
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:ZIPFILEROOT=") {
+                    setOutZipFRoot = Inrec[16:]
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:EXESTDOUT=") {
+                    if strings.HasPrefix(strings.ToUpper(Inrec[14:]), "CONS") {
+                        iSTDOut = 0
+                    } else {
+                        iSTDOut = 1
+                        STDOutF = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[14:])
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:EXESTDERR=") {
+                    if strings.HasPrefix(strings.ToUpper(Inrec[14:]), "CONS") {
+                        iSTDErr = 0
+                    } else {
+                        iSTDErr = 1
+                        STDErrF = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[14:])
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGS=") {
+                    Syslogd = Inrec[12:]
+                    if iSyslogLvl < 1 {
+                        iSyslogLvl = 1
+                    }
+
+                    ConsOut = fmt.Sprintf("[*] AChoir Version: %s Syslogging Started.  Level: %d  ACQ: %s\n", Version, iSyslogLvl, ACQName)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGP=") {
+                    Syslogp = Inrec[12:]
+                    iSyslogp, _ = strconv.Atoi(Syslogp)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGL=NONE") {
+                    if iSyslogLvl > 0 {
+                        ConsOut = fmt.Sprintf("[*] AChoir Version: %s Syslogging Stopped.  Old Level = %d\n", Version, iSyslogLvl)
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+
+                    iSyslogLvl = 0; 
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGT=UDP") {
+                    ConsOut = fmt.Sprintf("[*] Syslog Protocol Type Set to: UDP\n")
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    iSyslogt = 0
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGT=TCP") {
+                    ConsOut = fmt.Sprintf("[*] Syslog Protocol Type Set to: TCP\n")
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    iSyslogt = 1
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGL=MIN") {
+                    ConsOut = fmt.Sprintf("[*] Syslog Level Set to Min: 1\n")
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    iSyslogLvl = 1 
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGL=MAX") {
+                    ConsOut = fmt.Sprintf("[*] Syslog Level Set to Max: 2\n")
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    iSyslogLvl = 2
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:FILTER=") {
+                    //*****************************************************************
+                    //* Set Filter to None (0), Include(1), or Exclude(2)             *
+                    //*****************************************************************
+                    if strings.ToUpper(Inrec[11:]) == "NONE" {
+                        iFiltype = 0
+                    } else if CaseInsensitiveContains(Inrec[11:], "Incl") {
+                        iFiltype = 1
+                    } else if CaseInsensitiveContains(Inrec[11:], "Excl") {
+                        iFiltype = 2
+                    }
+
+                    //*****************************************************************
+                    //* Set Filter to Full(1) or Partial(2) Matching                  *
+                    //*****************************************************************
+                    if CaseInsensitiveContains(Inrec[11:], "Full") {
+                        iFiltscope = 1
+                    } else if CaseInsensitiveContains(Inrec[11:], "Part") {
+                        iFiltscope = 2
+                    }
+
+                    //*****************************************************************
+                    //* Verify that the Filter Exists, Otherwise set to NONE(0)       *
+                    //*****************************************************************
+                    FltHndl, flt_err = os.Open(FltFile)
+
+                    if flt_err != nil {
+                        ConsOut = fmt.Sprintf("[!] &FLT File was not found (FLT: not set): %s\n", FltFile)
+                        ConsLogSys(ConsOut, 1, 2)
+                        iFiltype = 0
+                        break
+                    }
+                    FltHndl.Close()
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3REGION=") {
+                    S3_REGION = Inrec[13:]
+                    iS3Login = 0  // Reset Login to force a New Session with this Region
+
+                    ConsOut = fmt.Sprintf("[*] S3 Region Set: %s\n", S3_REGION)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3BUCKET=") {
+                    S3_BUCKET = Inrec[13:]
+                    iS3Login = 0  // Reset Login to force a New Session with this Bucket
+
+                    ConsOut = fmt.Sprintf("[*] S3 Bucket Set: %s\n", S3_BUCKET)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3AWSID=") {
+                    S3_AWSId = Inrec[12:]
+                    iS3Login = 0  // Reset Login to force a New Session with this AWSId
+
+                    ConsOut = fmt.Sprintf("[*] S3 AWS ID Set: %s\n", S3_AWSId)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3AWSKEY=") {
+                    S3_AWSKey = Inrec[13:]
+                    iS3Login = 0  // Reset Login to force a New Session with this Key
+
+                    ConsOut = fmt.Sprintf("[*] S3 AWS Key Set: <Redacted>\n")
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SFTPSERV=") {
+                    SF_Server = Inrec[13:]
+                    iSFLogin = 0  // Reset Login to force a New SFTP Session with this Server
+
+                    ConsOut = fmt.Sprintf("[*] SFTP Server Set: %s\n", SF_Server)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SFTPUSER=") {
+                    SF_UserId = Inrec[13:]
+                    iSFLogin = 0  // Reset Login to force a New Session with this SFTP Server
+
+                    ConsOut = fmt.Sprintf("[*] SFTP User ID Set: %s\n", SF_UserId)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SFTPPASS=") {
+                    SF_Password = Inrec[13:]
+                    iSFLogin = 0  // Reset Login to force a New Session with this Key
+
+                    ConsOut = fmt.Sprintf("[*] SFTP Password Set: <Redacted>\n")
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:CPUTHROTTLE=NONE") {
+                    cpu_max = 999
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:CPUTHROTTLE=LOW") {
+                    cpu_max = 25
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:CPUTHROTTLE=MED") {
+                    cpu_max = 50
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:CPUTHROTTLE=HIGH") {
+                    cpu_max = 75
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "XIT:") && len(Inrec) > 4 {
+                    iXitCmd = 1
+
+                    if Inrec[4] == '\\' {
+                        XitCmd = fmt.Sprintf("%s%s", BaseDir, Inrec[4:])
+                    } else {
+                        XitCmd = fmt.Sprintf("%s", Inrec[4:])
+                    }
+
+                    ConsOut = fmt.Sprintf("[*] Exit Program Set: %s\n", XitCmd)
+                    ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "EXE:") {
+                    RunCommand(Inrec[4:], 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "TCP:") {
+                  LastRC = 0
+                  if scanPort("tcp", Inrec[4:]) {
+                      LastRC = 1
+                  }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "UDP:") {
+                  LastRC = 0
+                  if scanPort("udp", Inrec[4:]) {
+                      LastRC = 1
+                  }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "EXA:") {
+                    RunCommand(Inrec[4:], 2)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SYS:") {
+                    RunCommand(Inrec[4:], 3)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "GET:") {
+                    LastRC = 0  //Assume Everything Will Be Alright
+                    Getrec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Getrec)
+                    WGetURL = splitString1
+                    CurrFil = splitString2
+
+                    if SplitRC == 1 {
+                        WGetDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
+                        CurrFil = fmt.Sprintf("%s%c%s%cDownload.dat", BACQDir, slashDelim, ACQDir, slashDelim)
+                        ExpandDirs(WGetDir)
+
+                        ConsOut = fmt.Sprintf("[!] Target Download File Name Not Specified.  Using: %s\n", CurrFil)
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+
+                    ConsOut = fmt.Sprintf("[+] HTTP GetFile: %s (%s)\n", WGetURL, CurrFil)
+                    ConsLogSys(ConsOut, 1, 1)
+
+                    http_err := DownloadFile(CurrFil, WGetURL)
+                    if http_err != nil {
+                        ConsOut = fmt.Sprintf("[+] Download Failed: %s\n", WGetURL)
+                        ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1  //Failed
+                    } else {
+                        ConsOut = fmt.Sprintf("[+] Download Success: %s\n", WGetURL)
+                        ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 0  //Success
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "UNZ:") {
+                    Ziprec = Inrec[4:]
+                    splitString1, splitString2, SplitRC := twoSplit(Ziprec)
+
+                    if SplitRC == 1 {
+                        ConsOut = fmt.Sprintf("[!] Unzip Requires both a Zip File Name and Destination Directory\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    } else {
+                        ZipRdr, zip_err := zip.OpenReader(splitString1)
+                        if zip_err != nil {
+                            ConsOut = fmt.Sprintf("[!] Cannot Open Zip File: %s\n", splitString1)
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            //defer ZipRdr.Close()
+                            defer ZipRdrClose(ZipRdr)
+
+                            unz_err := Unzip(ZipRdr.File, splitString2)
+                            if unz_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Unzip Error: %s\n", unz_err)
+                                ConsLogSys(ConsOut, 1, 1)
+                            }
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "S3S:") {
+                    LastRC = 0  //Assume Everything Will Be Alright
+                    //****************************************************************
+                    //* Have we set the Region and Bucket Name?                      *
+                    //****************************************************************
+                    if S3_REGION == "none" {
+                        ConsOut = fmt.Sprintf("[!] Please Set the AWS S3 Bucket REGION Before Starting an AWS Session.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
+                    } else if S3_BUCKET == "none" {
+                        ConsOut = fmt.Sprintf("[!] Please Set the AWS S3 BUCKET Name Before Starting an AWS Session.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
+                    } else {
+                        //****************************************************************
+                        //* AWS S3 Bucket Login Parm1:UserID  Parm2: Secret Key          *
+                        //****************************************************************
+                        ConsOut = fmt.Sprintf("[+] Starting Session with AWS Key and Secret...\n")
                         ConsLogSys(ConsOut, 1, 1)
 
-                        //****************************************************************
-                        //* Dont allow zipping a file into itself - Yeah, that can happen*
-                        //****************************************************************
-                        if ZipInrec == setOutZipFName {
-                            ConsOut = fmt.Sprintf("[!] Zipping a File into itself... Im sorry Dave, Im afraid I cant do that.\n")
+                        AWSrec := Inrec[4:]
+                        S3_AWSId, S3_AWSKey, S3_AWS_SplitRC = twoSplit(AWSrec)
+
+                        if S3_AWS_SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] AWS Session Requires Both an ID and a Key\n")
                             ConsLogSys(ConsOut, 1, 1)
-                            break
-                        }
-
-                        //****************************************************************
-                        //* If we are zipping from the current Acquisition Directory, do *
-                        //*  Not inlude the root.  Just the Subdirs                      *
-                        //* IMPORTANT: Check FULL ACQDir FIRST, then Base ACQ Directory  *
-                        //****************************************************************
-                        TempDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
-
-                        if strings.HasPrefix(strings.ToUpper(ZipInrec), strings.ToUpper(TempDir)) {
-                            zipOffset = len(TempDir)
-
-                            // Dont Land on a Delimiter
-                            if ZipInrec[zipOffset] == slashDelim {
-                                zipOffset++
-                            }
-                              
-                        } else if strings.HasPrefix(strings.ToUpper(ZipInrec), strings.ToUpper(BACQDir)) {
-                            zipOffset = len(BACQDir)
-
-                            // Dont Land on a Delimiter
-                            if ZipInrec[zipOffset] == slashDelim {
-                                zipOffset++
-                            }
-
-                        } else if strings.HasPrefix(strings.ToUpper(ZipInrec), strings.ToUpper(BaseDir)) {
-                            zipOffset = len(BaseDir)
-
-                            // Dont Land on a Delimiter
-                            if ZipInrec[zipOffset] == slashDelim {
-                                zipOffset++
-                            }
+                            LastRC = 1
                         } else {
-                            //****************************************************************
-                            //* Ignore our Root Directory, but presere everything under it   *
-                            //****************************************************************
-                            zipOffset = strings.IndexByte(ZipInrec, slashDelim)
-                            if (zipOffset == -1) {
-                                zipOffset = 0
-                            } else if len(ZipInrec[zipOffset+1:]) < 2 {
-                                zipOffset = 0
+                            S3_Session, upS3_err = session.NewSession(&aws.Config {
+                                Region: aws.String(S3_REGION),
+                                Credentials: credentials.NewStaticCredentials(
+                                S3_AWSId, S3_AWSKey, ""),
+                            })
+
+                            if upS3_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
+                                ConsLogSys(ConsOut, 1, 1)
+                                iS3Login = 0
+                                LastRC = 1
                             } else {
-                                zipOffset++
-                            }
-                        }
-
-                        if iWasZipping == 0 {
-                            if FileExists(setOutZipFName) {
-                                ConsOut = fmt.Sprintf("[!] Zip File Aready Exists. Please Create a New Zip File: %s\n", setOutZipFName)
+                                ConsOut = fmt.Sprintf("[*] AWS S3 Session Started...\n")
                                 ConsLogSys(ConsOut, 1, 1)
-                                break
+                                iS3Login = 1
+                                LastRC = 0
                             }
+                        }
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "S3U:") {
+                    LastRC = 0  //Assume Everything Will Be Alright
+                    //****************************************************************
+                    //* See if we have a Sesion.  If not, See if we can start one    *
+                    //****************************************************************
+                    if iS3Login == 0 {
+                        ConsOut = fmt.Sprintf("[+] Checking for AWS Bucket, Region, ID, and Key...\n")
+                        ConsLogSys(ConsOut, 1, 1)
 
-                            ConsOut = fmt.Sprintf("[+] Opening Zip File: %s\n", setOutZipFName)
-                            ConsLogSys(ConsOut, 3, 3)
-                            iWasZipping = 1
+                        if S3_AWSId != "none" && S3_AWSKey != "none" && S3_REGION != "none" && S3_BUCKET != "none" {
+                            ConsOut = fmt.Sprintf("[+] Starting Session with AWS Key and Secret...\n")
+                            ConsLogSys(ConsOut, 1, 1)
 
+                            S3_Session, upS3_err = session.NewSession(&aws.Config {
+                                Region: aws.String(S3_REGION),
+                                Credentials: credentials.NewStaticCredentials(
+                                S3_AWSId, S3_AWSKey, ""),
+                            })
 
-                            //****************************************************************
-                            //* Open/Create the Output Zip File                              *
-                            //****************************************************************
-                            ZipHndl, zip_err = os.OpenFile(setOutZipFName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-                            if zip_err != nil {
-                                ConsOut = fmt.Sprintf("[!] Error Opening Zip File: %s\n", setOutZipFName)
+                            if upS3_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
                                 ConsLogSys(ConsOut, 1, 1)
-                                break
+                                iS3Login = 0
+                                LastRC = 1
+                            } else {
+                                ConsOut = fmt.Sprintf("[*] AWS S3 Session Started...\n")
+                                ConsLogSys(ConsOut, 1, 1)
+                                iS3Login = 1
+                                LastRC = 0
                             }
-
-                            //****************************************************************
-                            //* Create a Zip Writer                                          *
-                            //****************************************************************
-                            ConsOut = fmt.Sprintf("[+] Opening Zip Writer\n")
-                            ConsLogSys(ConsOut, 3, 3)
-                            zipWriter = zip.NewWriter(ZipHndl)
                         }
+                    }
 
 
-                        //****************************************************************
-                        //* Read Input & Add it to Zip Archive                           *
-                        //****************************************************************
-                        ConsOut = fmt.Sprintf("[+] Opening Input File: %s\n", ZipInrec)
-                        ConsLogSys(ConsOut, 3, 3)
-
-                        fileToZip, zipi_err := os.Open(ZipInrec)
-                        if zipi_err != nil {
-                            ConsOut = fmt.Sprintf("[!] Error Opening Input File: %s\n", ZipInrec)
-                            ConsLogSys(ConsOut, 3, 3)
-                            continue
-                        }
-
-
-                        //****************************************************************
-                        //* Get the file information                                     *
-                        //****************************************************************
-                        ConsOut = fmt.Sprintf("[+] Checking Input File Metadata: %s\n", ZipInrec)
-                        ConsLogSys(ConsOut, 3, 3)
-
-                        zipInfo, zips_err := fileToZip.Stat()
-                        if zips_err != nil {
-                            ConsOut = fmt.Sprintf("[!] Error Checking Input File Metadata: %s\n", ZipInrec)
-                            ConsLogSys(ConsOut, 3, 3)
-                            continue
-                        }
-
-                        ConsOut = fmt.Sprintf("[+] Checking Input File Header: %s\n", ZipInrec)
-                        ConsLogSys(ConsOut, 3, 3)
-
-                        Zipheader, ziph_err := zip.FileInfoHeader(zipInfo)
-                        if ziph_err != nil {
-                            ConsOut = fmt.Sprintf("[!] Error Checking Input File Header: %s\n", ZipInrec)
-                            ConsLogSys(ConsOut, 3, 3)
-                            continue 
-                        }
-
-                        //*****************************************************************
-                        //* Using FileInfoHeader() above only uses the basename of the    *
-                        //* file. Preserve the folder structure by using the first Offset *
-                        //*****************************************************************
-                        if len(setOutZipFRoot) < 1 {
-                            Zipheader.Name = fmt.Sprintf("%s", ZipInrec[zipOffset:])
-                        } else {
-                            Zipheader.Name = fmt.Sprintf("%s%c%s", setOutZipFRoot, slashDelim, ZipInrec[zipOffset:])
-                        }
-
-                        ConsOut = fmt.Sprintf("[+] OutZipFileHeader: %s - Offset: %d\n", Zipheader.Name, zipOffset)
-                        ConsLogSys(ConsOut, 3, 3)
-
-
-                        //*****************************************************************
-                        //* Change to deflate to gain better compression                  *
-                        //* see http://golang.org/pkg/archive/zip/#pkg-constants          *
-                        //*****************************************************************
-                        Zipheader.Method = zip.Deflate
-
-                        OutZipWriter, ozip_err := zipWriter.CreateHeader(Zipheader)
-                        if ozip_err != nil {
-                            ConsOut = fmt.Sprintf("[!] Error Creating ZipWriter/Header\n")
-                            ConsLogSys(ConsOut, 3, 3)
-                            continue
-                        }
-
-                        procwz_countr++
-                        ConsOut = fmt.Sprintf("[+] Writing File into Zip Archive: %d\n", procwz_countr)
-                        ConsLogSys(ConsOut, 3, 3)
-
-                        _, ozip_err = io.Copy(OutZipWriter, fileToZip)
-
-                        fileToZipClose(fileToZip)
-
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CPY:") || strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
-                        //****************************************************************
-                        //* Binary Copy From => To                                       *
-                        //****************************************************************
-                        if strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
-                            iCPS = 1
-                        } else {
-                            iCPS = 0
-                        }
-
+                    //****************************************************************
+                    //* Upload File to S3                                            *
+                    //****************************************************************
+                    if iS3Login == 1 {
                         ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
                         ConsLogSys(ConsOut, 1, 1)
 
-                        Cpyrec = Inrec[4:]
+                        S3Urec = Inrec[4:]
 
-                        splitString1, splitString2, SplitRC := twoSplit(Cpyrec)
+                        splitString1, splitString2, SplitRC := twoSplit(S3Urec)
 
                         // Remove any duplicate Delimiters - This is necessary to prevent indexing errors when
                         //  The found file does not match the search string (OS ignore duplicated delimiters)
@@ -2588,12 +3841,12 @@ func main() {
                         }
 
                         if SplitRC == 1 {
-                            ConsOut = fmt.Sprintf("[!] Copying Requires both a FROM File and a TO Directory\n")
+                            ConsOut = fmt.Sprintf("[!] S3 Upload Requires both a FROM File and a TO Directory\n")
                             ConsLogSys(ConsOut, 1, 1)
+                            LastRC = 1
                         } else {
-                            //ConsOut = fmt.Sprintf("CPY: %s to %s\n", splitString1, splitString2)
+                            //ConsOut = fmt.Sprintf("S3U: %s to %s\n", splitString1, splitString2)
                             //ConsLogSys(ConsOut, 1, 1)
-
 
                             //*****************************************************************
                             //* Golang does not support ** - So this code approximates it     *
@@ -2609,1433 +3862,232 @@ func main() {
                                     WalkfileWild = splitString1[iDblShard+3:]
                                     WalkfileToo = splitString2
 
-                                    BasicCopy := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
-                                    CopyParser(BasicCopy, splitString2)
+                                    BasicS3Up := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
+                                    UpldParser(BasicS3Up, splitString2, "S3")
 
-                                    filepath.Walk(WalkDir, WalkCopyGlob)
+                                    filepath.Walk(WalkDir, WalkS3UpGlob)
+                                
                                 }
                             } else {
-                                CopyParser(splitString1, splitString2)
+                                UpldParser(splitString1, splitString2, "S3")
                             }
                         }
-
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SIG:") {
-                        /****************************************************************/
-                        /* Clear the File Signature Table, or Load a signature          */
-                        /****************************************************************/
-                        if strings.HasPrefix(strings.ToUpper(Inrec), "SIG:CLEAR") {
-                            iSigCount = 0
-                        } else {
-                            if strings.Contains(Inrec, "=") {
-                                SigSplit := strings.Split(Inrec, "=")
-                                if len(SigSplit[0]) > 4 && len(SigSplit[1]) > 0 {
-                                    TypTabl[iSigCount] = SigSplit[0][4:]
-                                    SigTabl[iSigCount] = SigSplit[1]
-
-                                    // Max Signatures?
-                                    if iSigCount < iSigTMax {
-                                        ConsOut = fmt.Sprintf("[+] Signature Added. Type: %s, Sig: %s, Count: %d/100\n", TypTabl[iSigCount], SigTabl[iSigCount], iSigCount+1)
-                                        ConsLogSys(ConsOut, 1, 1)
-                                        iSigCount++
-                                    } else {
-                                        ConsOut = fmt.Sprintf("[+] Signature Not Added. Maximum Signature Count is 100\n")
-                                        ConsLogSys(ConsOut, 1, 1)
-                                    }
-                                }
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "REX:") {
-                        /****************************************************************/
-                        /* Clear the File REGEX Signature Table, or Load a REGEX        */
-                        /****************************************************************/
-                        if strings.HasPrefix(strings.ToUpper(Inrec), "REX:CLEAR") {
-                            iRexCount = 0
-                        } else {
-                            if len(Inrec) > 4 {
-                                _, rex_err := regexp.Compile(Inrec[4:])
-                                if rex_err != nil {
-                                    ConsOut = fmt.Sprintf("[!] REGEX Invalid and Ignored: %s\n", Inrec[4:])
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    RexTabl[iSigCount] = Inrec[4:]
-
-                                    // Max Signatures?
-                                    if iRexCount < iRexTMax {
-                                        ConsOut = fmt.Sprintf("[+] REGEX Added: %s, Count: %d/100\n", RexTabl[iSigCount], iRexCount+1)
-                                        ConsLogSys(ConsOut, 1, 1)
-                                        iRexCount++
-                                    } else {
-                                        ConsOut = fmt.Sprintf("[+] REGEX Not Added. Maximum REGEX Count is 100\n")
-                                        ConsLogSys(ConsOut, 1, 1)
-                                    }
-                                }
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "HST:") {
-                        /****************************************************************/
-                        /* Clear the File HASH Signature Table, or Load a HASH          */
-                        /****************************************************************/
-                        if strings.HasPrefix(strings.ToUpper(Inrec), "HST:CLEAR") {
-                            iHstCount = 0
-                        } else {
-                            HstTabl[iHstCount] = Inrec[4:]
-
-                            // Max Signatures?
-                            if iHstCount < iHstTMax {
-                                ConsOut = fmt.Sprintf("[+] Hash Added: %s, Count: %d/100\n", HstTabl[iHstCount], iHstCount+1)
-                                ConsLogSys(ConsOut, 1, 1)
-                                iHstCount++
-                            } else {
-                                ConsOut = fmt.Sprintf("[+] Hash Not Added. Maximum Hash Count is 100\n")
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "EQU:") {
-                        Cmprec = Inrec[4:]
-                        splitString1, splitString2, SplitRC := twoSplit(Cmprec)
-
-                        if(consOrFile == 1) {
-                            if SplitRC == 1 {
-                                ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings\n")
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else if splitString1 != splitString2 {
-                                ConsOut = fmt.Sprintf("[*] Strings Are NOT Equal: %s != %s\n", splitString1, splitString2)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[*] Strings ARE Equal: %s == %s\n", splitString1, splitString2)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-                        } else {
-                            if SplitRC == 1 {
-                                ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings - Comparison Set To False.\n")
-                                ConsLogSys(ConsOut, 1, 1)
-
-                                // No On First Not Match Only
-                                if NotFound == 0 {
-                                    NotFound = 1
-                                }
-                            } else if splitString1 == splitString2 {
-                                // Yes on First Match Only
-                                if YesFound == 0 {
-                                    YesFound = 1
-                                }
-                            } else {
-                                // No On First Not Match Only
-                                if NotFound == 0 {
-                                    NotFound = 1
-                                }
-                            }
-
-                            if NotFound == 1 && YesFound == 0 {
-                                // Not Found, Increment Just Once
-                                RunMe++
-                                NotFound = 2
-                            } else if YesFound == 1 && NotFound == 2 {
-                                // undo the Previous Runme++ and make sure we dont do it again.
-                                RunMe--
-                                YesFound = 2
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "N>>:") || strings.HasPrefix(strings.ToUpper(Inrec), "N<<:") || strings.HasPrefix(strings.ToUpper(Inrec), "N==:") {
-                        Cmprec = Inrec[4:]
-                        splitString1, splitString2, SplitRC := twoSplit(Cmprec)
-
-                        if SplitRC == 1 {
-                            ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Numbers - Setting missing number(s) to Zero.\n")
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            if len(splitString1) < 1 { splitString1 = "0" }
-                            if len(splitString2) < 1 { splitString2 = "0" }
-                        }
-
-
-
-                        longString1, _ := strconv.Atoi(splitString1)
-                        longString2, _ := strconv.Atoi(splitString2)
-
-                        if strings.HasPrefix(strings.ToUpper(Inrec), "N>>:") {
-                            if longString1 > longString2 {
-                                if(consOrFile == 1) {
-                                    ConsOut = fmt.Sprintf("[*] %d Is Greater Than %d\n", longString1, longString2)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                        // Yes on First Match Only
-                                        if YesFound == 0 {
-                                        YesFound = 1
-                                    }
-                                }
-                            } else {
-                                if(consOrFile == 1) {
-                                    ConsOut = fmt.Sprintf("[*] %d Is NOT Greater Than %d\n", longString1, longString2)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    // No On First Not Match Only
-                                    if NotFound == 0 {
-                                        NotFound = 1
-                                    }
-                                }
-                            }
-
-                            if(consOrFile != 1) {
-                                if NotFound == 1 && YesFound == 0 {
-                                     // Not Found, Increment Just Once
-                                     RunMe++
-                                     NotFound = 2
-                                } else if YesFound == 1 && NotFound == 2 {
-                                    // undo the Previous Runme++ and make sure we dont do it again.
-                                    RunMe--
-                                    YesFound = 2
-                                }
-                            }
-
-                        } else if strings.HasPrefix(strings.ToUpper(Inrec), "N<<:") {
-                            if longString1 < longString2 {
-                                if(consOrFile == 1) {
-                                    ConsOut = fmt.Sprintf("[*] %d Is Less Than %d\n", longString1, longString2)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    // Yes on First Match Only
-                                    if YesFound == 0 {
-                                        YesFound = 1
-                                    }
-                                }
-                            } else {
-                                if(consOrFile == 1) {
-                                    ConsOut = fmt.Sprintf("[*] %d Is NOT Less Than %d\n", longString1, longString2)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    // No On First Not Match Only
-                                    if NotFound == 0 {
-                                        NotFound = 1
-                                    }
-                                }
-                            }
-
-                            if(consOrFile != 1) {
-                                if NotFound == 1 && YesFound == 0 {
-                                     // Not Found, Increment Just Once
-                                     RunMe++
-                                     NotFound = 2
-                                } else if YesFound == 1 && NotFound == 2 {
-                                    // undo the Previous Runme++ and make sure we dont do it again.
-                                    RunMe--
-                                    YesFound = 2
-                                }
-                            }
-
-                        } else if strings.HasPrefix(strings.ToUpper(Inrec), "N==:") {
-                            if longString1 == longString2 {
-                                if(consOrFile == 1) {
-                                    ConsOut = fmt.Sprintf("[*] %d Is Equal To %d\n", longString1, longString2)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    // Yes on First Match Only
-                                    if YesFound == 0 {
-                                        YesFound = 1
-                                    }
-                                }
-                            } else {
-                                if(consOrFile == 1) {
-                                    ConsOut = fmt.Sprintf("[*] %d Is NOT Equal To %d\n", longString1, longString2)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                } else {
-                                    // No On First Not Match Only
-                                    if NotFound == 0 {
-                                        NotFound = 1
-                                    }
-                                }
-                            }
-
-                            if(consOrFile != 1) {
-                                if NotFound == 1 && YesFound == 0 {
-                                     // Not Found, Increment Just Once
-                                     RunMe++
-                                     NotFound = 2
-                                } else if YesFound == 1 && NotFound == 2 {
-                                    // undo the Previous Runme++ and make sure we dont do it again.
-                                    RunMe--
-                                    YesFound = 2
-                                }
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "NEQ:") {
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] Please Start an AWS Session (Using S3S:) Before Attempting S3 Uploads\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SFS:") {
+                    LastRC = 0  //Assume Everything Is Gonna Be Alright
+                    //****************************************************************
+                    //* Have we set the Server?                                      *
+                    //****************************************************************
+                    if SF_Server == "none" {
+                        ConsOut = fmt.Sprintf("[!] Please Set the SFTP Server before Starting an SFTP Session.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
+                    } else {
                         //****************************************************************
-                        //* Check for NOT EQUAL                                          *
+                        //* SFTP Server Login Parm1:UserID  Parm2: Password              *
                         //****************************************************************
-                        Cmprec = Inrec[4:]
-                        splitString1, splitString2, SplitRC := twoSplit(Cmprec)
-
-                        if(consOrFile == 1) {
-                            if SplitRC == 1 {
-                                ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings\n")
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else if splitString1 == splitString2 {
-                                ConsOut = fmt.Sprintf("[*] Strings are (NOT NOT) Equal: %s == %s\n", splitString1, splitString2)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[*] Strings are NOT Equal: %s != %s\n", splitString1, splitString2)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-                        } else {
-                            if SplitRC == 1 {
-                                ConsOut = fmt.Sprintf("[!] Comparing Requires TWO Strings - Comparison Set to True.\n")
-                                ConsLogSys(ConsOut, 1, 1)
-
-                                // Yes on First Match Only
-                                if YesFound == 0 {
-                                    YesFound = 1
-                                }
-                            } else if splitString1 != splitString2 {
-                                // Yes on First Match Only
-                                if YesFound == 0 {
-                                    YesFound = 1
-                                }
-                            } else {
-                                // No On First Not Match Only
-                                if NotFound == 0 {
-                                    NotFound = 1
-                                }
-                            }
-
-                            if NotFound == 1 && YesFound == 0 {
-                                // Not Found, Increment Just Once
-                                 RunMe++
-                                 NotFound = 2
-                            } else if YesFound == 1 && NotFound == 2 {
-                                // undo the Previous Runme++ and make sure we dont do it again.
-                                RunMe--
-                                YesFound = 2
-                            }
-                        }
-
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "VER:") {
-                        //****************************************************************
-                        //* Check the Input String for Version.  This can be Partial.    *
-                        //*  For Example: Windows 10.0.18362 will get a TRUE for         *
-                        //*  Ver:Win, Ver:Windows 10, Ver:Windows 10.0.183, etc...       *
-                        //****************************************************************
-                        if consOrFile == 1 {
-                            ConsOut = fmt.Sprintf("[*] OS Version Detected: %s\n", OSVersion)
-                            ConsLogSys(ConsOut, 1, 1)
-                        } else {
-                            if strings.HasPrefix(strings.ToUpper(OSVersion), strings.ToUpper(Inrec[4:])) {
-                                // Yes on First Match Only
-                                if YesFound == 0 {
-                                    YesFound = 1
-                                }
-                            } else {
-                                // No On First Not Match Only
-                                if NotFound == 0 {
-                                    NotFound = 1
-                                }
-                            }
-
-                            if NotFound == 1 && YesFound == 0 {
-                                // Not Found, Increment Just Once
-                                 RunMe++
-                                 NotFound = 2
-                            } else if YesFound == 1 && NotFound == 2 {
-                                // undo the Previous Runme++ and make sure we dont do it again.
-                                RunMe--
-                                YesFound = 2
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC=:") {
-                        ChkRC, _ := strconv.Atoi(Inrec[4:]);
-                        if consOrFile == 1 {
-                            if LastRC != ChkRC {
-                                ConsOut = fmt.Sprintf("[*] Last Return Code was not: %d - It was: %d\n", ChkRC, LastRC)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[*] Last Return Code was: %d\n", LastRC)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-                        } else {
-                            if LastRC == ChkRC {
-                               // Yes on First Match Only
-                               if YesFound == 0 {
-                                    YesFound = 1
-                                }
-                            } else {
-                                // No On First Not Match Only
-                                if NotFound == 0 {
-                                    NotFound = 1
-                                }
-                            }
-
-                            if NotFound == 1 && YesFound == 0 {
-                                // Not Found, Increment Just Once
-                                 RunMe++
-                                 NotFound = 2
-                            } else if YesFound == 1 && NotFound == 2 {
-                                // undo the Previous Runme++ and make sure we dont do it again.
-                                RunMe--
-                                YesFound = 2
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC!:") {
-                        ChkRC, _ := strconv.Atoi(Inrec[4:]);
-                        if consOrFile == 1 {
-                            if LastRC == ChkRC {
-                                ConsOut = fmt.Sprintf("[*] Last Return Code was (NOT NOT): %d - It was: %d\n", ChkRC, LastRC)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[*] Last Return Code was not: %d - It was %d\n", ChkRC, LastRC)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-                        } else {
-                            if LastRC != ChkRC {
-                               // Yes on First Match Only
-                               if YesFound == 0 {
-                                    YesFound = 1
-                                }
-                            } else {
-                                // No On First Not Match Only
-                                if NotFound == 0 {
-                                    NotFound = 1
-                                }
-                            }
-
-                            if NotFound == 1 && YesFound == 0 {
-                                // Not Found, Increment Just Once
-                                 RunMe++
-                                 NotFound = 2
-                            } else if YesFound == 1 && NotFound == 2 {
-                                // undo the Previous Runme++ and make sure we dont do it again.
-                                RunMe--
-                                YesFound = 2
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC<:") {
-                        ChkRC, _ := strconv.Atoi(Inrec[4:]);
-                        if consOrFile == 1 {
-                            if LastRC >= ChkRC {
-                                ConsOut = fmt.Sprintf("[*] Last Return Code was not Less Than: %d - It was: %d\n", ChkRC, LastRC)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[*] Last Return Code was Less Than: %d - It was: %d\n", ChkRC, LastRC)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-                        } else {
-                            if LastRC < ChkRC {
-                               // Yes on First Match Only
-                               if YesFound == 0 {
-                                    YesFound = 1
-                                }
-                            } else {
-                                // No On First Not Match Only
-                                if NotFound == 0 {
-                                    NotFound = 1
-                                }
-                            }
-
-                            if NotFound == 1 && YesFound == 0 {
-                                // Not Found, Increment Just Once
-                                 RunMe++
-                                 NotFound = 2
-                            } else if YesFound == 1 && NotFound == 2 {
-                                // undo the Previous Runme++ and make sure we dont do it again.
-                                RunMe--
-                                YesFound = 2
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "RC>:") {
-                        ChkRC, _ := strconv.Atoi(Inrec[4:]);
-                        if consOrFile == 1 {
-                            if LastRC <= ChkRC {
-                                ConsOut = fmt.Sprintf("[*] Last Return Code was not Greater Than: %d - It was: %d\n", ChkRC, LastRC)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[*] Last Return Code was Greater Than: %d - It was: %d\n", ChkRC, LastRC)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-                        } else {
-                            if LastRC > ChkRC {
-                               // Yes on First Match Only
-                               if YesFound == 0 {
-                                    YesFound = 1
-                                }
-                            } else {
-                                // No On First Not Match Only
-                                if NotFound == 0 {
-                                    NotFound = 1
-                                }
-                            }
-
-                            if NotFound == 1 && YesFound == 0 {
-                                // Not Found, Increment Just Once
-                                 RunMe++
-                                 NotFound = 2
-                            } else if YesFound == 1 && NotFound == 2 {
-                                // undo the Previous Runme++ and make sure we dont do it again.
-                                RunMe--
-                                YesFound = 2
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CKY:") {
-                        ChkFile = strings.Trim(Inrec[4:], "\"")
-
-                        if consOrFile == 1 {
-                            if !FileExists(ChkFile) {
-                                ConsOut = fmt.Sprintf("[*] File Does Not Exist: %s\n", ChkFile)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[*] File Exists: %s\n", ChkFile)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-                        } else {
-                            if FileExists(ChkFile) {
-                               // Yes on First Match Only
-                               if YesFound == 0 {
-                                    YesFound = 1
-                                }
-                            } else {
-                                // No On First Not Match Only
-                                if NotFound == 0 {
-                                    NotFound = 1
-                                }
-                            }
-
-                            if NotFound == 1 && YesFound == 0 {
-                                // Not Found, Increment Just Once
-                                 RunMe++
-                                 NotFound = 2
-                            } else if YesFound == 1 && NotFound == 2 {
-                                // undo the Previous Runme++ and make sure we dont do it again.
-                                RunMe--
-                                YesFound = 2
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CKN:") {
-                        ChkFile = strings.Trim(Inrec[4:], "\"")
-                        if consOrFile == 1 {
-                            if FileExists(ChkFile) {
-                                ConsOut = fmt.Sprintf("[*] File Does (NOT NOT) Exist: %s\n", ChkFile)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[*] File Does Not Exist: %s\n", ChkFile)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-                        } else {
-                            if !FileExists(ChkFile) {
-                               // Yes on First Match Only
-                               if YesFound == 0 {
-                                    YesFound = 1
-                                }
-                            } else {
-                                // No On First Not Match Only
-                                if NotFound == 0 {
-                                    NotFound = 1
-                                }
-                            }
-
-                            if NotFound == 1 && YesFound == 0 {
-                                // Not Found, Increment Just Once
-                                 RunMe++
-                                 NotFound = 2
-                            } else if YesFound == 1 && NotFound == 2 {
-                                // undo the Previous Runme++ and make sure we dont do it again.
-                                RunMe--
-                                YesFound = 2
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "64B:") {
-                        if consOrFile == 1 {
-                            if strings.ToUpper(Procesr) != "AMD64" {
-                                ConsOut = fmt.Sprintf("[*] Not running in 64Bit. Processor: %s\n", Procesr)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[*] Running in 64Bit. Processor: %s\n", Procesr)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-                        } else {
-                            if strings.ToUpper(Procesr) != "AMD64" {
-                                RunMe++
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "32B:") {
-                        if consOrFile == 1 {
-                            if strings.ToUpper(Procesr) != "386" {
-                                ConsOut = fmt.Sprintf("[*] Not running in 32Bit. Processor: %s\n", Procesr)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                ConsOut = fmt.Sprintf("[*] Running in 32Bit. Processor: %s\n", Procesr)
-                                ConsLogSys(ConsOut, 1, 1)
-                            }
-                        } else {
-                            if strings.ToUpper(Procesr) != "386" {
-                                RunMe++
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "REQ:") {
-                        if FileExists(Inrec[4:]) {
-                            ConsOut = fmt.Sprintf("[*] [!] Required File Found: %s\n", Inrec[4:])
-                            ConsLogSys(ConsOut, 1, 1)
-                        } else {
-                            ConsOut = fmt.Sprintf("[*] [*] Required File Not Found: %s - Exiting!\n", Inrec[4:])
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            cleanUp_Exit(3)
-                            os.Exit(3)
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SAY:") {
-                        ConsOut = fmt.Sprintf("%s\n", Inrec[4:])
+                        ConsOut = fmt.Sprintf("[+] Starting Session with SFTP UserId and Password...\n")
                         ConsLogSys(ConsOut, 1, 1)
 
-                        //After writing, force the Log to be written to disk.
-                        if iLogOpen == 1 {
-                            LogHndl.Sync()
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "ECHO ") {
-                        ConsOut = fmt.Sprintf("%s\n", Inrec[5:])
-                        ConsLogSys(ConsOut, 1, 1)
+                        SFTPrec := Inrec[4:]
+                        SF_UserId, SF_Password, SF_SFTP_SplitRC = twoSplit(SFTPrec)
 
-                        //After writing, force the Log to be written to disk.
-                        if iLogOpen == 1 {
-                            LogHndl.Sync()
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "END:") {
-                        if len(Inrec) > 4 {
-                            // Is there a parameter after the END: Statement
-                            if strings.ToUpper(Inrec[4:]) == "RESET" {
-                                // The Parameter is RESET
-                                ConsOut = fmt.Sprintf("[+] Resetting Internal Conditional Execution Flag...\n")
-                                ConsLogSys(ConsOut, 1, 1)
-                                RunMe = 0
-                            }
-                        } else if RunMe > 0 {
-                            RunMe--
-                        } else if RunMe < 0 {
-                            //* Something went wrong and our logic created a negative RunMe - Reset to 0
-                            ConsOut = fmt.Sprintf("[!] Internal Error, Resetting Internal Conditional Execution Flag...\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                            RunMe = 0
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "OPN:") {
-                        // If we already had a file open, close it now.
-                        if iOPNisOpen == 1 {
-                            ConsOut = fmt.Sprintf("[*] Previously Opened File has been Closed.\n")
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            OpnHndl.Close()
-                        }
-
-                        OpnHndl, opn_err = os.OpenFile(Inrec[4:], os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-                        if opn_err != nil {
-                            ConsOut = fmt.Sprintf("[!] File Could not be opened for Append:\n    %s\n", Inrec[4:])
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            iOPNisOpen = 0
-                        } else {
-                            ConsOut = fmt.Sprintf("[+] File Opened for Append:\n    %s\n", Inrec[4:])
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            iOPNisOpen = 1
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "OUT:") {
-                        if iOPNisOpen == 1 {
-                            OpnHndl.WriteString(Inrec[4:]+"\n")
-                        } else {
-                            ConsOut = fmt.Sprintf("[!] No File OPN:(ed) for Append:\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "PZZ:") {
-                        ConsOut = fmt.Sprintf("%s\n", Inrec[4:])
-                        ConsLogSys(ConsOut, 1, 1)
-
-                        consInput(Inrec[4:], 1, 0)
-                        Inprec = Conrec
-
-                        if len(Inprec) > 0 {
-                            if Inprec[0] == 'q' || Inprec[0] == 'Q' {
-                                ConsOut = fmt.Sprintf("[+] You Have Requested AChoirX to Quit.\n")
-                                ConsLogSys(ConsOut, 1, 1)
-
-                                cleanUp_Exit(0)
-                                os.Exit(0)
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "HSH:") {
-                        if len(Inrec) > 4 {
-                            if strings.ToUpper(Inrec[4:]) == "ACQ" {
-                                ConsOut = fmt.Sprintf("[+] Now Hashing  Acquisition Files.\n")
-                                ConsLogSys(ConsOut, 1, 1)
-                                MD5File = fmt.Sprintf("%s%cACQHash.txt", BACQDir, slashDelim)
-                                TempDir = BACQDir
-                            } else if strings.ToUpper(Inrec[4:]) == "DIR" {
-                                ConsOut = fmt.Sprintf("[+] Now Hashing  Entire AChoirX Directory.\n")
-                                ConsLogSys(ConsOut, 1, 1)
-                                MD5File = fmt.Sprintf("%s%cDirHash.txt", BaseDir, slashDelim)
-                                TempDir = BaseDir
-                            } else {
-                                LastHash = GetMD5File(strings.Trim(Inrec[4:], "\""))
-                                break
-                            }
-                        } else {
-                            ConsOut = fmt.Sprintf("[!] No Hashing Parameter Specified.\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                            break
-                        }
-                        //****************************************************************
-                        // Do File Search using Walk because Glob does not support **    *
-                        //****************************************************************
-                        MD5Hndl, opn_err = os.OpenFile(MD5File, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-                        if opn_err != nil {
-                            ConsOut = fmt.Sprintf("[!] Error Openning Hash Log: %s\n", opn_err)
-                            ConsLogSys(ConsOut, 1, 1)
-                            break
-                        }
-
-                        filepath.Walk(TempDir, MD5FileOut)
-
-                        MD5Hndl.Close()
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "DSK:") {
-                        // Checking Drive Types for Windows only
-                        // DRIVE_CDROM = 5, DRIVE_FIXED = 3, DRIVE_RAMDISK = 6, DRIVE_REMOTE = 4, DRIVE_REMOVABLE = 2
-                        if iopSystem == 0 {
-                            ExpandDirs(CachDir)
-                            ForDisk = fmt.Sprintf("%s%cForDisks", CachDir, slashDelim)
-
-                            if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "REMOV") {
-                                dskTyp = 2
-                            } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "FIXED") {
-                                dskTyp = 3
-                            } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "REMOT") {
-                                dskTyp = 4
-                            } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "CDROM") {
-                                dskTyp = 5
-                            } else if strings.HasPrefix(strings.ToUpper(Inrec[4:]), "RAMDI") {
-                                dskTyp = 6
-                            } else {
-                                dskTyp = 3
-                            }
-
-                            DskHndl, dsk_err = os.OpenFile(ForDisk, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-                            if dsk_err != nil {
-                                ConsOut = fmt.Sprintf("[!] System Disk Tracking File Could not be opened.\n")
-                                ConsLogSys(ConsOut, 1, 1)
-                                break
-                            }
-
-
-                            for iDrv := 0; iDrv < 24; iDrv++ {
-                                GotDriveType := GetDriveType(DrvsArray[iDrv])
-
-                                if GotDriveType == dskTyp {
-                                    //DskHndl.WriteString(DrvsArray[iDrv] + "\n")
-
-                                    DrvLtr := fmt.Sprintf("%c\n", DrvsArray[iDrv][0])
-                                    DskHndl.WriteString(DrvLtr)
-                                }
-                            }
-
-                            DskHndl.Close()
-
-                        } else {
-                            ConsOut = fmt.Sprintf("[!] Bypassing Drive and Memory Routines - We are not running on Windows\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "FOR:") {
-                        ExpandDirs(CachDir)
-                        ForFile = fmt.Sprintf("%s%cForFiles", CachDir, slashDelim)
-                        TempDir = Inrec[4:]
-
-                        //*****************************************************************
-                        //* If we are using FOR: with a ListFile (FOR:&LST), Append the   *
-                        //*  data in ForFile - unless it's our first &LST, then open      *
-                        //*  New/Truncate -  Otherwise always open New/Truncate           *
-                        //*****************************************************************
-                        if (LstMe == 1) && (iLstCnt > 1) {
-                          ForHndl, for_err = os.OpenFile(ForFile, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
-                        } else {
-                          ForHndl, for_err = os.OpenFile(ForFile, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
-                        }
-
-                        if for_err != nil {
-                            ConsOut = fmt.Sprintf("[!] System File Tracking File Could not be opened.\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                            break
-                        }
-
-                        //*****************************************************************
-                        //* Golang does not support ** - So this code approximates it     *
-                        //*  using filepath.Walk.  The limitation is that the string cant *
-                        //*  contain another * BEFORE the ** because filepath.Walk does   *
-                        //*  not support wildcards. This code is a decent compromise.     *
-                        //*****************************************************************
-                        DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
-                        if strings.Contains(TempDir, DubGlob) {
-                            iDblShard = strings.Index(TempDir, DubGlob)
-                            if iDblShard > 0 {
-                                WalkDir := TempDir[:iDblShard]
-                                WalkfileWild = TempDir[iDblShard+3:]
-
-                                BasicFor := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
-                                ForParser(BasicFor)
-
-                                filepath.Walk(WalkDir, WalkForGlob)
-                            }
-                        } else {
-                            ForParser(TempDir)
-                        }
-
-                        ForHndl.Close()
-
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "DEL:") {
-                        TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[4:])
-
-                        //*****************************************************************
-                        //* Golang does not support ** - So this code approximates it     *
-                        //*  using filepath.Walk.  The limitation is that the string cant *
-                        //*  contain another * BEFORE the ** because filepath.Walk does   *
-                        //*  not support wildcards. This code is a decent compromise.     *
-                        //*****************************************************************
-                        DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
-                        if strings.Contains(TempDir, DubGlob) {
-                            iDblShard = strings.Index(TempDir, DubGlob)
-                            if iDblShard > 0 {
-                                WalkDir := TempDir[:iDblShard]
-                                WalkfileWild = TempDir[iDblShard+3:]
-
-                                BasicDel := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
-                                DelParser(BasicDel)
-
-                                filepath.Walk(WalkDir, WalkDelGlob)
-                            }
-                        } else {
-                            DelParser(TempDir)
-                        }
-
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "CLN:") {
-
-                        TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[4:])
-
-                        remov_err := os.RemoveAll(TempDir)
-                        if remov_err != nil {
-                            ConsOut = fmt.Sprintf("[!] Error Cleaning Directory: %s\n", remov_err)
-                            ConsLogSys(ConsOut, 1, 1)
-                        }
-
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "LST:") {
-                        LstFile = fmt.Sprintf("%s%c%s", BaseDir,slashDelim, Inrec[4:])
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "FLT:") {
-                        FltFile = fmt.Sprintf("%s%c%s", BaseDir,slashDelim, Inrec[4:])
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "BYE:") {
-                        cleanUp_Exit(LastRC);
-                        os.Exit(LastRC);
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:DELIMS=") && len(Inrec) > 13 {
-                        Delims = Inrec[11:]
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:PARSEQUOTE=STRICT") {
-                        iParseQuote=0
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:PARSEQUOTE=LAZY") {
-                        iParseQuote=1
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=NONE") {
-                        setCPath = 0
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=PART") {
-                        setCPath = 1
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYPATH=FULL") {
-                        setCPath = 2
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:COPYDEPTH=") {
-                        setCDepth, _ = strconv.Atoi(Inrec[14:])
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:ZIPFILENAME=") {
-                        // If we were already Writing A Zip File, Close it.
-                        if iWasZipping == 1 {
-                            zipWriterClose(zipWriter)
-                            CloseZipWritZ(ZipHndl)
-                            iWasZipping = 0
-                        }
-
-                        // Check if we get a new File Name, Closed, or Blank
-                        if len(Inrec) > 16 {
-
-                            if strings.HasPrefix(strings.ToUpper(Inrec[16:]), "CLOSE") {
-                                setOutZipFName = fmt.Sprintf("%s%c%s-%d.zip", BACQDir, slashDelim, ACQName, ozipw_countr) 
-                            } else {
-                                setOutZipFName = Inrec[16:]
-                            }
-                        } else {
-                            // Blank! So give it the Default Name.
-                            setOutZipFName = fmt.Sprintf("%s%c%s-%d.zip", BACQDir, slashDelim, ACQName, ozipw_countr) 
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:ZIPFILEROOT=") {
-                        setOutZipFRoot = Inrec[16:]
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:EXESTDOUT=") {
-                        if strings.HasPrefix(strings.ToUpper(Inrec[14:]), "CONS") {
-                            iSTDOut = 0
-                        } else {
-                            iSTDOut = 1
-                            STDOutF = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[14:])
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:EXESTDERR=") {
-                        if strings.HasPrefix(strings.ToUpper(Inrec[14:]), "CONS") {
-                            iSTDErr = 0
-                        } else {
-                            iSTDErr = 1
-                            STDErrF = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[14:])
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGS=") {
-                        Syslogd = Inrec[12:]
-                        if iSyslogLvl < 1 {
-                            iSyslogLvl = 1
-                        }
-
-                        ConsOut = fmt.Sprintf("[*] AChoir Version: %s Syslogging Started.  Level: %d  ACQ: %s\n", Version, iSyslogLvl, ACQName)
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGP=") {
-                        Syslogp = Inrec[12:]
-                        iSyslogp, _ = strconv.Atoi(Syslogp)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGL=NONE") {
-                        if iSyslogLvl > 0 {
-                            ConsOut = fmt.Sprintf("[*] AChoir Version: %s Syslogging Stopped.  Old Level = %d\n", Version, iSyslogLvl)
-                            ConsLogSys(ConsOut, 1, 1)
-                        }
-
-                        iSyslogLvl = 0; 
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGT=UDP") {
-                        ConsOut = fmt.Sprintf("[*] Syslog Protocol Type Set to: UDP\n")
-                        ConsLogSys(ConsOut, 1, 1)
-
-                        iSyslogt = 0
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGT=TCP") {
-                        ConsOut = fmt.Sprintf("[*] Syslog Protocol Type Set to: TCP\n")
-                        ConsLogSys(ConsOut, 1, 1)
-
-                        iSyslogt = 1
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGL=MIN") {
-                        ConsOut = fmt.Sprintf("[*] Syslog Level Set to Min: 1\n")
-                        ConsLogSys(ConsOut, 1, 1)
-
-                        iSyslogLvl = 1 
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SYSLOGL=MAX") {
-                        ConsOut = fmt.Sprintf("[*] Syslog Level Set to Max: 2\n")
-                        ConsLogSys(ConsOut, 1, 1)
-
-                        iSyslogLvl = 2
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:FILTER=") {
-                        //*****************************************************************
-                        //* Set Filter to None (0), Include(1), or Exclude(2)             *
-                        //*****************************************************************
-                        if strings.ToUpper(Inrec[11:]) == "NONE" {
-                            iFiltype = 0
-                        } else if CaseInsensitiveContains(Inrec[11:], "Incl") {
-                            iFiltype = 1
-                        } else if CaseInsensitiveContains(Inrec[11:], "Excl") {
-                            iFiltype = 2
-                        }
-
-                        //*****************************************************************
-                        //* Set Filter to Full(1) or Partial(2) Matching                  *
-                        //*****************************************************************
-                        if CaseInsensitiveContains(Inrec[11:], "Full") {
-                            iFiltscope = 1
-                        } else if CaseInsensitiveContains(Inrec[11:], "Part") {
-                            iFiltscope = 2
-                        }
-
-                        //*****************************************************************
-                        //* Verify that the Filter Exists, Otherwise set to NONE(0)       *
-                        //*****************************************************************
-                        FltHndl, flt_err = os.Open(FltFile)
-
-                        if flt_err != nil {
-                            ConsOut = fmt.Sprintf("[!] &FLT File was not found (FLT: not set): %s\n", FltFile)
-                            ConsLogSys(ConsOut, 1, 2)
-                            iFiltype = 0
-                            break
-                        }
-                        FltHndl.Close()
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3REGION=") {
-                        S3_REGION = Inrec[13:]
-                        iS3Login = 0  // Reset Login to force a New Session with this Region
-
-                        ConsOut = fmt.Sprintf("[*] S3 Region Set: %s\n", S3_REGION)
-                        ConsLogSys(ConsOut, 1, 1)
-
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3BUCKET=") {
-                        S3_BUCKET = Inrec[13:]
-                        iS3Login = 0  // Reset Login to force a New Session with this Bucket
-
-                        ConsOut = fmt.Sprintf("[*] S3 Bucket Set: %s\n", S3_BUCKET)
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3AWSID=") {
-                        S3_AWSId = Inrec[12:]
-                        iS3Login = 0  // Reset Login to force a New Session with this AWSId
-
-                        ConsOut = fmt.Sprintf("[*] S3 AWS ID Set: %s\n", S3_AWSId)
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3AWSKEY=") {
-                        S3_AWSKey = Inrec[13:]
-                        iS3Login = 0  // Reset Login to force a New Session with this Key
-
-                        ConsOut = fmt.Sprintf("[*] S3 AWS Key Set: <Redacted>\n")
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SFTPSERV=") {
-                        SF_Server = Inrec[13:]
-                        iSFLogin = 0  // Reset Login to force a New SFTP Session with this Server
-
-                        ConsOut = fmt.Sprintf("[*] SFTP Server Set: %s\n", SF_Server)
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SFTPUSER=") {
-                        SF_UserId = Inrec[13:]
-                        iSFLogin = 0  // Reset Login to force a New Session with this SFTP Server
-
-                        ConsOut = fmt.Sprintf("[*] SFTP User ID Set: %s\n", SF_UserId)
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:SFTPPASS=") {
-                        SF_Password = Inrec[13:]
-                        iSFLogin = 0  // Reset Login to force a New Session with this Key
-
-                        ConsOut = fmt.Sprintf("[*] SFTP Password Set: <Redacted>\n")
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:CPUTHROTTLE=NONE") {
-                        cpu_max = 999
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:CPUTHROTTLE=LOW") {
-                        cpu_max = 25
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:CPUTHROTTLE=MED") {
-                        cpu_max = 50
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:CPUTHROTTLE=HIGH") {
-                        cpu_max = 75
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "XIT:") && len(Inrec) > 4 {
-                        iXitCmd = 1
-
-                        if Inrec[4] == '\\' {
-                            XitCmd = fmt.Sprintf("%s%s", BaseDir, Inrec[4:])
-                        } else {
-                            XitCmd = fmt.Sprintf("%s", Inrec[4:])
-                        }
-
-                        ConsOut = fmt.Sprintf("[*] Exit Program Set: %s\n", XitCmd)
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "EXE:") {
-                        RunCommand(Inrec[4:], 1)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "TCP:") {
-                      LastRC = 0
-                      if scanPort("tcp", Inrec[4:]) {
-                          LastRC = 1
-                      }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "UDP:") {
-                      LastRC = 0
-                      if scanPort("udp", Inrec[4:]) {
-                          LastRC = 1
-                      }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "EXA:") {
-                        RunCommand(Inrec[4:], 2)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SYS:") {
-                        RunCommand(Inrec[4:], 3)
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "GET:") {
-                        LastRC = 0  //Assume Everything Will Be Alright
-                        Getrec = Inrec[4:]
-                        splitString1, splitString2, SplitRC := twoSplit(Getrec)
-                        WGetURL = splitString1
-                        CurrFil = splitString2
-
-                        if SplitRC == 1 {
-                            WGetDir = fmt.Sprintf("%s%c%s", BACQDir, slashDelim, ACQDir)
-                            CurrFil = fmt.Sprintf("%s%c%s%cDownload.dat", BACQDir, slashDelim, ACQDir, slashDelim)
-                            ExpandDirs(WGetDir)
-
-                            ConsOut = fmt.Sprintf("[!] Target Download File Name Not Specified.  Using: %s\n", CurrFil)
-                            ConsLogSys(ConsOut, 1, 1)
-                        }
-
-                        ConsOut = fmt.Sprintf("[+] HTTP GetFile: %s (%s)\n", WGetURL, CurrFil)
-                        ConsLogSys(ConsOut, 1, 1)
-
-                        http_err := DownloadFile(CurrFil, WGetURL)
-                        if http_err != nil {
-                            ConsOut = fmt.Sprintf("[+] Download Failed: %s\n", WGetURL)
-                            ConsLogSys(ConsOut, 1, 1)
-                            LastRC = 1  //Failed
-                        } else {
-                            ConsOut = fmt.Sprintf("[+] Download Success: %s\n", WGetURL)
-                            ConsLogSys(ConsOut, 1, 1)
-                            LastRC = 0  //Success
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "UNZ:") {
-                        Ziprec = Inrec[4:]
-                        splitString1, splitString2, SplitRC := twoSplit(Ziprec)
-
-                        if SplitRC == 1 {
-                            ConsOut = fmt.Sprintf("[!] Unzip Requires both a Zip File Name and Destination Directory\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                        } else {
-                            ZipRdr, zip_err := zip.OpenReader(splitString1)
-                            if zip_err != nil {
-                                ConsOut = fmt.Sprintf("[!] Cannot Open Zip File: %s\n", splitString1)
-                                ConsLogSys(ConsOut, 1, 1)
-                            } else {
-                                //defer ZipRdr.Close()
-                                defer ZipRdrClose(ZipRdr)
-
-                                unz_err := Unzip(ZipRdr.File, splitString2)
-                                if unz_err != nil {
-                                    ConsOut = fmt.Sprintf("[!] Unzip Error: %s\n", unz_err)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                }
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "S3S:") {
-                        LastRC = 0  //Assume Everything Will Be Alright
-                        //****************************************************************
-                        //* Have we set the Region and Bucket Name?                      *
-                        //****************************************************************
-                        if S3_REGION == "none" {
-                            ConsOut = fmt.Sprintf("[!] Please Set the AWS S3 Bucket REGION Before Starting an AWS Session.\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                            LastRC = 1
-                        } else if S3_BUCKET == "none" {
-                            ConsOut = fmt.Sprintf("[!] Please Set the AWS S3 BUCKET Name Before Starting an AWS Session.\n")
+                        if SF_SFTP_SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] SFTP Login Requires Both an ID and a Password\n")
                             ConsLogSys(ConsOut, 1, 1)
                             LastRC = 1
                         } else {
-                            //****************************************************************
-                            //* AWS S3 Bucket Login Parm1:UserID  Parm2: Secret Key          *
-                            //****************************************************************
-                            ConsOut = fmt.Sprintf("[+] Starting Session with AWS Key and Secret...\n")
+                            ConsOut = fmt.Sprintf("[+] Connecting to: %s ...\n", SF_Server)
                             ConsLogSys(ConsOut, 1, 1)
 
-                            AWSrec := Inrec[4:]
-                            S3_AWSId, S3_AWSKey, S3_AWS_SplitRC = twoSplit(AWSrec)
+                            //****************************************************************
+                            //* Initialize client configuration                              *
+                            //****************************************************************
+                            SF_config := &ssh.ClientConfig {
+                                User: SF_UserId,
+                                Auth: []ssh.AuthMethod {ssh.Password(SF_Password)},
+                                Timeout: 30 * time.Second,
+                                HostKeyCallback : ssh.InsecureIgnoreHostKey(),
+                            }
 
-                            if S3_AWS_SplitRC == 1 {
-                                ConsOut = fmt.Sprintf("[!] AWS Session Requires Both an ID and a Key\n")
+
+                            //****************************************************************
+                            //* Connect to server                                            *
+                            //****************************************************************
+                            SF_Addr := fmt.Sprintf("%s:%d", SF_Server, SF_Port)
+                            SF_SSHConn, SF_SSH_err = ssh.Dial("tcp", SF_Addr, SF_config)
+
+                            if SF_SSH_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Failed to connecto to [%s]: %v\n", SF_Addr, SF_SSH_err)
                                 ConsLogSys(ConsOut, 1, 1)
+                                iSFLogin = 0
                                 LastRC = 1
                             } else {
-                                S3_Session, upS3_err = session.NewSession(&aws.Config {
-                                    Region: aws.String(S3_REGION),
-                                    Credentials: credentials.NewStaticCredentials(
-                                    S3_AWSId, S3_AWSKey, ""),
-                                })
-
-                                if upS3_err != nil {
-                                    ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                    iS3Login = 0
-                                    LastRC = 1
-                                } else {
-                                    ConsOut = fmt.Sprintf("[*] AWS S3 Session Started...\n")
-                                    ConsLogSys(ConsOut, 1, 1)
-                                    iS3Login = 1
-                                    LastRC = 0
-                                }
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "S3U:") {
-                        LastRC = 0  //Assume Everything Will Be Alright
-                        //****************************************************************
-                        //* See if we have a Sesion.  If not, See if we can start one    *
-                        //****************************************************************
-                        if iS3Login == 0 {
-                            ConsOut = fmt.Sprintf("[+] Checking for AWS Bucket, Region, ID, and Key...\n")
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            if S3_AWSId != "none" && S3_AWSKey != "none" && S3_REGION != "none" && S3_BUCKET != "none" {
-                                ConsOut = fmt.Sprintf("[+] Starting Session with AWS Key and Secret...\n")
-                                ConsLogSys(ConsOut, 1, 1)
-
-                                S3_Session, upS3_err = session.NewSession(&aws.Config {
-                                    Region: aws.String(S3_REGION),
-                                    Credentials: credentials.NewStaticCredentials(
-                                    S3_AWSId, S3_AWSKey, ""),
-                                })
-
-                                if upS3_err != nil {
-                                    ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
-                                    ConsLogSys(ConsOut, 1, 1)
-                                    iS3Login = 0
-                                    LastRC = 1
-                                } else {
-                                    ConsOut = fmt.Sprintf("[*] AWS S3 Session Started...\n")
-                                    ConsLogSys(ConsOut, 1, 1)
-                                    iS3Login = 1
-                                    LastRC = 0
-                                }
-                            }
-                        }
-
-
-                        //****************************************************************
-                        //* Upload File to S3                                            *
-                        //****************************************************************
-                        if iS3Login == 1 {
-                            ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            S3Urec = Inrec[4:]
-
-                            splitString1, splitString2, SplitRC := twoSplit(S3Urec)
-
-                            // Remove any duplicate Delimiters - This is necessary to prevent indexing errors when
-                            //  The found file does not match the search string (OS ignore duplicated delimiters)
-                            oneDelim := fmt.Sprintf("%c", slashDelim)
-                            twoDelim := fmt.Sprintf("%c%c", slashDelim, slashDelim)
-
-                            iOldLen = 1
-                            iNewLen = 0
-                            for iOldLen != iNewLen {
-                                iOldLen = len(splitString1)
-                                splitString1 = strings.Replace(splitString1, twoDelim, oneDelim, -1)
-                                iNewLen = len(splitString1)
-                            }
-
-                            iOldLen = 1
-                            iNewLen = 0
-                            for iOldLen != iNewLen {
-                                iOldLen = len(splitString2)
-                                splitString2 = strings.Replace(splitString2, twoDelim, oneDelim, -1)
-                                iNewLen = len(splitString2)
-                            }
-
-                            if SplitRC == 1 {
-                                ConsOut = fmt.Sprintf("[!] S3 Upload Requires both a FROM File and a TO Directory\n")
-                                ConsLogSys(ConsOut, 1, 1)
-                                LastRC = 1
-                            } else {
-                                //ConsOut = fmt.Sprintf("S3U: %s to %s\n", splitString1, splitString2)
-                                //ConsLogSys(ConsOut, 1, 1)
-
-                                //*****************************************************************
-                                //* Golang does not support ** - So this code approximates it     *
-                                //*  using filepath.Walk.  The limitation is that the string cant *
-                                //*  contain another * BEFORE the ** because filepath.Walk does   *
-                                //*  not support wildcards. This code is a decent compromise.     *
-                                //*****************************************************************
-                                DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
-                                if strings.Contains(splitString1, DubGlob) {
-                                    iDblShard = strings.Index(splitString1, DubGlob)
-                                    if iDblShard > 0 {
-                                        WalkDir := splitString1[:iDblShard]
-                                        WalkfileWild = splitString1[iDblShard+3:]
-                                        WalkfileToo = splitString2
-
-                                        BasicS3Up := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
-                                        UpldParser(BasicS3Up, splitString2, "S3")
-
-                                        filepath.Walk(WalkDir, WalkS3UpGlob)
-                                    
-                                    }
-                                } else {
-                                    UpldParser(splitString1, splitString2, "S3")
-                                }
-                            }
-                        } else {
-                            ConsOut = fmt.Sprintf("[!] Please Start an AWS Session (Using S3S:) Before Attempting S3 Uploads\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                            LastRC = 1
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SFS:") {
-                        LastRC = 0  //Assume Everything Is Gonna Be Alright
-                        //****************************************************************
-                        //* Have we set the Server?                                      *
-                        //****************************************************************
-                        if SF_Server == "none" {
-                            ConsOut = fmt.Sprintf("[!] Please Set the SFTP Server before Starting an SFTP Session.\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                            LastRC = 1
-                        } else {
-                            //****************************************************************
-                            //* SFTP Server Login Parm1:UserID  Parm2: Password              *
-                            //****************************************************************
-                            ConsOut = fmt.Sprintf("[+] Starting Session with SFTP UserId and Password...\n")
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            SFTPrec := Inrec[4:]
-                            SF_UserId, SF_Password, SF_SFTP_SplitRC = twoSplit(SFTPrec)
-
-                            if SF_SFTP_SplitRC == 1 {
-                                ConsOut = fmt.Sprintf("[!] SFTP Login Requires Both an ID and a Password\n")
-                                ConsLogSys(ConsOut, 1, 1)
-                                LastRC = 1
-                            } else {
-                                ConsOut = fmt.Sprintf("[+] Connecting to: %s ...\n", SF_Server)
-                                ConsLogSys(ConsOut, 1, 1)
-
+                                //defer SF_SSHConn.Close()
                                 //****************************************************************
-                                //* Initialize client configuration                              *
+                                //* Create new SFTP client                                       *
                                 //****************************************************************
-                                SF_config := &ssh.ClientConfig {
-                                    User: SF_UserId,
-                                    Auth: []ssh.AuthMethod {ssh.Password(SF_Password)},
-                                    Timeout: 30 * time.Second,
-                                    HostKeyCallback : ssh.InsecureIgnoreHostKey(),
-                                }
-
-
-                                //****************************************************************
-                                //* Connect to server                                            *
-                                //****************************************************************
-                                SF_Addr := fmt.Sprintf("%s:%d", SF_Server, SF_Port)
-                                SF_SSHConn, SF_SSH_err = ssh.Dial("tcp", SF_Addr, SF_config)
-
-                                if SF_SSH_err != nil {
-                                    ConsOut = fmt.Sprintf("[!] Failed to connecto to [%s]: %v\n", SF_Addr, SF_SSH_err)
+                                SF_Client, upSF_err = sftp.NewClient(SF_SSHConn)
+                                if upSF_err != nil {
+                                    ConsOut = fmt.Sprintf("[!] Unable to start SFTP subsystem: %v\n", upSF_err)
                                     ConsLogSys(ConsOut, 1, 1)
                                     iSFLogin = 0
                                     LastRC = 1
                                 } else {
-                                    //defer SF_SSHConn.Close()
-                                    //****************************************************************
-                                    //* Create new SFTP client                                       *
-                                    //****************************************************************
-                                    SF_Client, upSF_err = sftp.NewClient(SF_SSHConn)
-                                    if upSF_err != nil {
-                                        ConsOut = fmt.Sprintf("[!] Unable to start SFTP subsystem: %v\n", upSF_err)
-                                        ConsLogSys(ConsOut, 1, 1)
-                                        iSFLogin = 0
-                                        LastRC = 1
-                                    } else {
-                                        ConsOut = fmt.Sprintf("[*] SFTP Session Started...\n")
-                                        ConsLogSys(ConsOut, 1, 1)
-                                        iSFLogin = 1
-                                        LastRC = 0
-                                        //defer SF_Client.Close()
-                                    }
-                                }
-                            }
-                        }
-                    } else if strings.HasPrefix(strings.ToUpper(Inrec), "SFU:") {
-                         LastRC = 0  //Assume it will al be OK
-                        //****************************************************************
-                        //* See if we are already/still Logged In or Not by attempting   *
-                        //*  to read the current remote directory                        *
-                        //****************************************************************
-                        if iSFLogin == 1 {
-                            _, curdir_err := SF_Client.Getwd()
-                            if curdir_err != nil {
-                                iSFLogin = 0 
-                            }
-                        }
-
-
-                        //****************************************************************
-                        //* See if we have SFTP Login.  If not, See if we can start one  *
-                        //****************************************************************
-                        if iSFLogin == 0 {
-                            ConsOut = fmt.Sprintf("[+] Checking for SFTP Server, Login ID and Password...\n")
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            if SF_Server != "none" && SF_UserId != "none" && SF_Password != "none" {
-                                ConsOut = fmt.Sprintf("[+] Starting SFTP Session with UserId and Password...\n")
-                                ConsLogSys(ConsOut, 1, 1)
-
-
-                                //****************************************************************
-                                //* Initialize client configuration                              *
-                                //****************************************************************
-                                SF_config := &ssh.ClientConfig {
-                                    User: SF_UserId,
-                                    Auth: []ssh.AuthMethod {ssh.Password(SF_Password)},
-                                    Timeout: 30 * time.Second,
-                                    HostKeyCallback : ssh.InsecureIgnoreHostKey(),
-                                }
-
-
-                                //****************************************************************
-                                //* Connect to server                                            *
-                                //****************************************************************
-                                SF_Addr := fmt.Sprintf("%s:%d", SF_Server, SF_Port)
-                                SF_SSHConn, SF_SSH_err = ssh.Dial("tcp", SF_Addr, SF_config)
-
-                                if SF_SSH_err != nil {
-                                    ConsOut = fmt.Sprintf("[!] Failed to connecto to [%s]: %v\n", SF_Addr, SF_SSH_err)
+                                    ConsOut = fmt.Sprintf("[*] SFTP Session Started...\n")
                                     ConsLogSys(ConsOut, 1, 1)
-                                    iSFLogin = 0
-                                    LastRC = 1
-                                } else {
-                                    //defer SF_SSHConn.Close()
-                                    //****************************************************************
-                                    //* Create new SFTP client                                       *
-                                    //****************************************************************
-                                    SF_Client, upSF_err = sftp.NewClient(SF_SSHConn)
-                                    if upSF_err != nil {
-                                        ConsOut = fmt.Sprintf("[!] Unable to start SFTP subsystem: %v\n", upSF_err)
-                                        ConsLogSys(ConsOut, 1, 1)
-                                        iSFLogin = 0
-                                        LastRC = 1
-                                    } else {
-                                        ConsOut = fmt.Sprintf("[*] SFTP Session Started...\n")
-                                        ConsLogSys(ConsOut, 1, 1)
-                                        iSFLogin = 1
-                                        LastRC = 0
-                                        //defer SF_Client.Close()
-                                    }
+                                    iSFLogin = 1
+                                    LastRC = 0
+                                    //defer SF_Client.Close()
                                 }
                             }
-                        }
-
-
-                        //****************************************************************
-                        //* Upload File to SFTP                                          *
-                        //****************************************************************
-                        if iSFLogin == 1 {
-                            ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
-                            ConsLogSys(ConsOut, 1, 1)
-
-                            SFUrec = Inrec[4:]
-
-                            splitString1, splitString2, SplitRC := twoSplit(SFUrec)
-
-                            // Remove any duplicate Delimiters - This is necessary to prevent indexing errors when
-                            //  The found file does not match the search string (OS ignore duplicated delimiters)
-                            oneDelim := fmt.Sprintf("%c", slashDelim)
-                            twoDelim := fmt.Sprintf("%c%c", slashDelim, slashDelim)
-
-                            iOldLen = 1
-                            iNewLen = 0
-                            for iOldLen != iNewLen {
-                                iOldLen = len(splitString1)
-                                splitString1 = strings.Replace(splitString1, twoDelim, oneDelim, -1)
-                                iNewLen = len(splitString1)
-                            }
-
-                            iOldLen = 1
-                            iNewLen = 0
-                            for iOldLen != iNewLen {
-                                iOldLen = len(splitString2)
-                                splitString2 = strings.Replace(splitString2, twoDelim, oneDelim, -1)
-                                iNewLen = len(splitString2)
-                            }
-
-                            if SplitRC == 1 {
-                                ConsOut = fmt.Sprintf("[!] SFTP Upload Requires both a FROM File and a TO Directory\n")
-                                ConsLogSys(ConsOut, 1, 1)
-                                LastRC = 1
-                            } else {
-                                //ConsOut = fmt.Sprintf("SFU: %s to %s\n", splitString1, splitString2)
-                                //ConsLogSys(ConsOut, 1, 1)
-
-                                //*****************************************************************
-                                //* Golang does not support ** - So this code approximates it     *
-                                //*  using filepath.Walk.  The limitation is that the string cant *
-                                //*  contain another * BEFORE the ** because filepath.Walk does   *
-                                //*  not support wildcards. This code is a decent compromise.     *
-                                //*****************************************************************
-                                DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
-                                if strings.Contains(splitString1, DubGlob) {
-                                    iDblShard = strings.Index(splitString1, DubGlob)
-                                    if iDblShard > 0 {
-                                        WalkDir := splitString1[:iDblShard]
-                                        WalkfileWild = splitString1[iDblShard+3:]
-                                        WalkfileToo = splitString2
-
-                                        BasicSFUp := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
-                                        UpldParser(BasicSFUp, splitString2, "SFTP")
-
-                                        filepath.Walk(WalkDir, WalkSFUpGlob)
-                                    
-                                    }
-                                } else {
-                                    UpldParser(splitString1, splitString2, "SFTP")
-                                }
-                            }
-                        } else {
-                            ConsOut = fmt.Sprintf("[!] Please Start an SFTP Session (Using SFS:) Before Attempting SFTP Uploads\n")
-                            ConsLogSys(ConsOut, 1, 1)
-                            LastRC = 1
                         }
                     }
-                }  // Note: End of o32VarRec Parser
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SFU:") {
+                     LastRC = 0  //Assume it will al be OK
+                    //****************************************************************
+                    //* See if we are already/still Logged In or Not by attempting   *
+                    //*  to read the current remote directory                        *
+                    //****************************************************************
+                    if iSFLogin == 1 {
+                        _, curdir_err := SF_Client.Getwd()
+                        if curdir_err != nil {
+                            iSFLogin = 0 
+                        }
+                    }
+
+
+                    //****************************************************************
+                    //* See if we have SFTP Login.  If not, See if we can start one  *
+                    //****************************************************************
+                    if iSFLogin == 0 {
+                        ConsOut = fmt.Sprintf("[+] Checking for SFTP Server, Login ID and Password...\n")
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        if SF_Server != "none" && SF_UserId != "none" && SF_Password != "none" {
+                            ConsOut = fmt.Sprintf("[+] Starting SFTP Session with UserId and Password...\n")
+                            ConsLogSys(ConsOut, 1, 1)
+
+
+                            //****************************************************************
+                            //* Initialize client configuration                              *
+                            //****************************************************************
+                            SF_config := &ssh.ClientConfig {
+                                User: SF_UserId,
+                                Auth: []ssh.AuthMethod {ssh.Password(SF_Password)},
+                                Timeout: 30 * time.Second,
+                                HostKeyCallback : ssh.InsecureIgnoreHostKey(),
+                            }
+
+
+                            //****************************************************************
+                            //* Connect to server                                            *
+                            //****************************************************************
+                            SF_Addr := fmt.Sprintf("%s:%d", SF_Server, SF_Port)
+                            SF_SSHConn, SF_SSH_err = ssh.Dial("tcp", SF_Addr, SF_config)
+
+                            if SF_SSH_err != nil {
+                                ConsOut = fmt.Sprintf("[!] Failed to connecto to [%s]: %v\n", SF_Addr, SF_SSH_err)
+                                ConsLogSys(ConsOut, 1, 1)
+                                iSFLogin = 0
+                                LastRC = 1
+                            } else {
+                                //defer SF_SSHConn.Close()
+                                //****************************************************************
+                                //* Create new SFTP client                                       *
+                                //****************************************************************
+                                SF_Client, upSF_err = sftp.NewClient(SF_SSHConn)
+                                if upSF_err != nil {
+                                    ConsOut = fmt.Sprintf("[!] Unable to start SFTP subsystem: %v\n", upSF_err)
+                                    ConsLogSys(ConsOut, 1, 1)
+                                    iSFLogin = 0
+                                    LastRC = 1
+                                } else {
+                                    ConsOut = fmt.Sprintf("[*] SFTP Session Started...\n")
+                                    ConsLogSys(ConsOut, 1, 1)
+                                    iSFLogin = 1
+                                    LastRC = 0
+                                    //defer SF_Client.Close()
+                                }
+                            }
+                        }
+                    }
+
+
+                    //****************************************************************
+                    //* Upload File to SFTP                                          *
+                    //****************************************************************
+                    if iSFLogin == 1 {
+                        ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        SFUrec = Inrec[4:]
+
+                        splitString1, splitString2, SplitRC := twoSplit(SFUrec)
+
+                        // Remove any duplicate Delimiters - This is necessary to prevent indexing errors when
+                        //  The found file does not match the search string (OS ignore duplicated delimiters)
+                        oneDelim := fmt.Sprintf("%c", slashDelim)
+                        twoDelim := fmt.Sprintf("%c%c", slashDelim, slashDelim)
+
+                        iOldLen = 1
+                        iNewLen = 0
+                        for iOldLen != iNewLen {
+                            iOldLen = len(splitString1)
+                            splitString1 = strings.Replace(splitString1, twoDelim, oneDelim, -1)
+                            iNewLen = len(splitString1)
+                        }
+
+                        iOldLen = 1
+                        iNewLen = 0
+                        for iOldLen != iNewLen {
+                            iOldLen = len(splitString2)
+                            splitString2 = strings.Replace(splitString2, twoDelim, oneDelim, -1)
+                            iNewLen = len(splitString2)
+                        }
+
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] SFTP Upload Requires both a FROM File and a TO Directory\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                            LastRC = 1
+                        } else {
+                            //ConsOut = fmt.Sprintf("SFU: %s to %s\n", splitString1, splitString2)
+                            //ConsLogSys(ConsOut, 1, 1)
+
+                            //*****************************************************************
+                            //* Golang does not support ** - So this code approximates it     *
+                            //*  using filepath.Walk.  The limitation is that the string cant *
+                            //*  contain another * BEFORE the ** because filepath.Walk does   *
+                            //*  not support wildcards. This code is a decent compromise.     *
+                            //*****************************************************************
+                            DubGlob := fmt.Sprintf("%c**%c", slashDelim, slashDelim)
+                            if strings.Contains(splitString1, DubGlob) {
+                                iDblShard = strings.Index(splitString1, DubGlob)
+                                if iDblShard > 0 {
+                                    WalkDir := splitString1[:iDblShard]
+                                    WalkfileWild = splitString1[iDblShard+3:]
+                                    WalkfileToo = splitString2
+
+                                    BasicSFUp := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
+                                    UpldParser(BasicSFUp, splitString2, "SFTP")
+
+                                    filepath.Walk(WalkDir, WalkSFUpGlob)
+                                
+                                }
+                            } else {
+                                UpldParser(splitString1, splitString2, "SFTP")
+                            }
+                        }
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] Please Start an SFTP Session (Using SFS:) Before Attempting SFTP Uploads\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        LastRC = 1
+                    }
+                }
             }
         }
 
