@@ -298,7 +298,7 @@ func walkKey(k registry.Key, kname string) {
 
     names, err := k.ReadValueNames(-1)
     if err != nil {
-        ConsOut = fmt.Sprintf("[!] Reading Value Names of %s Failed: %v", kname, err)
+        ConsOut = fmt.Sprintf("[!] Reading Value Names of %s Failed: %v\n", kname, err)
         ConsLogSys(ConsOut, 1, 1)
         return
     }
@@ -306,7 +306,7 @@ func walkKey(k registry.Key, kname string) {
     for _, name := range names {
         _, valtype, err := k.GetValue(name, nil)
         if err != nil {
-            ConsOut = fmt.Sprintf("[!] Reading Value Type of %s of %s Failed: %v", name, kname, err)
+            ConsOut = fmt.Sprintf("[!] Reading Value Type of %s of %s Failed: %v\n", name, kname, err)
             ConsLogSys(ConsOut, 1, 1)
             return
         }
@@ -392,7 +392,7 @@ func walkKey(k registry.Key, kname string) {
         case registry.FULL_RESOURCE_DESCRIPTOR, registry.RESOURCE_LIST, registry.RESOURCE_REQUIREMENTS_LIST:
             // TODO: not implemented
         default:
-            ConsOut = fmt.Sprintf("[!] Value Type %d of %s of %s Failed: %v", valtype, name, kname, err)
+            ConsOut = fmt.Sprintf("[!] Value Type %d of %s of %s Failed: %v\n", valtype, name, kname, err)
             ConsLogSys(ConsOut, 1, 1)
             return
         }
@@ -400,7 +400,7 @@ func walkKey(k registry.Key, kname string) {
 
     names, err = k.ReadSubKeyNames(-1)
     if err != nil {
-        ConsOut = fmt.Sprintf("[!] Reading Sub-Keys of %s Failed: %v", kname, err)
+        ConsOut = fmt.Sprintf("[!] Reading Sub-Keys of %s Failed: %v\n", kname, err)
         ConsLogSys(ConsOut, 1, 1)
     }
 
@@ -413,7 +413,7 @@ func walkKey(k registry.Key, kname string) {
                     return
                 }
 
-                ConsOut = fmt.Sprintf("[!] Opening Sub-Keys %s of %s Failed: %v", name, kname, err)
+                ConsOut = fmt.Sprintf("[!] Opening Sub-Keys %s of %s Failed: %v\n", name, kname, err)
                 ConsLogSys(ConsOut, 1, 1)
                 return
             }
@@ -449,7 +449,7 @@ func NTFSRawCopy(NTFSInFile string, NTFSOutFile string) {
 
     err := TryRetrieveFile(npath[0], npathRela, NTFSOutFile)
     if err != nil {
-        ConsOut = fmt.Sprintf("[!] Error Accessing Input FileName: %v", err)
+        ConsOut = fmt.Sprintf("[!] Error Accessing FileName: %v\n", err)
         ConsLogSys(ConsOut, 1, 1)
         return
     }
@@ -583,7 +583,7 @@ func TryRetrieveFile(volDiskLetter string, filePath string, NTFSOutFile string) 
     // Begin Copy                                                    *
     //****************************************************************
     ConsOut = fmt.Sprintf("[+] Begin Raw Copy...\n")
-    ConsLogSys(ConsOut, 1, 1)
+    ConsLogSys(ConsOut, 3, 3)
     err = CopyToDestinationFile(corrFileReader, NTFSOutFile)
     if err != nil {
         return err
@@ -633,9 +633,9 @@ func PrintFileMetadata(stdinfo *ntfs.STANDARD_INFORMATION, fullpath string) erro
     if stdinfo == nil {
         return ErrReturnedNil
     }
-    ConsOut = fmt.Sprintf("    File Path: %s\n    File CTime: %s\n    File MTime: %s\n    MFT MTime: %s\n    File ATime: %s\n    Size: %d\n", 
-              fullpath, stdinfo.Create_time().String(), stdinfo.File_altered_time().String(), stdinfo.Mft_altered_time().String(), 
-              stdinfo.File_accessed_time().String(), stdinfo.Size())
+    ConsOut = fmt.Sprintf("    File Path: %s\n    File ATime: %s\n    File CTime: %s\n    File MTime: %s\n    MFT MTime: %s\n", 
+              fullpath, stdinfo.File_accessed_time().String(), stdinfo.Create_time().String(), stdinfo.File_altered_time().String(),
+              stdinfo.Mft_altered_time().String())
     ConsLogSys(ConsOut, 1, 1)
     return nil
 }
@@ -645,8 +645,37 @@ func PrintFileMetadata(stdinfo *ntfs.STANDARD_INFORMATION, fullpath string) erro
 // Copy to Destination File                                      *   
 //****************************************************************
 func CopyToDestinationFile(src ntfs.RangeReaderAt, dstfile string) error {
+    var LastSlash = 0
+    var PathOnly = "/"
+    var TmpTooFile = ""
+    var iFileCount = 0
+
     if src == nil {
         return ErrReturnedNil
+    }
+
+    //***********************************************************************
+    //* Check to make sure Dest Directory Exists                            *
+    //***********************************************************************
+    LastSlash = strings.LastIndexByte(dstfile, slashDelim)
+    PathOnly = dstfile[:LastSlash]
+    ExpandDirs(PathOnly)
+
+
+    //***********************************************************************
+    //* Never OverWrite a File - Rename if it is already there              *
+    //***********************************************************************
+    if FileExists(dstfile) {
+        TmpTooFile = dstfile
+        iFileCount = 0
+        for FileExists(TmpTooFile) {
+            iFileCount++
+            TmpTooFile = fmt.Sprintf("%s(%d)", dstfile, iFileCount)
+        }
+
+        dstfile = TmpTooFile
+        ConsOut = fmt.Sprintf("[*] Destination File Already Exists.\n    Renamed To: %s\n", dstfile)
+        ConsLogSys(ConsOut, 1, 2)
     }
 
     ConsOut = fmt.Sprintf("[+] Raw Copy to: %s\n", dstfile)
@@ -669,11 +698,13 @@ func CopyToDestinationFile(src ntfs.RangeReaderAt, dstfile string) error {
     convertedReader := ConvertFromReaderAtToReader(src, 0)
 
     wBytes, err := io.Copy(dstFd, convertedReader)
-    ConsOut = fmt.Sprintf("[+] Written %d Bytes to Destination Done. \n", wBytes)
-    ConsLogSys(ConsOut, 1, 1)
     if err != nil {
         return err
     }
+
+    TooMD5 := GetMD5File(dstfile)
+    ConsOut = fmt.Sprintf("[+] Written %d Bytes to Destination Done.\n[+] File Hash: %s\n", wBytes, TooMD5)
+    ConsLogSys(ConsOut, 1, 1)
 
     return nil
 }

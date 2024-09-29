@@ -251,7 +251,6 @@
 //  Environment Variable Expansion now uses GoLang $Var or ${Var} 
 //
 // Not Implemented from AChoir (Yet):
-//  Raw NTFS - Windows Unique - Use TSK
 //  NTP - Not used enough
 //  Console Colors - No native cross-platform way to do this
 //  Native SMB/CIFS - Windows Unique
@@ -363,6 +362,7 @@ var iSleep = 0                                  // Seconds to Sleep
 var volType = ""                                // Volume File System
 var isNTFS = 0                                  // Is the Volume NTFS
 var iCPS = 0                                    // Copy based on Magic Number (Signature)
+var iCPRaw = 0                                  // Copy NTFS Raw (0=No/API Copy, 1=Yes/NTFS Raw Copy)
 var setCPath = 1                                // Output Copy Patch Shard - 0=None, 1=Partial, 2=Full
 var iOutOfDiskSpace = 0                         // Did we get any Out Of Disk Space Errors
 var iXitCmd = 0                                 // Are we runnning an Exit Command
@@ -2556,57 +2556,23 @@ func main() {
 
 
 
-                // BETA Test of NCP:
-                } else if strings.HasPrefix(strings.ToUpper(Inrec), "NCP:") {
-                    ConsOut = fmt.Sprintf("[+] %s\n", Inrec)
-                    ConsLogSys(ConsOut, 1, 1)
-
-                    Cpyrec = Inrec[4:]
-
-                    splitString1, splitString2, SplitRC := twoSplit(Cpyrec)
-                    // Remove any duplicate Delimiters - This is necessary to prevent indexing errors when
-                    //  The found file does not match the search string (OS ignore duplicated delimiters)
-                    oneDelim := fmt.Sprintf("%c", slashDelim)
-                    twoDelim := fmt.Sprintf("%c%c", slashDelim, slashDelim)
-
-                    iOldLen = 1
-                    iNewLen = 0
-                    for iOldLen != iNewLen {
-                        iOldLen = len(splitString1)
-                        splitString1 = strings.Replace(splitString1, twoDelim, oneDelim, -1)
-                        iNewLen = len(splitString1)
-                    }
-
-                    iOldLen = 1
-                    iNewLen = 0
-                    for iOldLen != iNewLen {
-                        iOldLen = len(splitString2)
-                        splitString2 = strings.Replace(splitString2, twoDelim, oneDelim, -1)
-                        iNewLen = len(splitString2)
-                    }
-
-                    if SplitRC == 1 {
-                        ConsOut = fmt.Sprintf("[!] Copying Requires both a FROM File and a TO Directory\n")
-                        ConsLogSys(ConsOut, 1, 1)
-                    } else {
-                        //ConsOut = fmt.Sprintf("CPY: %s to %s\n", splitString1, splitString2)
-                        //ConsLogSys(ConsOut, 1, 1)
-                        NTFSRawCopy(splitString1, splitString2)
-                    }
-                // BETA Test of NCP:
 
 
 
 
-
-
-
-
-                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CPY:") || strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CPY:") || 
+                          strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") || 
+                          strings.HasPrefix(strings.ToUpper(Inrec), "NCP:") {
                     //****************************************************************
                     //* Binary Copy From => To                                       *
                     //****************************************************************
-                    if strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "NCP:") {
+                        iCPRaw = 1
+                    } else {
+                        iCPRaw = 0
+                    }
+
+                   if strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
                         iCPS = 1
                     } else {
                         iCPS = 0
@@ -5463,15 +5429,19 @@ func CopyParser(splitString1 string, splitString2 string) {
             ConsOut = fmt.Sprintf("[+] Multi-Copy File (%d): %s\n    To: %s\n", procf_countr, file_found, MCprcO)
             ConsLogSys(ConsOut, 1, 1)
 
-            nBytes, copy_err := binCopy(file_found, MCprcO)
+            if iCPRaw == 1 {
+                NTFSRawCopy(file_found, MCprcO)
+            } else {
+                nBytes, copy_err := binCopy(file_found, MCprcO)
 
-            if copy_err != nil {
-                ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
-                ConsLogSys(ConsOut, 1, 1)
-
-                if nBytes < 1 {
-                    ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                if copy_err != nil {
+                    ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                     ConsLogSys(ConsOut, 1, 1)
+
+                    if nBytes < 1 {
+                        ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
                 }
             }
         }
@@ -5538,15 +5508,20 @@ func CopyParser(splitString1 string, splitString2 string) {
                     ConsOut = fmt.Sprintf("[+] Multi-Copy Redir File(%d): %s\n    To: %s\n", procf_countr, file_found, MCprcO)
                     ConsLogSys(ConsOut, 1, 1)
 
-                    nBytes, copy_err := binCopy(file_found, MCprcO)
 
-                    if copy_err != nil {
-                        ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
-                        ConsLogSys(ConsOut, 1, 1)
+                    if iCPRaw == 1 {
+                        NTFSRawCopy(file_found, MCprcO)
+                    } else {
+                        nBytes, copy_err := binCopy(file_found, MCprcO)
 
-                        if nBytes < 1 {
-                            ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                        if copy_err != nil {
+                            ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                             ConsLogSys(ConsOut, 1, 1)
+
+                            if nBytes < 1 {
+                                ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                                ConsLogSys(ConsOut, 1, 1)
+                            }
                         }
                     }
                 }
@@ -5592,18 +5567,22 @@ func CopyParser(splitString1 string, splitString2 string) {
         ConsOut = fmt.Sprintf("[+] Singl-Copy File (%d): %s\n    To: %s\n", procf_countr, splitString1, MCprcO)
         ConsLogSys(ConsOut, 1, 1)
 
-        nBytes, copy_err := binCopy(splitString1, MCprcO)
 
-        if copy_err != nil {
-            ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
-            ConsLogSys(ConsOut, 1, 1)
+        if iCPRaw == 1 {
+            NTFSRawCopy(splitString1, MCprcO)
+        } else {
+            nBytes, copy_err := binCopy(splitString1, MCprcO)
 
-            if nBytes < 1 {
-                ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+            if copy_err != nil {
+                ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                 ConsLogSys(ConsOut, 1, 1)
+
+                if nBytes < 1 {
+                    ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                    ConsLogSys(ConsOut, 1, 1)
+                }
             }
         }
-
 
         if (iNative == 0) {
             //****************************************************************
@@ -5639,15 +5618,20 @@ func CopyParser(splitString1 string, splitString2 string) {
                 ConsOut = fmt.Sprintf("[+] Singl-Copy Redir File (%d): %s\n    To: %s\n", procf_countr, splitString1, MCprcO)
                 ConsLogSys(ConsOut, 1, 1)
 
-                nBytes, copy_err := binCopy(splitString1, MCprcO)
 
-                if copy_err != nil {
-                    ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
-                    ConsLogSys(ConsOut, 1, 1)
+                if iCPRaw == 1 {
+                    NTFSRawCopy(splitString1, MCprcO)
+                } else {
+                    nBytes, copy_err := binCopy(splitString1, MCprcO)
 
-                    if nBytes < 1 {
-                        ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                    if copy_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                         ConsLogSys(ConsOut, 1, 1)
+
+                        if nBytes < 1 {
+                            ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
                     }
                 }
             }
