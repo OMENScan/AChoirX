@@ -1,4 +1,4 @@
-AChoirX - v10.01.55 - Release 1.55
+AChoirX - v10.01.57 - Release 1.57
 
 AChoirX
 =======
@@ -321,7 +321,13 @@ CPS:     Copy Files (CPS:<FromFile> <ToFile>) by Signature (Magic, Regex, or Has
          Important Note: CPY: WILL RECURSE THROUGH SUBDIRECTORIES 
                          ONLY IF A WILDCARD IS USED.
          Important Note: ANY match on Magic OR Regex OR Hash will 
-                         cause the Copy to happen. 
+                         cause the Copy to happen.
+NCP:     RAW NTFS Copy Files (NCP:<FromFile> <ToFile>) - Supports Quotes
+         Supports Wildcard. Important Note: CPY: WILL RECURSE THROuGH
+         SUBDIRECTORIES ONLY IF A WILDCARD IS USED.
+         NCP: function similar to CPY but uses Raw Copy to copy locked
+         and invisible files like $MFT, and Registry Hives - Implemented
+         ONLY on Windows.
 DEL:<File To Delete> - Delete Files (Accepts WildCards)
          Only Files in Subdirectories (Off of The AChoirX Root) can be 
          deleted. This is to prevent accidental Deletion of files not 

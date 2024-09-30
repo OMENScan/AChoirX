@@ -229,6 +229,10 @@
 // AChoirX v10.01.56 - Release 1.56 - Add OPTIONAL output file name to REG: to allow all extractions to go to the same CSV
 //                   - Close Registry Key Properly so it can be unloaded
 //
+// AChoirX v10.01.57 - Release 1.57 - Add NCP: NTFS Raw Copy 
+//                   - Only implemented in Windows - Not Applicable to Linux, MacOS, or Android
+//                   - Most of the code for this was copied from: https://github.com/kmahyyg/go-rawcopy
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -239,12 +243,14 @@
 //  SFTP:     go get golang.org/x/crypto/ssh
 //  cpu:      go get github.com/shirou/gopsutil/cpu
 //  Registry: go get golang.org/x/sys/windows/registry
+//  NTFS:     go get www.velocidex.com/golang/go-ntfs
+//            go get github.com/davecgh/go-spew
+//            go get github.com/hashicorp/golang-lru
 //
 // Changes from AChoir:
 //  Environment Variable Expansion now uses GoLang $Var or ${Var} 
 //
 // Not Implemented from AChoir (Yet):
-//  Raw NTFS - Windows Unique - Use TSK
 //  NTP - Not used enough
 //  Console Colors - No native cross-platform way to do this
 //  Native SMB/CIFS - Windows Unique
@@ -297,7 +303,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.56"                       // AChoir Version
+var Version = "v10.01.57"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -356,6 +362,7 @@ var iSleep = 0                                  // Seconds to Sleep
 var volType = ""                                // Volume File System
 var isNTFS = 0                                  // Is the Volume NTFS
 var iCPS = 0                                    // Copy based on Magic Number (Signature)
+var iCPRaw = 0                                  // Copy NTFS Raw (0=No/API Copy, 1=Yes/NTFS Raw Copy)
 var setCPath = 1                                // Output Copy Patch Shard - 0=None, 1=Partial, 2=Full
 var iOutOfDiskSpace = 0                         // Did we get any Out Of Disk Space Errors
 var iXitCmd = 0                                 // Are we runnning an Exit Command
@@ -2544,11 +2551,28 @@ func main() {
 
                     fileToZipClose(fileToZip)
 
-                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CPY:") || strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
+
+
+
+
+
+
+
+
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "CPY:") || 
+                          strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") || 
+                          strings.HasPrefix(strings.ToUpper(Inrec), "NCP:") {
                     //****************************************************************
                     //* Binary Copy From => To                                       *
                     //****************************************************************
-                    if strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "NCP:") {
+                        iCPRaw = 1
+                    } else {
+                        iCPRaw = 0
+                    }
+
+                   if strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") {
                         iCPS = 1
                     } else {
                         iCPS = 0
@@ -5405,15 +5429,19 @@ func CopyParser(splitString1 string, splitString2 string) {
             ConsOut = fmt.Sprintf("[+] Multi-Copy File (%d): %s\n    To: %s\n", procf_countr, file_found, MCprcO)
             ConsLogSys(ConsOut, 1, 1)
 
-            nBytes, copy_err := binCopy(file_found, MCprcO)
+            if iCPRaw == 1 {
+                NTFSRawCopy(file_found, MCprcO)
+            } else {
+                nBytes, copy_err := binCopy(file_found, MCprcO)
 
-            if copy_err != nil {
-                ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
-                ConsLogSys(ConsOut, 1, 1)
-
-                if nBytes < 1 {
-                    ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                if copy_err != nil {
+                    ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                     ConsLogSys(ConsOut, 1, 1)
+
+                    if nBytes < 1 {
+                        ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
                 }
             }
         }
@@ -5480,15 +5508,20 @@ func CopyParser(splitString1 string, splitString2 string) {
                     ConsOut = fmt.Sprintf("[+] Multi-Copy Redir File(%d): %s\n    To: %s\n", procf_countr, file_found, MCprcO)
                     ConsLogSys(ConsOut, 1, 1)
 
-                    nBytes, copy_err := binCopy(file_found, MCprcO)
 
-                    if copy_err != nil {
-                        ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
-                        ConsLogSys(ConsOut, 1, 1)
+                    if iCPRaw == 1 {
+                        NTFSRawCopy(file_found, MCprcO)
+                    } else {
+                        nBytes, copy_err := binCopy(file_found, MCprcO)
 
-                        if nBytes < 1 {
-                            ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                        if copy_err != nil {
+                            ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                             ConsLogSys(ConsOut, 1, 1)
+
+                            if nBytes < 1 {
+                                ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                                ConsLogSys(ConsOut, 1, 1)
+                            }
                         }
                     }
                 }
@@ -5534,18 +5567,22 @@ func CopyParser(splitString1 string, splitString2 string) {
         ConsOut = fmt.Sprintf("[+] Singl-Copy File (%d): %s\n    To: %s\n", procf_countr, splitString1, MCprcO)
         ConsLogSys(ConsOut, 1, 1)
 
-        nBytes, copy_err := binCopy(splitString1, MCprcO)
 
-        if copy_err != nil {
-            ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
-            ConsLogSys(ConsOut, 1, 1)
+        if iCPRaw == 1 {
+            NTFSRawCopy(splitString1, MCprcO)
+        } else {
+            nBytes, copy_err := binCopy(splitString1, MCprcO)
 
-            if nBytes < 1 {
-                ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+            if copy_err != nil {
+                ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                 ConsLogSys(ConsOut, 1, 1)
+
+                if nBytes < 1 {
+                    ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                    ConsLogSys(ConsOut, 1, 1)
+                }
             }
         }
-
 
         if (iNative == 0) {
             //****************************************************************
@@ -5581,15 +5618,20 @@ func CopyParser(splitString1 string, splitString2 string) {
                 ConsOut = fmt.Sprintf("[+] Singl-Copy Redir File (%d): %s\n    To: %s\n", procf_countr, splitString1, MCprcO)
                 ConsLogSys(ConsOut, 1, 1)
 
-                nBytes, copy_err := binCopy(splitString1, MCprcO)
 
-                if copy_err != nil {
-                    ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
-                    ConsLogSys(ConsOut, 1, 1)
+                if iCPRaw == 1 {
+                    NTFSRawCopy(splitString1, MCprcO)
+                } else {
+                    nBytes, copy_err := binCopy(splitString1, MCprcO)
 
-                    if nBytes < 1 {
-                        ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                    if copy_err != nil {
+                        ConsOut = fmt.Sprintf("[!] Error Copying File: %s\n", copy_err)
                         ConsLogSys(ConsOut, 1, 1)
+
+                        if nBytes < 1 {
+                            ConsOut = fmt.Sprintf("[!] File Copy was: %d Bytes\n", nBytes)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
                     }
                 }
             }

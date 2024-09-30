@@ -68,9 +68,15 @@ func winConHideShow(HideOrShow int) {
 // Accept a Key String and convert it to registry key            *
 //****************************************************************
 func makeKey(khive string) {
-    fmt.Printf("[+] Reistry Parser not Implemented for OSX\n")
+    fmt.Printf("[+] Registry Parser not Implemented for OSX\n")
 }
 
+//****************************************************************
+// Raw NTFS Copy Routine.  Not implemented on MacOS              *
+//****************************************************************
+func NTFSRawCopy(NTFSInFile string, NTFSOutFile string) {
+    fmt.Printf("[+] Raw NTFS File Copy not Implemented for OSX\n")
+}
 
 // ****************************************************************
 // Windows Get Volume Information                                 *
