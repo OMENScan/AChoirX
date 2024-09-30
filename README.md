@@ -163,3 +163,7 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 06/20/2024 - AChoirX v10.01.54 - Release 1.54 - Add LST: and FOR: Counters
 
 08/17/2024 - AChoirX v10.01.55 - Release 1.55 - Add INC: (Include an INI - Allowing Nested INI Files)
+
+09/03/2024 - AChoirX v10.01.56 - Release 1.56 - Add OPTIONAL output file name to REG: to allow all extractions to go to the same CSV - Close Registry Key Properly so it can be unloaded
+
+09/29/2024 - AChoirX v10.01.57 - Release 1.57 - Add NCP: NTFS Raw Copy - Only implemented in Windows - Not Applicable to Linux, MacOS, or Android - Most of the code for this was copied from: https://github.com/kmahyyg/go-rawcopy
