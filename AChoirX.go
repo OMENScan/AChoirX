@@ -233,6 +233,9 @@
 //                   - Only implemented in Windows - Not Applicable to Linux, MacOS, or Android
 //                   - Most of the code for this was copied from: https://github.com/kmahyyg/go-rawcopy
 //
+// AChoirX v10.01.58 - Release 1.58 - Change Time Display to UTC
+//                   - Fix edge case when Regexp expands "$" like with $MFT or $Logfile, etc...
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -303,7 +306,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.57"                       // AChoir Version
+var Version = "v10.01.58"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -1457,6 +1460,7 @@ func main() {
                     if for_err == nil && for_rcd == true {
                         Filrec = strings.TrimSpace(ForScan.Text())
 
+
                         Looper = 1
                         LoopNum++
                         iMaxCnt++
@@ -1647,7 +1651,6 @@ func main() {
                 }
 
                 if CaseInsensitiveContains(o32VarRec, "&Inp") {
-
                     repl_Inp := NewCaseInsensitiveReplacer("&Inp", Inprec)
                     o32VarRec = repl_Inp.Replace(o32VarRec)
                 }
@@ -2550,15 +2553,6 @@ func main() {
                     _, ozip_err = io.Copy(OutZipWriter, fileToZip)
 
                     fileToZipClose(fileToZip)
-
-
-
-
-
-
-
-
-
 
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "CPY:") || 
                           strings.HasPrefix(strings.ToUpper(Inrec), "CPS:") || 
@@ -4443,7 +4437,7 @@ func NewCaseInsensitiveReplacer(toReplace, with string) *CaseInsensitiveReplacer
 }
 
 func (cir *CaseInsensitiveReplacer) Replace(str string) string {
-    return cir.toReplace.ReplaceAllString(str, cir.replaceWith)
+    return cir.toReplace.ReplaceAllLiteralString(str, cir.replaceWith)
 }
 
 
@@ -4620,7 +4614,7 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
     //***********************************************************************
     FrmATime, FrmMTime, FrmCTime = FTime(FrmFile)
 
-    ConsOut = fmt.Sprintf("[+] From File Meta Data: \n    Bytes: %d\n    ATime: %v\n    MTime: %v\n    CTime: %v\n", FrmFileSize, FrmATime, FrmMTime, FrmCTime)
+    ConsOut = fmt.Sprintf("[+] From File Meta Data: \n    Bytes: %d\n    ATime: %v\n    MTime: %v\n    CTime: %v\n", FrmFileSize, FrmATime.UTC(), FrmMTime.UTC(), FrmCTime.UTC())
     ConsLogSys(ConsOut, 1, 1)
 
 
@@ -4809,7 +4803,7 @@ func binCopy(FrmFile, TooFile string) (int64, error) {
             ConsOut = fmt.Sprintf("[+] Copy Complete (%d): %d Bytes Copied\n", procf_countr, nBytes)
             ConsLogSys(ConsOut, 1, 1)
 
-            ConsOut = fmt.Sprintf("[+] To File Meta Data: \n    Bytes: %d\n    ATime: %v\n    MTime: %v\n    CTime: %v\n", TooFileSize, TooATime, TooMTime, TooCTime)
+            ConsOut = fmt.Sprintf("[+] To File Meta Data: \n    Bytes: %d\n    ATime: %v\n    MTime: %v\n    CTime: %v\n", TooFileSize, TooATime.UTC(), TooMTime.UTC(), TooCTime.UTC())
             ConsLogSys(ConsOut, 1, 1)
 
             if FrmMD5 == TooMD5 {

@@ -5,12 +5,8 @@
 *  "(Get-Website * | % { $_.logFile.Directory})"                 *
 ******************************************************************
 Set:CopyPath=part
-SAY:[+] Collecting Master File Tables...
-ACQ:\RawData
-DSK:Fixed
-EXE:\TSK\fcat.exe -f ntfs $MFT \\.\&dsk: --exestdout=&acn\RawData\MFT-&Dsk
+ACQ:IIS
 SAY:[+] Extracting IIS Logs Directory from IIS XML Config... 
-ACQ:\IIS
 CPY:${systemroot}\System32\inetsrv\config\applicationHost.config &Acq
 ACQ:config
 ***********************************************************
@@ -51,24 +47,17 @@ OUT:&LST
 *******************************************************
 * Zip it all up...                                    *
 *******************************************************
-FLT:AChIIS.Flt
-SET:FILTER=excl, part
+FLT:NONE
+SET:FILTER=none
 SAY:[+] Now Zipping IIS Logs...
-SET:ZipFileName=&Dir\&Acn\IISLogs.zip
-SET:ZipFileRoot=MFT
-FOR:&Dir\&Acn\RawData\*
-ZIP:&For
-SET:ZipFileRoot=config
-FOR:&Dir\&Acn\IIS\config\*
-ZIP:&For
-SET:ZipFileRoot=IISLogs
 LST:&Acn\IIS\config\IISLogDirs.txt
 FOR:&LST\**\*
+SET:ZipFileName=&Dir\&Acn\IISLogs.zip
+SET:ZipFileRoot=IISLogs
 ZIP:&For
 ZIP:&Dir\Logs\&Acn.log
 SET:ZipFileName=close
 CLN:&Acn\Cache
 CLN:&Acn\IIS
-CLN:&Acn\RawData
 CLN:&Acn\RanProg
 SAY:[+] IIS Log Collection Complete...

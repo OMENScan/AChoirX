@@ -41,11 +41,11 @@ SAY:
 SAY:[+] Copy Raw $MFT(s)...
 SAY:
 ACQ:\RawData
-EXE:\TSK\fcat.exe -f ntfs $MFT \\.\&Drv --exestdout=&acn\RawData\MFT-C
+NCP:&Drv:\$MFT "&Acq\&Drv"
 SAY:
 SAY:[+] Copy Raw $LogFile...
 SAY:
-EXE:\TSK\fcat.exe -f ntfs $LogFile \\.\&Drv --exestdout=&acn\RawData\LogFile-C
+NCP:&Drv:\$LogFile "&Acq\&Drv"
 SAY:
 SAY:[+] Now Extracting USNJrnl...
 SAY:
@@ -92,10 +92,10 @@ CPY:"&Drv\Windows\System32\Tasks\**\*" "&Acq"
 SAY:[+] Gathering All User Registries...
 SAY:
 FOR:&Drv\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]*
-ACQ:\Reg\&FO2
+* ACQ:\Reg\&FO2
 CPY:"&Drv\&FO1\&FO2\&FO3" "&Acn\Reg"
 FOR:&Drv\Users\*\AppData\Local\Microsoft\Windows\[Uu][Ss][Rr][Cc][Ll][Aa][Ss][Ss].[Dd][Aa][Tt]*
-ACQ:\Reg\&FO2
+* ACQ:\Reg\&FO2
 CPY:"&Drv\&FO1\&FO2\&FO3\&FO4\&FO5\&FO6\&FO7" "&Acn\Reg"
 * *** Remove Offline Autoruns - It is too unreliable ***
 * SAY:

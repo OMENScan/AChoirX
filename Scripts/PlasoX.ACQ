@@ -53,7 +53,7 @@ VER:Windows
   *******************************************************
   SAY:[+] Now TimeLining &Dir\&Inp\RawData\MFT*
   SAY:
-  FOR:&Dir\&Inp\RawData\MFT*
+  FOR:&Dir\&Inp\RawData\*\$MFT
   EXE:&Dir\Plaso\Log2TimeLine.exe -z UTC --parsers "mft" --status_view none --quiet --logfile "&Acq\Temp.Log" &Acq\timeline.bodyfile "&For"
   *******************************************************
   * Timeline Event ViewerLogs                           *

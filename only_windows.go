@@ -633,8 +633,8 @@ func PrintFileMetadata(stdinfo *ntfs.STANDARD_INFORMATION, fullpath string) erro
     if stdinfo == nil {
         return ErrReturnedNil
     }
-    ConsOut = fmt.Sprintf("    File Path: %s\n    File ATime: %s\n    File CTime: %s\n    File MTime: %s\n    MFT MTime: %s\n", 
-              fullpath, stdinfo.File_accessed_time().String(), stdinfo.Create_time().String(), stdinfo.File_altered_time().String(),
+    ConsOut = fmt.Sprintf("[+] File Meta Data:\n    ATime: %s\n    MTime: %s\n    CTime: %s\n    MFT MTime: %s\n", 
+              stdinfo.File_accessed_time().String(), stdinfo.File_altered_time().String(), stdinfo.Create_time().String(),
               stdinfo.Mft_altered_time().String())
     ConsLogSys(ConsOut, 1, 1)
     return nil

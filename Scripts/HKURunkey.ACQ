@@ -15,12 +15,12 @@ SET:ParseQuote=Strict
 SAY:[+] Collecting HKU (NTUSER.DAT) ASEP Registry Keys
 ACQ:\Reg
 SAY:[+] Gathering All User Registries...
-FOR:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]*
-ACQ:\Reg\&FO2
-EXE:\TSK\fcat.exe /&FO1/&FO2/&FO3 \\.\${SYSTEMDRIVE} --exestdout=&acn\Reg\&FO2\&FNM
+* FOR:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]*
+* ACQ:\Reg\&FO2
+NCP:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]* "&Acq\Users"
 
 SAY:[+] Mounting Collected User Registries...
-FOR:&ACN\Reg\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
+FOR:&ACN\Reg\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
 
 ACQ:\ASEP
 SYS:Reg Load HKU\&FO2 &FOR
