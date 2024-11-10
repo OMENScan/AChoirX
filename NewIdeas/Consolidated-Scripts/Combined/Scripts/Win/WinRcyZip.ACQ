@@ -1,0 +1,8 @@
+*******************************************************
+* SubScript - Windows Recycle Bin Zipped              *
+*******************************************************
+SAY:[+] Now Collecting Recycle Bins...
+DSK:Fixed
+SET:ZipFileRoot=Rcy
+FOR:&Dsk:\$Recycle.Bin\**\*
+ZIP:&For

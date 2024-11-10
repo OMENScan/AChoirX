@@ -1,0 +1,120 @@
+********************************************************
+* Experimental script to collect HKU ASEP Run Keys     *
+********************************************************
+SET:CopyPath=Part
+********************************************************
+* Filter Out not Found ASEP Run Keys                   *
+********************************************************
+FLT:Scripts\WinRunKey.FLT
+SET:FILTER=excl, full
+SET:delims=	\/
+SET:ParseQuote=Strict
+********************************************************
+* Collect HKU ASEP Run Keys                            *
+********************************************************
+SAY:[+] Collecting HKU (NTUSER.DAT) ASEP Registry Keys
+ACQ:\Reg
+SAY:[+] Gathering All User Registries...
+* FOR:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]*
+* ACQ:\Reg\&FO3
+NCP:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]* "&Acq\Users"
+
+SAY:[+] Mounting Collected User Registries...
+FOR:&ACN\Reg\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]
+
+ACQ:\ASEP
+SYS:Reg Load HKU\&FO3 &FOR
+REG:"HKUS\&FO3\Software\Microsoft\Windows\CurrentVersion\Policies\System\Shell" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows\CurrentVersion\RunOnce" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows\CurrentVersion\RunOnceEx" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows\CurrentVersion\RunServices" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows\CurrentVersion\RunServicesOnce" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer\Run" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Run" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnce" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Microsoft\Windows\CurrentVersion\RunOnceEx" "RawHKUS"
+REG:"HKUS\&FO3\Environment\UserInitMprLogonScript" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows NT\CurrentVersion\Windows\Load" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows NT\CurrentVersion\Windows\Run" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunOnce" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\RunOnceEx" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Terminal Server\Install\Software\Microsoft\Windows\CurrentVersion\Run" "RawHKUS"
+REG:"HKUS\&FO3\Software\Policies\Microsoft\Windows\System\Scripts\Logon" "RawHKUS"
+REG:"HKUS\&FO3\Software\Policies\Microsoft\Windows\System\Scripts\Logoff" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows\CurrentVersion\Group Policy\Scripts\Startup" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows\CurrentVersion\Group Policy\Scripts\Logon" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows\CurrentVersion\Group Policy\Scripts\Logoff" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows\CurrentVersion\Group Policy\Scripts\Shutdown" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Classes\Protocols\Filter" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Classes\Protocols\Handler" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Microsoft\Internet Explorer\Desktop\Components" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\*\ShellEx\ContextMenuHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\Drive\ShellEx\ContextMenuHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\*\ShellEx\PropertySheetHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\AllFileSystemObjects\ShellEx\ContextMenuHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\AllFileSystemObjects\ShellEx\DragDropHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\AllFileSystemObjects\ShellEx\PropertySheetHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\Directory\ShellEx\ContextMenuHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\Directory\Shellex\DragDropHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\Directory\ShellEx\PropertySheetHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\Directory\ShellEx\CopyHookHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\Directory\Background\ShellEx\ContextMenuHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\Folder\ShellEx\ContextMenuHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\Folder\ShellEx\DragDropHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\Folder\ShellEx\PropertySheetHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\Folder\ShellEx\ColumnHandlers" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\Folder\ShellEx\ExtShellFolderViews" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows\CurrentVersion\Explorer\ShellIconOverlayIdentifiers" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Microsoft\Windows\CurrentVersion\ShellServiceObjectDelayLoad" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\CLSID\{AB8902B4-09CA-4bb6-B78D-A8F59079A8D5}\InProcServer32" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Ctf\LangBarAddin" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\ShellServiceObjects" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Internet Explorer\UrlSearchHooks" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Internet Explorer\Explorer Bars" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Internet Explorer\Extensions" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Microsoft\Internet Explorer\Explorer Bars" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Microsoft\Internet Explorer\Extensions" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Windows NT\CurrentVersion\Drivers32" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\Filter" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\CLSID\{083863F1-70DE-11d0-BD40-00A0C911CE86}\Instance" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\CLSID\{AC757296-3522-4E11-9862-C17BE5A1767E}\Instance" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\CLSID\{7ED96837-96F0-4812-B211-F13C24117ED3}\Instance" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\CLSID\{ABE3B9A4-257D-4B97-BD1A-294AF496222E}\Instance" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Microsoft\Windows NT\CurrentVersion\Drivers32" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Classes\CLSID\{083863F1-70DE-11d0-BD40-00A0C911CE86}\Instance" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Classes\CLSID\{AC757296-3522-4E11-9862-C17BE5A1767E}\Instance" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Classes\CLSID\{7ED96837-96F0-4812-B211-F13C24117ED3}\Instance" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Classes\CLSID\{ABE3B9A4-257D-4B97-BD1A-294AF496222E}\Instance" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Command Processor\Autorun" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Classes\Exefile\Shell\Open\Command\(Default)" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\HtmlFile\Shell\Open\Command\(Default)" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\.exe" "RawHKUS"
+REG:"HKUS\&FO3\Software\Classes\.cmd" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Policies\Microsoft\Windows\Control Panel\Desktop\Scrnsave.exe" "RawHKUS"
+REG:"HKUS\&FO3\Control Panel\Desktop\Scrnsave.exe" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Office\Outlook\Addins" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Office\Excel\Addins" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Office\PowerPoint\Addins" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Office\Word\Addins" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Office\Access\Addins" "RawHKUS"
+REG:"HKUS\&FO3\Software\Microsoft\Office\OneNote\Addins" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Microsoft\Office test\Special\Perf\(Default)" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Microsoft\Office\Outlook\Addins" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Microsoft\Office\Excel\Addins" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Microsoft\Office\PowerPoint\Addins" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Microsoft\Office\Word\Addins" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Microsoft\Office\Access\Addins" "RawHKUS"
+REG:"HKUS\&FO3\Software\Wow6432Node\Microsoft\Office\OneNote\Addins" "RawHKUS"
+REG:"HKUS\&FO3\SOFTWARE\Wow6432Node\Microsoft\Office test\Special\Perf\(Default)" "RawHKUS"
+SYS:Reg UnLoad HKU\&FO3
+
+LST:&ACN\ASEP\RawHKUS.csv
+OPN:&ACQ\AllHKUS.csv
+OUT:REG	&LST
+
+FLT:NONE
+SET:delims=,\/
+
+Say:[+] Registry Collection Complete

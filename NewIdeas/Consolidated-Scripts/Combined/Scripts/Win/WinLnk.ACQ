@@ -1,0 +1,7 @@
+*******************************************************
+* SubScript - Windows .LNK Files                      *
+*******************************************************
+SAY:[+] Copying All User Recent LNK files...
+ACQ:\Lnk
+CPY:"${SYSTEMDRIVE}\Users\*\Desktop\*.lnk" "&Acq"
+CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk" "&Acq"

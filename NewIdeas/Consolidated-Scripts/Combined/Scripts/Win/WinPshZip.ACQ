@@ -1,0 +1,7 @@
+*******************************************************
+* SubScript - Windows Powershell Logs Zipped          *
+*******************************************************
+SAY:[+] Copying/Zipping all User PowerShell Logs...
+SET:ZipFileRoot=Psh
+FOR:${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\*
+ZIP:&For
