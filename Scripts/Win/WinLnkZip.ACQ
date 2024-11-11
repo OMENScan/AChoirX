@@ -1,0 +1,9 @@
+*******************************************************
+* SubScript - Windows .LNK Files Zipped               *
+*******************************************************
+SAY:[+] Copying/Zipping All User Recent LNK files...
+SET:ZipFileRoot=Lnk
+FOR:${SYSTEMDRIVE}\Users\*\Desktop\*.lnk
+ZIP:&For
+FOR:${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk
+ZIP:&For

@@ -1,0 +1,19 @@
+*******************************************************
+* SubScript - Windows Registry Artifacts Zipped       *
+*******************************************************
+SAY:[+] Gathering System Registries...
+SET:ZipFileRoot=Reg
+ACQ:\Reg
+NCP:${SYSTEMROOT}\System32\Config\SECURITY "&Acq"
+NCP:${SYSTEMROOT}\System32\Config\SOFTWARE "&Acq"
+NCP:${SYSTEMROOT}\System32\Config\SAM "&Acq"
+NCP:${SYSTEMROOT}\System32\Config\SYSTEM "&Acq"
+NCP:"&Win\AppCompat\Programs\Amcache.hve" "&Acq"
+SAY:[+] Gathering User Registries...
+SYS:Reg Save HKCU &Acq\NTUSER.DAT
+NCP:${SYSTEMDRIVE}\Users\*\[Nn][Tt][Uu][Ss][Ee][Rr].[Dd][Aa][Tt]* "&Acq\Users"
+NCP:${SYSTEMDRIVE}\Users\*\AppData\Local\Microsoft\Windows\[Uu][Ss][Rr][Cc][Ll][Aa][Ss][Ss].[Dd][Aa][Tt]* "&Acq\Users"
+SAY:[+] Zipping Registry Hives...
+FOR:&Acq\**\*
+ZIP:&For
+CLN:&Acn\Reg

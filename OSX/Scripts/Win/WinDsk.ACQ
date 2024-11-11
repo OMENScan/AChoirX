@@ -1,0 +1,16 @@
+*******************************************************
+* SubScript - Windows Disk Artifacts                  *
+*******************************************************
+SAY:[+] Copying Raw $MFT(s)...
+DSK:Fixed
+ACQ:\RawData
+NCP:&Dsk:\$MFT "&Acq\&Dsk"
+SAY:[+] Copy Raw $LogFile...
+NCP:&Dsk:\$LogFile "&Acq\&Dsk"
+CKY:&Dir\DSK\ExtractUSNJrnl.exe
+ SAY:[+] Now Extracting USNJrnl...
+ EXE:\DSK\ExtractUSNJrnl.exe /DevicePath:c: /OutputPath:&Acq
+END:
+SAY:[+] Now Parsing USNJrnl...
+SYS:fsutil usn enumdata 1 0 1 C: --exestdout=&acn\RawData\USNJrnl.dat
+SYS:fsutil usn readjournal C: csv --exestdout=&acn\RawData\USNJrnl.csv

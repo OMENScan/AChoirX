@@ -1,0 +1,6 @@
+*******************************************************
+* SubScript - Windows WMI CIM Files                   *
+*******************************************************
+SAY:[+] Copying WMI CIM database files...
+ACQ:\WMI
+CPY:"${SYSTEMDRIVE}\Windows\System32\wbem\Repository\*" "&Acq"

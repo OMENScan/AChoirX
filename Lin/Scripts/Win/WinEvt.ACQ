@@ -1,0 +1,10 @@
+*******************************************************
+* SubScript - Windows Event Logs                      *
+*******************************************************
+SAY:[+] Copying (System32) EventViewer Logs...
+ACQ:\Evt
+ACQ:\Evt\Sys32
+CPY:"&Win\System32\winevt\Logs\*" "&Acq"
+SAY:[+] Copying (Sysnative) EventViewer Logs...
+ACQ:\Evt\Nativ
+CPY:"&Win\sysnative\winevt\Logs\*" "&Acq"

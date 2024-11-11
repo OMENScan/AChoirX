@@ -1,0 +1,7 @@
+*******************************************************
+* SubScript - Windows Prefetch                        *
+*******************************************************
+SAY:[+] Extracting Prefetch Directory...
+ACQ:\Prf
+CPY:"&Win\prefetch\**\*" "&Acq"
+

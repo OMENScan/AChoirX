@@ -167,3 +167,8 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 09/03/2024 - AChoirX v10.01.56 - Release 1.56 - Add OPTIONAL output file name to REG: to allow all extractions to go to the same CSV - Close Registry Key Properly so it can be unloaded
 
 09/29/2024 - AChoirX v10.01.57 - Release 1.57 - Add NCP: NTFS Raw Copy - Only implemented in Windows - Not Applicable to Linux, MacOS, or Android - Most of the code for this was copied from: https://github.com/kmahyyg/go-rawcopy
+
+10/11/2024 - AChoirX v10.01.58 - Release 1.58 - Change Time Display to UTC. Fix edge case when Regexp expands "$" like with $MFT or $Logfile, etc...
+
+11/10/2024 - AChoirX v10.01.58a - Release 1.58a - Componentize, Combine, and Consolidate Scripts
+

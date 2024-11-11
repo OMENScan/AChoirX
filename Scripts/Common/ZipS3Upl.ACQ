@@ -1,0 +1,53 @@
+*******************************************************
+* Zip File Upload to S3                               *
+* - /VR0 = S3 Bucket                                  *
+* - /VR1 = S3 Region                                  *
+* - /VR2 = S3 AWS ID                                  *
+* - /VR3 = S3 Secret Key                              *
+*******************************************************
+CN0:0
+EQU:&VR0. .
+ SAY:[!] S3 Bucket Server Not Specified (/VR0:)
+ CN0:++
+END:
+EQU:&VR1. .
+ SAY:[!] S3 Region Not Specified (/VR1:)
+ CN0:++
+END:
+EQU:&VR2. .
+ SAY:[!] AWS ID Not Specified (/VR2:)
+ CN0:++
+END:
+EQU:&VR3. .
+ SAY:[!] AWS Secret Key Not Specified (/VR3:)
+ CN0:++
+END:
+N>>:&CN0 0
+ SAY:[!] Not Enough Information for S3 Upload:
+ SAY:[!] S3 Upload requires /VR0:S3Bucket /VR1:S3Region /VR2:S3ID /VR3:S3SecretKey
+ SAY:[!] S3 Upload - Not Enough Information... Exiting...
+ JMP:ZS3UpDun
+END:
+*******************************************************
+* Passed Validation                                   *
+*******************************************************
+Set:S3Region=&VR1
+Set:S3Bucket=&VR0
+Set:S3AWSId=&VR2
+Set:S3AWSKey=&VR3
+SAY:[+] S3 Upload invoked - Region:&VR1, Bucket:&VR0, AWS User:&VR2, AWS Secret Key: <Redacted>
+S3S:&VR2 &VR3
+RC!:0
+ SAY:[!] Could Not Connect to S3 Bucket. Exiting...
+ JMP:ZS3UpDun
+END:
+VER:Windows
+ S3U:&Acq\&Acn.zip \&Acn
+END:
+Ver:Linux
+ S3U:&Acq/&Acn.zip /&Acn
+END:
+Ver:OSX
+ S3U:&Acq/&Acn.zip /&Acn
+END:
+LBL:ZS3UpDun

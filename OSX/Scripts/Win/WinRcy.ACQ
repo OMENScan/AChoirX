@@ -1,0 +1,7 @@
+*******************************************************
+* SubScript - Windows Recycle Bin Artifacts           *
+*******************************************************
+SAY:[+] Now Collecting Recycle Bins...
+DSK:Fixed
+ACQ:\RBin
+CPY:"&Dsk:\$Recycle.Bin\**\*" "&Acq"

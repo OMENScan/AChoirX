@@ -1,0 +1,47 @@
+*******************************************************
+* AChZipSFTP - Collect, Zip Upload to SFTP            *
+*  Version 2 - Uses internal Zip to improve collection*
+* - /VR0 = SFTP Server                                *
+* - /VR1 = SFTP UserId                                *
+* - /VR2 = SFTP Password                              *
+*******************************************************
+CN0:0
+EQU:&VR0. .
+ SAY:[!] SFTP Server Not Specified (/VR0:)
+ CN0:++
+END:
+EQU:&VR1. .
+ SAY:[!] SFTP UserID Not Specified (/VR1:)
+ CN0:++
+END:
+EQU:&VR2. .
+ SAY:[!] SFTP Password Not Specified (/VR2:)
+ CN0:++
+END:
+N>>:&CN0 0
+ SAY:[!] Not Enough Information for SFTP Upload:
+ SAY:[!] SFTP Upload requires /VR0:SFTPServer /VR1:SFTPUserId /VR2:SFTPPassword
+ SAY:[!] SFTP Upload - Not Enough Information... Exiting...
+ JMP:ZSFUpDun
+END:
+*******************************************************
+* Passed Validation                                   *
+*******************************************************
+SET:SFTPServ=&VR0
+SAY:[+] SFTP Upload invoked - Server:&VR0, UserID:&VR1, SFTP PassWord: <Redacted>
+SFS:&VR1 &VR2
+RC!:0
+ SAY:[!] Could Not Connect to SFTP Server. Exiting...
+ JMP:ZSFUpDun
+END:
+VER:Windows
+ SFU:&Acq\&Acn.zip /Windows
+END:
+Ver:Linux
+ SFU:&Acq/&Acn.zip /Linux
+END:
+Ver:OSX
+ SFU:&Acq/&Acn.zip /MacOS
+END:
+LBL:ZSFUpDun
+

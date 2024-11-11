@@ -1,0 +1,17 @@
+*******************************************************
+* SubScript - Windows Process Information Artifacts   *
+*******************************************************
+SAY:[+] Gathering Process Information...
+ACQ:\Proc
+CKY:&Dir\SYS\PSInfo.exe
+ EXE:\SYS\PSInfo.exe /accepteula -s --exestdout=&acn\Proc\Info.dat
+END:
+CKY:&Dir\SYS\PSList.exe
+ EXE:\SYS\PSList.exe /accepteula -x --exestdout=&acn\Proc\PSList.dat
+END:
+SYS:Tasklist /v --exestdout=&acn\Proc\Tasklist.dat
+SYS:Tasklist /M --exestdout=&acn\Proc\TaskAll.dat
+CKY:&Dir\SYS\Handle.exe
+ SAY:[+] Gathering Open Files/Process Information...
+ EXE:\SYS\Handle.exe -a -u -v /accepteula --exestdout=&acn\Conn\OpenFiles.dat
+END:

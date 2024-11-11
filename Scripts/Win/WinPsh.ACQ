@@ -1,0 +1,6 @@
+*******************************************************
+* SubScript - Windows Powershell Logs                 *
+*******************************************************
+SAY:[+] Copying all User PowerShell Logs...
+ACQ:\Psh
+CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\*" "&Acq"
