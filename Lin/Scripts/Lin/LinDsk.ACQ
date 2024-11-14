@@ -1,0 +1,19 @@
+*******************************************************
+* SubScript - Linux Disk Artifacts                    *
+*******************************************************
+SAY:[+] Gathering Disk Information...
+ACQ:/Disk
+SYS:mount --exestdout=&acn/Disk/MountedDisks.dat
+SYS:df -h --exestdout=&acn/Disk/DiskUsage.dat
+SYS:blkid --exestdout=&acn/Sys/blkid.dat
+SYS:fdisk -l --exestdout=&acn/Sys/fdisk-l.dat
+SYS:findmnt --ascii --exestdout=&acn/Sys/findmnt--ascii.dat
+SYS:iscsiadm -m nod --exestdout=&acn/Sys/iscsiadm-mnod.dat
+SYS:lsblk -l --exestdout=&acn/Sys/lsblk-l.dat
+SYS:mdadm --detail --scan --verbose --exestdout=&acn/Sys/mdadm--detail--scan--verbose.dat
+*******************************************************
+* Enumerate all Files and create bodyfile             *
+*******************************************************
+SAY:[+] Enumerating All Files... 
+SYS:find / -printf "0|%p|%i|%M|%U|%G|%s|%A@|%T@|%C@|0\n" --exestdout=&acn/Disk/bodyfile.dat
+SYS:find / -printf "%i, %d, %b, %A+ %AZ, %C+ %CZ, %T+ %TZ, %M, %u, %g, %p\n" --exestdout=&Acn/Disk/AllFiles.csv

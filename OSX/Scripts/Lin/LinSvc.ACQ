@@ -1,0 +1,14 @@
+*******************************************************
+* SubScript - Linux Services Artifacts                *
+*******************************************************
+SAY:[+] Gathering Services Information...
+ACQ:/Svc
+SYS:service --status-all --exestdout=&acn/Svc/Services.dat
+*******************************************************
+* Persistence                                         *
+*******************************************************
+SAY:[+] Gathering Persistence Information...
+SYS:sh -c "find /etc/systemd/ -name '*.service' -print0 | xargs -0 cat" --exestdout=&acn/Svc/SystemD.dat
+SYS:systemctl list-units --exestdout=&acn/Svc/systemctl-list-units.dat
+SYS:systemctl list-timers --all --exestdout=&acn/Svc/systemctl-list-timers--all.dat
+SYS:systemctl list-unit-files --exestdout=&acn/Svc/systemctl-list-unit-files.dat

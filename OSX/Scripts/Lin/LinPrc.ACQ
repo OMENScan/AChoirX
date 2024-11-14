@@ -1,0 +1,22 @@
+*******************************************************
+* SubScript - Linux Process Information Artifacts     *
+*******************************************************
+SAY:[+] Gathering Running Process List Information...
+ACQ:/Proc
+SYS:ps aux --forest --exestdout=&acn/Proc/PSList.dat
+SYS:pstree -ah --exestdout=&acn/Proc/PSTree.dat
+SYS:top -b-n 1 --exestdout=&acn/Proc/PSTop.dat
+SYS:sh -c "find /proc/[0-9]*/cmdline | xargs head" --exestdout=&acn/Proc/proc-CommandLines.dat
+SYS:sh -c "find /proc/[0-9]*/exe -print0 | xargs -0 ls -lh" --exestdout=&acn/Proc/proc-Executables.dat
+SYS:sh -c "find /proc/[0-9]*/fd -print0 | xargs -0 ls -lh" --exestdout=&acn/Proc/proc-FDLinks.dat
+SYS:sh -c "find -L /proc/[0-9]*/exe -print0 | xargs -0 sha1sum" --exestdout=&acn/Proc/proc-Hashes.dat
+SYS:sh -c "find /proc/[0-9]*/cwd -print0 | xargs -0 ls -lh" --exestdout=&acn/Proc/proc-CWDs.dat
+SYS:sh -c "find /proc/[0-9]*/comm | xargs head" --exestdout=&acn/Proc/proc-CommName.dat
+SYS:sh -c "find /proc/[0-9]*/environ | xargs head" --exestdout=&acn/Proc/proc-Environ.dat
+SYS:sh -c "find /proc/[0-9]*/task/[0-9]*/children | xargs head" --exestdout=&acn/Proc/proc-Children.dat
+SYS:sh -c "find /proc/[0-9]*/status | xargs head" --exestdout=&acn/Proc/proc-Status.dat
+SYS:sh -c "find /proc/[0-9]*/exe -print0 | xargs -0 strings -f" --exestdout=&acn/Proc/proc-Strings.dat
+SYS:sh -c "find /proc/[0-9]*/exe -print0 | xargs -0 ls -lh | grep \(deleted\)" --exestdout=&acn/Proc/proc-DelExecutables.dat
+SYS:sh -c "find /proc/[0-9]*/fd -print0 | xargs -0 ls -lh | grep \(deleted\)" --exestdout=&acn/Proc/proc-DelFDLinks.dat
+SAY:[+] Gathering Open Files/Process Information...
+SYS:lsof --exestdout=&acn/Proc/OpenFiles.dat

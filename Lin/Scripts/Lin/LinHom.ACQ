@@ -1,0 +1,6 @@
+*******************************************************
+* SubScript - Linux User Home Directories             *
+*******************************************************
+SAY:[+] Copying User Home Directories...
+ACQ:/Home
+CPY:/home/**/.* &Acq

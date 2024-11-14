@@ -1,0 +1,7 @@
+*******************************************************
+* SubScript - Linux /Etc Artifacts Zipped             *
+*******************************************************
+SAY:[+] Copying/Zipping /etc Directory...
+SET:ZipFileRoot=Etc
+FOR:/etc/*
+ZIP:&For

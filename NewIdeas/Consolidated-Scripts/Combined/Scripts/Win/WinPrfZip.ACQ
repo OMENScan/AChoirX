@@ -1,7 +1,0 @@
-*******************************************************
-* SubScript - Windows Prefetch Zipped                 *
-*******************************************************
-SAY:[+] Extracting and Zipping Prefetch Directory...
-SET:ZipFileRoot=Prf
-FOR:&Win\prefetch\**\*
-ZIP:&For

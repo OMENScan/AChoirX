@@ -1,0 +1,6 @@
+*******************************************************
+* SubScript - Linux /Var/Log Artifacts                *
+*******************************************************
+SAY:[+] Copying var/log Directory...
+ACQ:/VarLog
+CPY:/var/log/**/* &Acq

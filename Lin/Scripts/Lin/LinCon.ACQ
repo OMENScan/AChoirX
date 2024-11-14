@@ -1,0 +1,26 @@
+*******************************************************
+* SubScript - Linux Connection Information            *
+*******************************************************
+ACQ:/Conn
+*******************************************************
+* Connection Info                                     *
+*******************************************************
+SAY:[+] Gathering Connection Information...
+SYS:netstat -anp --exestdout=&acn/Conn/Netstat-anp.dat
+SYS:netstat -rn --exestdout=&acn/Conn/Netstat-rn.dat
+SYS:ss -anp --exestdout=&acn/Conn/ss-tanp.dat
+SYS:lsof -i -n -P --exestdout=&acn/Conn/lsofConnections.dat
+SYS:nfsstat --exestdout=&acn/Conn/NFS-Stats.dat
+*******************************************************
+* IP Config                                           *
+*******************************************************
+SAY:[+] Gathering IP Config Information...
+SYS:ifconfig -a --exestdout=&acn/Conn/IFConfig.dat
+SYS:ip link --exestdout=&acn/Conn/IPLink.dat
+SYS:ip address --exestdout=&acn/Conn/IPAddress.dat
+SYS:ip route --exestdout=&acn/Conn/IPRoute.dat
+*******************************************************
+* ARP                                                 *
+*******************************************************
+SAY:[+] Gathering ARP Information...
+SYS:arp -an --exestdout=&acn/Conn/ArpInfo.dat

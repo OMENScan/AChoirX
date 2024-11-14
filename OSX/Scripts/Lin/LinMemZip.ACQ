@@ -1,0 +1,17 @@
+*******************************************************
+* SubScript - Linux Memory Collection and Zip         *
+*******************************************************
+SAY:[+] Now Dumping Linux Memory...
+SET:ZipFileRoot=MemDump
+N<<:&Dsa &Mem
+ SAY:[!] Not Enough disk space in &ACQ to Capture Memory: &MEM ... 
+ SAY:[!] Bypassing Memory Capture!
+END:
+N>>:&Dsa &Mem
+ ACQ:/MemDump
+ EXE:/MEM/avml --compress &Acq/output.lime.compressed
+ SAY:[+] Zipping Memory Dump...
+ ZIP:&Acq/output.lime.compressed
+ SAY:[+] Deleting Local Copy...
+ CLN:&Acn/MemDump
+END:

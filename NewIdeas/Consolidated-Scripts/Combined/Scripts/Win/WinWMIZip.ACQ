@@ -1,7 +1,0 @@
-*******************************************************
-* SubScript - Windows WMI CIM Files Zipped            *
-*******************************************************
-SAY:[+] Copying/Zipping WMI CIM database files...
-SET:ZipFileRoot=WMI
-FOR:${SYSTEMDRIVE}\Windows\System32\wbem\Repository\*
-ZIP:&For

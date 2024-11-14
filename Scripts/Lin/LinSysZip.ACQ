@@ -1,0 +1,59 @@
+*******************************************************
+* SubScript - Linux System Artifacts Zipped           *
+*******************************************************
+SAY:[+] Gathering System Information...
+SET:ZipFileRoot=Sys
+ACQ:/Sys
+SYS:cat /proc/cpuinfo --exestdout=&acn/Sys/CPUInfo.dat
+SYS:hwclock --exestdout=&acn/Sys/hwclock.dat
+SYS:dmesg --exestdout=&acn/Sys/dmesg.dat
+SYS:lscpu --exestdout=&acn/Sys/lscpu.dat
+SYS:lshw --exestdout=&acn/Sys/lshw.dat
+SYS:lspci -vv --exestdout=&acn/Sys/lscpi-vv.dat
+SYS:lspci -nn -k --exestdout=&acn/Sys/lscpi-nn-k.dat
+SYS:lsusb -vv --exestdout=&acn/Sys/lsusb.dat
+SYS:hostname -f  --exestdout=&acn/Sys/hostname-f.dat
+SYS:uname -a --exestdout=&acn/Sys/Uname.dat
+SYS:cat /proc/version --exestdout=&acn/Sys/Version.dat
+SYS:lsmod --exestdout=&acn/Sys/lsmod.dat
+SYS:sysctl -a --exestdout=&acn/Sys/sysctl-a.dat
+SYS:ls -l -a -R /sys/module --exestdout=&acn/Sys/ls-l-a-R-sys-module.dat
+SYS:ls -l -a /sys/module --exestdout=&acn/Sys/ls-l-a-sys-module.dat
+SYS:timedatectl status --exestdout=&acn/Sys/timedatectl-status.dat
+SYS:uptime -s --exestdout=&acn/Sys/uptime-s.dat
+SYS:vmstat --exestdout=&acn/Sys/vmstat.dat
+*******************************************************
+* Env Variables                                       *
+*******************************************************
+SAY:[+] Parsing Environment Variables...
+SYS:printenv --exestdout=&acn/Sys/EnVar.dat
+*******************************************************
+* Patch List                                          *
+*******************************************************
+SAY:[+] Querying Sofware/Patch List...
+SYS:dpkg -l --exestdout=&acn/Sys/dpkg-l.dat
+SYS:rpm -qa --exestdout=&acn/Sys/rpm-qa.dat
+*******************************************************
+* Logon Info                                          *
+*******************************************************
+SAY:[+] Gathering System Logon Information...
+ACQ:/Sys
+SYS:who --exestdout=&acn/Sys/Logon.dat
+SYS:last --exestdout=&acn/Sys/Last.dat
+SYS:lastb --exestdout=&acn/Sys/LastB.dat
+SYS:lastlog --exestdout=&acn/Sys/LastLog.dat
+*******************************************************
+* User Information                                    *
+*******************************************************
+SAY:[+] Gathering User Information...
+SYS:whoami --exestdout=&acn/Sys/Whoami.dat
+SYS:logname --exestdout=&acn/Sys/Logname.dat
+*******************************************************
+* Zipping                                             *
+*******************************************************
+SAY:[+] Zipping System Information...
+ACQ:/Sys
+FOR:&Acq/**/*
+ZIP:&For
+SAY:[+] Deleting Local Copy...
+CLN:&Acn/Sys

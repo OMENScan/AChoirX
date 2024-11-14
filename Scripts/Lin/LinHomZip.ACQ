@@ -1,0 +1,8 @@
+*******************************************************
+* SubScript - Linux User Home Directories Zip         *
+*******************************************************
+SAY:[+] Copying/Zipping User Home Directories...
+SET:ZipFileRoot=Home
+ACQ:/Home
+FOR:/home/**/.*
+ZIP:&For

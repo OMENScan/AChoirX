@@ -1,0 +1,12 @@
+*******************************************************
+* SubScript - Linux Memory Collection                 *
+*******************************************************
+SAY:[+] Now Dumping Linux Memory...
+N<<:&Dsa &Mem
+ SAY:[!] Not Enough disk space in &ACQ to Capture Memory: &MEM ... 
+ SAY:[!] Bypassing Memory Capture!
+END:
+N>>:&Dsa &Mem
+ ACQ:/MemDump
+ EXE:/MEM/avml --compress &Acq/output.lime.compressed
+END:

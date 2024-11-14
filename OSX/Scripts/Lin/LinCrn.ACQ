@@ -1,0 +1,16 @@
+*******************************************************
+* SubScript - Linux Cron Information                  *
+*******************************************************
+SAY:[+] Gathering Scheduled Task (cron) Information...
+ACQ:/Cron
+CPY:/etc/crontab &Acq
+ACQ:/Cron/D
+CPY:/etc/cron.d/**/* &Acq
+ACQ:/Cron/Hourly
+CPY:/etc/cron.hourly/**/* &Acq
+ACQ:/Cron/Daily
+CPY:/etc/cron.daily/**/* &Acq
+ACQ:/Cron/Weekly
+CPY:/etc/cron.weekly/**/* &Acq
+ACQ:/Cron/Monthly
+CPY:/etc/cron.monthly/**/* &Acq

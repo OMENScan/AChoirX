@@ -1,0 +1,22 @@
+*******************************************************
+* SubScript - Linux Cron Information Zipped           *
+*******************************************************
+SAY:[+] Gathering Scheduled Task (cron) Information...
+SET:ZipFileRoot=Cron
+FOR:/etc/crontab
+ZIP:&For
+SET:ZipFileRoot=Cron/D
+FOR:/etc/cron.d/**/*
+ZIP:&For
+SET:ZipFileRoot=Cron/Hourly
+FOR:/etc/cron.hourly/**/*
+ZIP:&For
+SET:ZipFileRoot=Cron/Daily
+FOR:/etc/cron.daily/**/*
+ZIP:&For
+SET:ZipFileRoot=Cron/Weekly
+FOR:/etc/cron.weekly/**/*
+ZIP:&For
+SET:ZipFileRoot=Cron/Monthly
+FOR:/etc/cron.monthly/**/*
+ZIP:&For

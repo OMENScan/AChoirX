@@ -1,0 +1,7 @@
+*******************************************************
+* SubScript - Linux /Var/Log Artifacts Zipped         *
+*******************************************************
+SAY:[+] Copying/Zipping var/log Directory...
+SET:ZipFileRoot=VarLog
+FOR:/var/log/**/*
+ZIP:&For

@@ -1,9 +1,0 @@
-*******************************************************
-* SubScript - Windows 10 PCA Files Zipped             *
-*******************************************************
-VER:Windows 10.0.2
- SAY:[+] Windows 11 Detected... Copying/Zipping Program Compatibility Assistant files...
- SET:ZipFileRoot=PCA
- FOR:${SYSTEMDRIVE}\Windows\appcompat\pca\*.txt
- ZIP:&For
-END:

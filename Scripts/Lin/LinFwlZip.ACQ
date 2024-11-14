@@ -1,0 +1,22 @@
+*******************************************************
+* SubScript - Linux Firewall Artifacts Zipped         *
+*******************************************************
+SAY:[+] Gathering IPTables Firewall Rules...
+SET:ZipFileRoot=Fwl
+ACQ:/Fwl
+SYS:iptables -L --exestdout=&acn/Fwl/IPTables.dat
+SYS:iptables -t nat -L -v -n--exestdout=&acn/Fwl/IPTables-tnat-Lvn.dat
+SYS:ip6tables -L -v -n --exestdout=&acn/Fwl/IP6Tables-Lvn.dat
+SYS:ip6tables -t nat -L -v -n--exestdout=&acn/Fwl/IP6Tables-tnat-Lvn.dat
+SYS:firewall-cmd --get-active-zones --exestdout=&acn/Fwl/FireWall-ActiveZones.dat
+SYS:firewall-cmd --get-default-zone --exestdout=&acn/Fwl/FireWall-DefaultZone.dat
+SYS:firewall-cmd --get-services --exestdout=&acn/Fwl/FireWall-Services.dat
+SYS:firewall-cmd --list-all --exestdout=&acn/Fwl/FireWall-Enabled.dat
+SYS:firewall-cmd --list-all-zones --exestdout=&acn/Fwl/FireWall-DefaultZone.dat
+SYS:ufw status verbose --exestdout=&acn/Fwl/UFW-Status.dat
+SAY:[+] Zipping Firewall Artifacts...
+ACQ:/Fwl
+FOR:&Acq/**/*
+ZIP:&For
+SAY:[+] Deleting Local Copy...
+CLN:&Acn/Fwl

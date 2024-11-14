@@ -1,8 +1,0 @@
-*******************************************************
-* SubScript - Windows 10 PCA Files                    *
-*******************************************************
-VER:Windows 10.0.2
- SAY:[+] Windows 11 Detected... Copying Program Compatibility Assistant files...
- ACQ:\PCA
- CPY:"${SYSTEMDRIVE}\Windows\appcompat\pca\*.txt" "&Acq"
-END:
