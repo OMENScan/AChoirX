@@ -172,3 +172,4 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 
 11/10/2024 - AChoirX v10.01.58a - Release 1.58a - Componentize, Combine, and Consolidate Scripts
 
+11/30/2024 - AChoirX v10.01.59 - Release 1.59 - Change XIT: to run non-Blocked (EXA:) - This change in behavior is designed to allow AChCleanr to run after AChoirX exits. Add &MyE - For This Program's Executable name. Add experimental AChCleanr - Which dissolves most of AChoirX after it runs.  The forensic collection data will remain, but most other components will be erased.  This is to prevent a Bad Actor from using AChoirX left behind on the drive as a LOLBin.
