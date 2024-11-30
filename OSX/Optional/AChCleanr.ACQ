@@ -19,6 +19,7 @@ VER:Linux
  DEL:*.ACQ
  CLN:Scripts
  CLN:Logs
+ CLN:MEM
  CLN:&Acn/Cache
 END:
 VER:OSX

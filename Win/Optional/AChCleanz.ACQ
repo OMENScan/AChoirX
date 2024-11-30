@@ -22,6 +22,7 @@ VER:Linux
  DEL:&Exe
  DEL:*.ACQ
  CLN:Scripts
+ CLN:MEM
  CLN:Logs
  CLN:&Acn/Cache
  CLN:&Acn/Cron

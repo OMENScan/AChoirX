@@ -49,7 +49,7 @@ Ver:Linux
  * Run Cleanup ONLY if AChCleanr.exe is in root dir    *
  *******************************************************
  CKY:AChCleanr
-  XIT:AChCleanr /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
+  XIT:./AChCleanr /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
  END:
  JMP:AllDun
 END:
@@ -126,7 +126,7 @@ Ver:OSX
  * Run Cleanup ONLY if AChCleanr.exe is in root dir    *
  *******************************************************
  CKY:AChCleanr-AMD
-  XIT:AChCleanr-AMD /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
+  XIT:./AChCleanr-AMD /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
  END:
  JMP:AllDun
 END:

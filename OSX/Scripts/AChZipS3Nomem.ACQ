@@ -95,7 +95,7 @@ Ver:Linux
  CLN:&Acn/Home
  CLN:&Acn/RanProg
  CKY:AChCleanr
-  XIT:AChCleanr /INI:AChCleanz.ACQ /EXE:&MyE /ACN:&Acn
+  XIT:./AChCleanr /INI:AChCleanz.ACQ /EXE:&MyE /ACN:&Acn
  END:
  JMP:AllDun
 END:
@@ -195,7 +195,7 @@ Ver:OSX
  CLN:&Acn/Home
  CLN:&Acn/RanProg
  CKY:AChCleanr-AMD
-  XIT:AChCleanr-AMD /INI:AChCleanz.ACQ /EXE:&MyE /ACN:&Acn
+  XIT:./AChCleanr-AMD /INI:AChCleanz.ACQ /EXE:&MyE /ACN:&Acn
  END:
  JMP:AllDun
 END:
