@@ -17,6 +17,12 @@ VER:Windows
  SAY:[+] Acquisition Complete...
  SAY:[+] Now Hashing Artifacts...
  HSH:ACQ
+ *******************************************************
+ * Run Cleanup ONLY if AChCleanr.exe is in root dir    *
+ *******************************************************
+ CKY:AChCleanr.exe
+  XIT:AChCleanr.exe /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
+ END:
  JMP:AllDun
 END:
 Ver:Linux
@@ -39,6 +45,12 @@ Ver:Linux
  * Wrap Up                                             *
  *******************************************************
  HSH:ACQ
+ *******************************************************
+ * Run Cleanup ONLY if AChCleanr.exe is in root dir    *
+ *******************************************************
+ CKY:AChCleanr
+  XIT:AChCleanr /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
+ END:
  JMP:AllDun
 END:
 Ver:OSX
@@ -110,6 +122,12 @@ Ver:OSX
  ACQ:/Home
  cpy:/users/**/.* &Acq
  HSH:ACQ
+ *******************************************************
+ * Run Cleanup ONLY if AChCleanr.exe is in root dir    *
+ *******************************************************
+ CKY:AChCleanr-AMD
+  XIT:AChCleanr-AMD /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
+ END:
  JMP:AllDun
 END:
 LBL:Alldun

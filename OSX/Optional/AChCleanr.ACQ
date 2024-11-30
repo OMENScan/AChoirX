@@ -1,0 +1,32 @@
+*******************************************************
+* AChCleanr - Embedded Cleanup Script                 *
+*  Version 0.01 - 11/27/20234 - Lin, Win, OSX          *
+*******************************************************
+SAY:[+] I'll start cleaning up in about a minute...
+VER:Windows
+ SLP:60
+ DEL:&Exe
+ DEL:*.ACQ
+ CLN:Scripts
+ CLN:Logs
+ CLN:MEM
+ CLN:TSK
+ CLN:&Acn\Cache
+END:
+VER:Linux
+ SLP:60
+ DEL:&Exe
+ DEL:*.ACQ
+ CLN:Scripts
+ CLN:Logs
+ CLN:&Acn/Cache
+END:
+VER:OSX
+ SLP:60
+ DEL:&Exe
+ DEL:*.ACQ
+ CLN:Scripts
+ CLN:Logs
+ CLN:&Acn/Cache
+END:
+SAY:[+] Clean Up Exiting...

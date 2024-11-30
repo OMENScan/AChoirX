@@ -236,6 +236,10 @@
 // AChoirX v10.01.58 - Release 1.58 - Change Time Display to UTC
 //                   - Fix edge case when Regexp expands "$" like with $MFT or $Logfile, etc...
 //
+// AChoirX v10.01.59 - Release 1.59 - Change XIT: to run non-Blocked (EXA:) - This change in behavior
+//                     is designed to allow AChCleanr to run after AChoirX exits.
+//                     - Add &MyE - For This Programs Executable name
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -306,10 +310,11 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.58"                       // AChoir Version
+var Version = "v10.01.59"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
+var MyExec = "none"                             // My Program Name without Path
 var MyHash = "none"                             // My Hash
 var iRunMode = 0                                // Int Runmode Flag (0, 1, 2)
 var Console_Status = 0                          // Was the Console Ever Invoked
@@ -644,6 +649,7 @@ var iIniCount = 0
 func main() {
     // Get My Name and Path
     MyProg, _ = os.Executable()
+    MyExec  = filepath.Base(MyProg)
     MyHash = GetMD5File(MyProg)
 
     // Get Host Name
@@ -1871,6 +1877,12 @@ func main() {
 
                     repl_Myp := NewCaseInsensitiveReplacer("&Myp", MyProg)
                     o32VarRec = repl_Myp.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Mye") {
+
+                    repl_Mye := NewCaseInsensitiveReplacer("&Mye", MyExec)
+                    o32VarRec = repl_Mye.Replace(o32VarRec)
                 }
 
                 if CaseInsensitiveContains(o32VarRec, "&Myh") {
@@ -4972,9 +4984,12 @@ func cleanUp_Exit(exitRC int) {
 
     //****************************************************************
     //* Run Final Exit Program - This will not be logged             *
+    //*  Runtype == 2 - Run as EXA: so it can run AFTER Exit         *
+    //*  The called program should have a delay to run after AChoirX *
+    //*  has exited to allow post-processing                         *
     //****************************************************************
     if iXitCmd == 1 {
-        RunCommand(XitCmd, 1)
+        RunCommand(XitCmd, 2)
     }
 
 

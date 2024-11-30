@@ -1,0 +1,51 @@
+*******************************************************
+* AChCleanz - Embedded ZIP Cleanup Script             *
+*  Version 0.01 - 11/27/20234 - Lin, Win, OSX         *
+*******************************************************
+SAY:[+] I'll start cleaning up in about a minute...
+VER:Windows
+ SLP:60
+ DEL:&Exe
+ DEL:*.ACQ
+ CLN:Scripts
+ CLN:MEM
+ CLN:TSK
+ CLN:Logs
+ CLN:&Acn\Ranprog
+ CLN:&Acn\Cache
+ CLN:&Acn\ASEP
+ DEL:&Acn\index.htm
+ DEL:&Acn\ACQHash.txt
+END:
+VER:Linux
+ SLP:60
+ DEL:&Exe
+ DEL:*.ACQ
+ CLN:Scripts
+ CLN:Logs
+ CLN:&Acn/Cache
+ CLN:&Acn/Cron
+ CLN:&Acn/MemDump
+ CLN:&Acn/Disk
+ CLN:&Acn/Sys
+ CLN:&Acn/Var
+ CLN:&Acn/UserInfo
+ CLN:&Acn/Home
+ CLN:&Acn/RanProg
+END:
+VER:OSX
+ SLP:60
+ DEL:&Exe
+ DEL:*.ACQ
+ CLN:Scripts
+ CLN:Logs
+ CLN:&Acn/Cache
+ CLN:&Acn/Cron
+ CLN:&Acn/Disk
+ CLN:&Acn/Sys
+ CLN:&Acn/Var
+ CLN:&Acn/UserInfo
+ CLN:&Acn/Home
+ CLN:&Acn/RanProg
+END:
+SAY:[+] Clean Up Exiting...
