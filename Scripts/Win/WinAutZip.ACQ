@@ -9,6 +9,8 @@ CKY:&Dir\SYS\Autorunsc.exe
  LST:&acn\Arn\AutoRun.cpy
  CPY:"&LS8" "&ACQ"
  SAY:[+] Copying/Zipping Autorun Data...
+ SET:ZipFileRoot=Arn
+ ACQ:\Arn
  FOR:&Acq\**\*
  ZIP:&For
  SAY:[+] Deleting Local Copy...
