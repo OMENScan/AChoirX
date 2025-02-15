@@ -10,7 +10,6 @@ AChoir did.
 
 Some of the Functions that will not be in the initial release:
 ==============================================================
-* Raw NTFS
 * NTP
 * Console Colors
 * Native SMB/CIFS
@@ -29,6 +28,7 @@ Some New Additions/Changes:
 * Native S3 File upload using the AWS SDK for Golang
 * Native SFTP File upload 
 * Native Encryption
+* Raw NTFS has been implemented in Windows Only 
 
 
 
