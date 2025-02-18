@@ -1,6 +1,6 @@
 <html>
 <head>
-  <title>AChoirX GUI 0.53</title>
+  <title>AChoirX GUI 0.63</title>
   <HTA:APPLICATION ID="AChoirXGUI" 
     APPLICATIONNAME="AChoirX GUI" 
     BORDER="Yes"
@@ -63,6 +63,14 @@ function RunAChoir(Bits)
   {
     ScrName = ScrBits + " /ini:Scripts\\PlasoX.acq" ;
   }
+  else if (rbutns[3].checked == true) 
+  {
+    ScrName = ScrBits + " /ini:Scripts\\AchZip.acq" ;
+  }
+  else if (rbutns[4].checked == true) 
+  {
+    ScrName = ScrBits + " /ini:Scripts\\AchZipNoMem.acq" ;
+  }
   else if (rbutns[7].checked == true)
   {
     ScrName = ScrBits + " /ini:Build.acq" ;
@@ -82,10 +90,10 @@ function RunAChoir(Bits)
 }
 
 
-// Run AChoir Local - Save Artifacts to Remote Server
+// Run AChoirX Local - Save Artifacts to Remote Server
 function RunLRACh(Bits)
 {
-  var ScrName = " /ini:Scripts\\AChUpload.Acq" ;
+  var ScrName = " /ini:Scripts\\AChZipSFTP.Acq" ;
   var ScrBits = "A-AChoir.exe";
   
   if (Bits == 32) 
@@ -97,13 +105,22 @@ function RunLRACh(Bits)
     ScrBits = "A-AChoirX.exe" ;
   } 
 
-  if (Server2Region.value == "") 
+  if (SFTP2orS3.value == "S3") 
   {
-    ScrName = ScrBits + ScrName + " /VR0:" + SFTP2orS3.value + " /VR1:" + Server2Name.value + " /USR:" + Serv2Usr.value + " /PWD:" + Serv2Pwd.value + " /VR2:none" ; 
+    // VR0 = S3 Bucket
+    // VR1 = S3 Region
+    // VR2 = S3 AWS ID
+    // VR3 = S3 Secret Key
+    ScrName = " /ini:Scripts\\AChZipS3.Acq" ;
+    ScrName = ScrBits + ScrName + " /VR0:" + Server2Name.value + " /VR1:" + Server2Region.value + " /VR2:" + Serv2Usr.value + " /VR3:" + Serv2Pwd.value ; 
   }
   else
   {
-    ScrName = ScrBits + ScrName + " /VR0:" + SFTP2orS3.value + " /VR1:" + Server2Name.value + " /USR:" + Serv2Usr.value + " /PWD:" + Serv2Pwd.value + " /VR2:" + Server2Region.value ; 
+    // VR0 = SFTP Server
+    // VR1 = SFTP UserId
+    // VR2 = SFTP Password
+    ScrName = " /ini:Scripts\\AChZipSFTP.Acq" ;
+    ScrName = ScrBits + ScrName + " /VR0:" + Server2Name.value + " /VR1:" + Serv2Usr.value + " /VR2:" + Serv2Pwd.value ; 
   }
 
   WshShell = new ActiveXObject("WScript.Shell");
@@ -111,7 +128,7 @@ function RunLRACh(Bits)
 }
 
 
-// Run AChoir Remotely using PSExec
+// Run AChoirX Remotely using PSExec
 function RunRemot(Bits)
 {
   var ScrName = " /ini:Scripts\\RemotChk.acq" ;
@@ -132,7 +149,8 @@ function RunRemot(Bits)
   WshShell.Run(ScrName, 1, false);
 }
 
-// Saves the Artifacts to remote AChoir Server
+
+// Saves the Artifacts to remote AChoirX Server
 function RunRRACh(Bits)
 {
   var ScrName = " /ini:Scripts\\RemotChkR.acq" ;
@@ -147,21 +165,34 @@ function RunRRACh(Bits)
     ScrBits = "A-AChoirX.exe" ;
   } 
 
-  if (Server4Region.value == "") 
+  if (SFTP4orS3.value == "S3") 
   {
-    ScrName = ScrBits + ScrName + " /VR0:" + Host4Name.value + " /VR1:" + Run4ACQ.value + " /VR2:" + SFTP4orS3.value + " /VR3:" + Server4Name.value + " /USR:" + Serv4Usr.value + " /PWD:" + Serv4Pwd.value + " /VR4:none" ; 
-  }
-  else 
-  {
-    ScrName = ScrBits + ScrName + " /VR0:" + Host4Name.value + " /VR1:" + Run4ACQ.value + " /VR2:" + SFTP4orS3.value + " /VR3:" + Server4Name.value + " /USR:" + Serv4Usr.value + " /PWD:" + Serv4Pwd.value + " /VR6:" + Server4Region.value ; 
-  }
+    // VR0 = Host4Name to Run On
+    // VR1 = Run4ACQ Script to Run
 
+    // VR2 = S3 Bucket
+    // VR3 = S3 Region
+    // VR4 = S3 AWS ID
+    // VR5 = S3 Secret Key
+    ScrName = ScrBits + ScrName + " /VR0:" + Host4Name.value + " /VR1:" + Run4ACQ.value + " /VR2:" + Server4Name.value + " /VR3:" + Server4Region.value + " /VR4:" + Serv4Usr.value + " /VR5:" + Serv4Pwd.value ; 
+  }
+  else
+  {
+    // VR0 = Host4Name to Run On
+    // VR1 = Run4ACQ Script to Run
+
+    // VR2 = SFTP Server
+    // VR3 = SFTP UserId
+    // VR4 = SFTP Password
+    ScrName = ScrBits + ScrName + " /VR0:" + Host4Name.value + " /VR1:" + Run4ACQ.value + " /VR2:" + Server4Name.value + " /VR3:" + Serv4Usr.value + " /VR4:" + Serv4Pwd.value  + " /VR5:none" ; 
+  }
 
   WshShell = new ActiveXObject("WScript.Shell");
   WshShell.Run(ScrName, 1, false);
 }
 
-// Saves the Artifacts to remote AChoir Server from Multiple Remote Machines
+
+// Saves the Artifacts to remote AChoirX Server from Multiple Remote Machines
 function RunMRACh(Bits)
 {
   var ScrName = " /ini:Scripts\\RemotChkMR.acq" ;
@@ -176,22 +207,34 @@ function RunMRACh(Bits)
     ScrBits = "A-AChoirX.exe" ;
   } 
 
-  if (Server5Region.value == "") 
+
+  if (SFTP5orS3.value == "S3") 
   {
-    ScrName = ScrBits + ScrName + " /VR0:" + File5Name.value + " /VR1:" + Run5ACQ.value + " /VR2:" + SFTP5orS3.value + " /VR3:" + Server5Name.value + " /USR:" + Serv5Usr.value + " /PWD:" + Serv5Pwd.value + " /VR4:none" ; 
-  } 
+    // VR0 = File with List of Endpoints
+    // VR1 = Run5ACQ Script to Run
+
+    // VR2 = S3 Bucket
+    // VR3 = S3 Region
+    // VR4 = S3 AWS ID
+    // VR5 = S3 Secret Key
+    ScrName = ScrBits + ScrName + " /VR0:" + File5Name.value + " /VR1:" + Run5ACQ.value + " /VR2:" + Server5Name.value + " /VR4:" + Serv5Usr.value + " /VR5:" + Serv5Pwd.value + " /VR3:" + Server5Region.value ; 
+  }
   else
   {
-    ScrName = ScrBits + ScrName + " /VR0:" + File5Name.value + " /VR1:" + Run5ACQ.value + " /VR2:" + SFTP5orS3.value + " /VR3:" + Server5Name.value + " /USR:" + Serv5Usr.value + " /PWD:" + Serv5Pwd.value + " /VR4:" + Server5Region.value ; 
-  } 
+    // VR0 = File with List of Endpoints
+    // VR1 = Run5ACQ Script to Run
 
+    // VR2 = SFTP Server
+    // VR3 = SFTP UserId
+    // VR4 = SFTP Password
+    ScrName = ScrBits + ScrName + " /VR0:" + File5Name.value + " /VR1:" + Run5ACQ.value + " /VR2:" + Server5Name.value + " /VR3:" + Serv5Usr.value + " /VR4:"+ Serv5Pwd.value + " /VR5:none" ; 
+  }
 
   WshShell = new ActiveXObject("WScript.Shell");
   WshShell.Run(ScrName, 1, false);
 }
 
-
-// Run AChoir GXR (Remotely Hosted Toolkit)
+// Run AChoirX GXR (Remotely Hosted Toolkit)
 function RunGXR(Bits)
 {
   var ScrName = " /ini:AChoir.acq" ;
@@ -213,7 +256,7 @@ function RunGXR(Bits)
 }
 
 
-// Run AChoir GXR on Remote Machine (Remotely Hosted Toolkit)
+// Run AChoirX GXR on Remote Machine (Remotely Hosted Toolkit)
 function RunGXRR(Bits)
 {
   var ScrName = " /ini:Scripts\\RemotChkGXR.acq" ;
@@ -307,7 +350,7 @@ function EditList()
 <table align="center" border="0" cellpadding="0" cellspacing="0" width="1000">
 <tr valign="top">
   <td align="right" colspan="2">
-    <span class="head">AChoir GUI 0.53</span> &nbsp; &nbsp;
+    <span class="head">AChoirX GUI 0.63</span> &nbsp; &nbsp;
     <br>
   </td>
 </tr>
@@ -350,8 +393,18 @@ function EditList()
             </p>
 
             <p>
+            <input type="radio"         name="rbtn" value="3"> Default Zipped - 
+            Same as the Default script, but zipped into a single file.
+            </p>
+
+            <p>
             <input type="radio"         name="rbtn" value="1"> No Memory - 
             Gathers the same Artifacts as the Default Script EXCEPT Memory
+            </p>
+
+            <p>
+            <input type="radio"         name="rbtn" value="34"> No Memory Zipped - 
+            Same as the No Memory script, but zipped into a single file.
             </p>
 
             <p>
@@ -401,7 +454,7 @@ function EditList()
             Running the AChoirX Script from a Command Prompt will give the same results.
             When running AChoirX in an environment where minimal impact is needed - This GUI 
             should not be used.  However, in environments where a menu driven GUI is desired, 
-            this GUI helps to make AChoir easier to use.
+            this GUI helps to make AChoirX easier to use.
             </p>
             </TD></TR></TABLE>
 
@@ -480,7 +533,7 @@ function EditList()
             <p>
             This Tab is meant to simplify running an AChoirX Remote Script on a remote
             computer using PSExec.  It will push A-AChoirX to the remote computer and 
-            store the Telemtry and Artifacts in C:\Windows\Temp on the remote machine. 
+            store the Telemetry and Artifacts in C:\Windows\Temp on the remote machine. 
             </p>
             </td></tr></table>
 
@@ -490,10 +543,12 @@ function EditList()
             <font color="#000000"><i><fieldset><legend>Fill In All Fields</legend></i></font>
 
             <p>
-            AChoir Script to Run:
+            AChoirX Script to Run:
             <select size="1" name="Run3ACQ">
             <option value="AChoir.ACQ" selected>AChoir</option>
+            <option value="Scripts\\AChZip.ACQ">AChZip</option>
             <option value="NoMem.ACQ">NoMem</option>
+            <option value="Scripts\\AChZipNoMem.ACQ">AChZipNoMem</option>
             </select>
             </p>
 
@@ -533,7 +588,7 @@ function EditList()
               <TR>
                 <TD>
                   <p>
-                  This Tab is meant to simplify running an AChoir Remote Script on a remote
+                  This Tab is meant to simplify running an AChoirX Remote Script on a remote
                   computer using PSExec.  It will Upload the Telemetry and Artifacts to either
                   an SFTP Server or an S3 Bucket.
                   </p>
@@ -551,10 +606,12 @@ function EditList()
                   <TABLE Width="100%" border="1" cellspacing="20" cellpadding="10">
                     <TR>
                       <TD ColSpan=2>
-                        AChoir Script to Run on Remote Machine:
+                        AChoirX Script to Run on Remote Machine:
                         <select size="1" name="Run4ACQ">
-                        <option value="Scripts\\AChUpload.ACQ" selected>AChUpload</option>
-                        <option value="Scripts\\AChUplNoMem.ACQ">AChUplNoMem</option>
+                        <option value="Scripts\\AChZipS3.ACQ" selected>AChZipS3</option>
+                        <option value="Scripts\\AChZipS3NoMem.ACQ">AChZipS3NoMem</option>
+                        <option value="Scripts\\AChZipSFTP.ACQ">AChZipSFTP</option>
+                        <option value="Scripts\\AChZipSFTPNoMem.ACQ">AChZipSFTPNoMem</option>
                         </select>
                       </TD>
                     </TR>
@@ -618,7 +675,7 @@ function EditList()
             </TABLE>
 
             <p>
-            <b><i>Important Note: </b></i>This GUI will call the 32Bit AChoir Program Remotely as Admin.
+            <b><i>Important Note: </b></i>This GUI will call A-AChoirX Remotely as Admin.
           </TD>
         </TR>
       </TABLE>
@@ -633,7 +690,7 @@ function EditList()
             <TABLE Width="100%" border="1" bgcolor="#FFFFEF">
               <TR>
                 <TD>
-                  This Tab is meant to simplify running an AChoir Remote Script on a list of remote
+                  This Tab is meant to simplify running an AChoirX Remote Script on a list of remote
                   computers using PSExec.  It will Upload the Telemetry and Artifacts to either
                   an SFTP Server or an S3 Bucket.
                 </TD>
@@ -649,10 +706,12 @@ function EditList()
                   <TABLE Width="100%" border="1" cellspacing="20" cellpadding="10">
                     <TR>
                       <TD ColSpan=2>
-                        AChoir Script to Run on Remote Machine(s):
+                        AChoirX Script to Run on Remote Machine(s):
                         <select size="1" name="Run5ACQ">
-                        <option value="Scripts\\AChUpload.ACQ" selected>AChUpload</option>
-                        <option value="Scripts\\AChUplNoMem.ACQ">AChUplNoMem</option>
+                        <option value="Scripts\\AChZipS3.ACQ" selected>AChZipS3</option>
+                        <option value="Scripts\\AChZipS3NoMem.ACQ">AChZipS3NoMem</option>
+                        <option value="Scripts\\AChZipSFTP.ACQ">AChZipSFTP</option>
+                        <option value="Scripts\\AChZipSFTPNoMem.ACQ">AChZipSFTPNoMem</option>
                         </select>
                       </TD>
                     </TR>
@@ -718,7 +777,7 @@ function EditList()
             </p>
 
             <p>
-            <b><i>Important Note: </b></i>This GUI will call the 32Bit AChoir Program Remotely as Admin.
+            <b><i>Important Note: </b></i>This GUI will call A-AChoirX Remotely as Admin.
             </p>
           </td>
         </tr>
@@ -786,7 +845,7 @@ function EditList()
 
 
             <p>
-            <b><i>Important Note: </b></i>This GUI will use the 32Bit AChoir Program as Admin.
+            <b><i>Important Note: </b></i>This GUI will use A-AChoirX as Admin.
             </p>
           </td>
         </tr>
