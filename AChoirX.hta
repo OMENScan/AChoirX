@@ -1,6 +1,6 @@
 <html>
 <head>
-  <title>AChoirX GUI 0.63</title>
+  <title>AChoirX GUI 0.70</title>
   <HTA:APPLICATION ID="AChoirXGUI" 
     APPLICATIONNAME="AChoirX GUI" 
     BORDER="Yes"
@@ -14,7 +14,7 @@
 <script type="text/javascript">
 self.moveTo(10,10);
 self.resizeTo(1100,860);
-var panels = new Array("","panel1","panel2","panel3","panel4","panel5","panel6");
+var panels = new Array("","panel1","panel2","panel3","panel4","panel5","panel6","panel7");
 
 function panel(tab) 
 {
@@ -278,6 +278,35 @@ function RunGXRR(Bits)
 }
 
 
+// Run AChoirX in Client ot Server Mode
+function RunCLISRV(Bits)
+{
+  var ScrName = " /ini:AChoir.Acq" ;
+  var ScrBits = "A-AChoirX.exe" ;
+  
+  if (Bits == 32) 
+  {
+    ScrBits = "A-AChoirX32.exe" ;
+  } 
+  else if (Bits == 64) 
+  {
+    ScrBits = "A-AChoirX.exe" ;
+  } 
+
+  if (CLISRV7Mode.value == "CLI") 
+  {
+    ScrName = ScrBits + ScrName + " /PWD:" + CLISRV7Pwd.value + " /CLI:" + CLISRV7IP.value + ":" + CLISRV7Port.value   ; 
+  }
+  else
+  {
+    ScrName = ScrBits + ScrName + " /PWD:" + CLISRV7Pwd.value + " /SRV:" + CLISRV7IP.value + ":" + CLISRV7Port.value  ; 
+  }
+
+  WshShell = new ActiveXObject("WScript.Shell");
+  WshShell.Run(ScrName, 1, false);
+}
+
+
 // Exit HTA
 function ExitMe()
 {
@@ -350,7 +379,7 @@ function EditList()
 <table align="center" border="0" cellpadding="0" cellspacing="0" width="1000">
 <tr valign="top">
   <td align="right" colspan="2">
-    <span class="head">AChoirX GUI 0.63</span> &nbsp; &nbsp;
+    <span class="head">AChoirX GUI 0.70</span> &nbsp; &nbsp;
     <br>
   </td>
 </tr>
@@ -362,6 +391,7 @@ function EditList()
     &nbsp; <span class="tabs tabs0" id="tab4" onclick="panel(4)">Remote->Remote</span>
     &nbsp; <span class="tabs tabs0" id="tab5" onclick="panel(5)">Multi-Remote</span>
     &nbsp; <span class="tabs tabs0" id="tab6" onclick="panel(6)">GXR</span>
+    &nbsp; <span class="tabs tabs0" id="tab7" onclick="panel(7)">Cli/Srv</span>
 
     <div class="panel" id="panel1" style="display:block">
       <table border="0" width="100%">
@@ -851,6 +881,82 @@ function EditList()
         </tr>
       </table>
     </div>
+
+
+    <div class="panel" id="panel7" style="display:none">
+      <table border="0" width="100%">
+        <tr valign="top">
+          <td>
+
+            <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
+            <p>
+            This Tab Runs AChoirX in either CLIent or SRVer mode. The AChoirX Client/Server
+            model is a Multi-Handler that can support an unlimited number of Clients.
+            Please Note: The Server MUST be running for a Client to connect.
+            </p>
+            </TD></TR></TABLE>
+
+            <p>
+            <TABLE Width="100%" border="0">
+              <TR>
+                <TD>
+                  <font color="#000000"><i><fieldset><legend>Client or Server</legend></i></font>
+           
+                  <TABLE Width="100%" border="1" cellspacing="20" cellpadding="10">
+                    <TR>
+                      <TD ColSpan=2>
+                        Should I run as a CLIent or SRVer:
+                        <select size="1" name="CLISRV7Mode">
+                        <option value="CLI" selected>Client</option>
+                        <option value="SRV">Server</option>
+                        </select>
+                      </TD>
+                    </TR>
+
+                    <TR>
+                      <TD Colspan=2>
+                        Password:
+                        <input type="password" size="25" name="CLISRV7Pwd" value="">&nbsp<br>
+                        <font size=-1><i>Enter Communications Encryption Password</i></font>
+                      </TD>
+
+
+                    <TR>
+                      <TD>
+                        IP Address:
+                        <input type="text" size="25" name="CLISRV7IP" value="127.0.0.1">&nbsp<br>
+                        <font size=-1><i>Enter IP Address of Client or Server</i></font>
+                      </TD>
+
+                      <TD>
+                        Port:
+                        <input type="text" size="25" name="CLISRV7Port" value="5555"><br>
+                        <font size=-1><i>Enter the Port that Client/Server will communicate on</i></font>
+                      </TD>
+                    </TR>
+
+                    <TR>
+                      <TD ColSpan=2>
+                        <input type="button" value="AChoir-32" onclick="RunCLISRV(32);"/> - 
+                        <input type="button" value="AChoir-64" onclick="RunCLISRV(64);"/> - 
+                        <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
+                      </TD>
+                    </TR>
+                  </TABLE>
+                </TD>
+              </TR>
+            </TABLE>
+
+            <p>
+            <BR><BR><BR><BR>
+            <b><i>Important Note: </b></i>This GUI will call A-AChoirX as Admin.
+          </TD>
+        </TR>
+      </TABLE>
+    </div>
+
+
+
   </td>
 </tr>
 </table>
