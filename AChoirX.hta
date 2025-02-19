@@ -1,6 +1,6 @@
 <html>
 <head>
-  <title>AChoirX GUI 0.70</title>
+  <title>AChoirX GUI 0.75</title>
   <HTA:APPLICATION ID="AChoirXGUI" 
     APPLICATIONNAME="AChoirX GUI" 
     BORDER="Yes"
@@ -293,13 +293,40 @@ function RunCLISRV(Bits)
     ScrBits = "A-AChoirX.exe" ;
   } 
 
-  if (CLISRV7Mode.value == "CLI") 
+
+  if (CLISRV7LocRem.value == "Local") 
   {
-    ScrName = ScrBits + ScrName + " /PWD:" + CLISRV7Pwd.value + " /CLI:" + CLISRV7IP.value + ":" + CLISRV7Port.value   ; 
+    if (CLISRV7Mode.value == "CLI") 
+    {
+      ScrName = ScrBits + ScrName + " /PWD:" + CLISRV7Pwd.value + " /CLI:" + CLISRV7IP.value + ":" + CLISRV7Port.value   ; 
+    }
+    else
+    {
+      ScrName = ScrBits + ScrName + " /PWD:" + CLISRV7Pwd.value + " /SRV:" + CLISRV7IP.value + ":" + CLISRV7Port.value  ; 
+    }
   }
   else
   {
-    ScrName = ScrBits + ScrName + " /PWD:" + CLISRV7Pwd.value + " /SRV:" + CLISRV7IP.value + ":" + CLISRV7Port.value  ; 
+    var ScrName = " /ini:Scripts\\RemotChkCli.acq" ;
+    var ScrBits = "A-AChoirX.exe" ;
+  
+    if (Bits == 32) 
+    {
+      ScrBits = "A-AChoirX32.exe" ;
+    } 
+    else if (Bits == 64) 
+    {
+      ScrBits = "A-AChoirX.exe" ;
+    } 
+
+    if (CLISRV7Mode.value == "CLI") 
+    {
+      ScrName = ScrBits + ScrName + " /VR0:" + CLISRV7RHost.value + " /VR1:" + CLISRV7Pwd.value + " /VR2:/CLI:" + CLISRV7IP.value + ":" + CLISRV7Port.value ;
+    }
+    else
+    {
+      ScrName = ScrBits + ScrName + " /VR0:" + CLISRV7RHost.value + " /VR1:" + CLISRV7Pwd.value + " /VR2:/SRV:" + CLISRV7IP.value + ":" + CLISRV7Port.value ; 
+    }
   }
 
   WshShell = new ActiveXObject("WScript.Shell");
@@ -379,7 +406,7 @@ function EditList()
 <table align="center" border="0" cellpadding="0" cellspacing="0" width="1000">
 <tr valign="top">
   <td align="right" colspan="2">
-    <span class="head">AChoirX GUI 0.70</span> &nbsp; &nbsp;
+    <span class="head">AChoirX GUI 0.75</span> &nbsp; &nbsp;
     <br>
   </td>
 </tr>
@@ -904,20 +931,35 @@ function EditList()
            
                   <TABLE Width="100%" border="1" cellspacing="20" cellpadding="10">
                     <TR>
-                      <TD ColSpan=2>
+                      <TD>
                         Should I run as a CLIent or SRVer:
                         <select size="1" name="CLISRV7Mode">
                         <option value="CLI" selected>Client</option>
                         <option value="SRV">Server</option>
                         </select>
                       </TD>
+
+                      <TD>
+                        Run Local or push to Remote machine:
+                        <select size="1" name="CLISRV7LocRem">
+                        <option value="Local" selected>Local</option>
+                        <option value="Remote">Remote</option>
+                        </select>
+                      </TD>
+
                     </TR>
 
                     <TR>
-                      <TD Colspan=2>
+                      <TD>
                         Password:
                         <input type="password" size="25" name="CLISRV7Pwd" value="">&nbsp<br>
                         <font size=-1><i>Enter Communications Encryption Password</i></font>
+                      </TD>
+
+                      <TD>
+                        Remote Host:
+                        <input size="25" name="CLISRV7RHost" value="localhost">&nbsp<br>
+                        <font size=-1><i>Only needed if you are going to push to a Remote Machine</i></font>
                       </TD>
 
 
