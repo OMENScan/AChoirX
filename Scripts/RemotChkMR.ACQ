@@ -16,7 +16,8 @@ Say:Loading AChoir on Remote Computers (From List: &VR0)
 CKY:SYS\paexec.exe
  SAY:[+] Using PAExec to push A-AchoirX to Remote System: &VR0
  LST:&VR0
- EXE:\SYS\PAexec.exe \\&LST -h -e -c -f -w c:\windows\temp ".\A-AchoirX.exe" "/ini:&VR1" "/VR0:&VR2" "/VR1:&VR3" "/VR2:&VR4" "/VR3:&VR5"END:
+ EXE:\SYS\PAexec.exe \\&LST -h -e -c -f -w c:\windows\temp ".\A-AchoirX.exe" "/ini:&VR1" "/VR0:&VR2" "/VR1:&VR3" "/VR2:&VR4" "/VR3:&VR5"
+END:
 CKY:SYS\psexec.exe
  SAY:[+] Using PSExec to push A-AchoirX to Remote System: &VR0
  LST:&VR0
