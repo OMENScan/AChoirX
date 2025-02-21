@@ -1,6 +1,6 @@
 <html>
 <head>
-  <title>AChoirX GUI 0.75</title>
+  <title>AChoirX GUI 0.80</title>
   <HTA:APPLICATION ID="AChoirXGUI" 
     APPLICATIONNAME="AChoirX GUI" 
     BORDER="Yes"
@@ -57,21 +57,21 @@ function RunAChoir(Bits)
   } 
   else if (rbutns[1].checked == true) 
   {
-    ScrName = ScrBits + " /ini:NoMem.acq" ;
+    ScrName = ScrBits + " /ini:Scripts\\AchZip.acq" ;
   }
-  else if (rbutns[2].checked == true)
+  else if (rbutns[2].checked == true) 
   {
-    ScrName = ScrBits + " /ini:Scripts\\PlasoX.acq" ;
+    ScrName = ScrBits + " /ini:NoMem.acq" ;
   }
   else if (rbutns[3].checked == true) 
   {
-    ScrName = ScrBits + " /ini:Scripts\\AchZip.acq" ;
-  }
-  else if (rbutns[4].checked == true) 
-  {
     ScrName = ScrBits + " /ini:Scripts\\AchZipNoMem.acq" ;
   }
-  else if (rbutns[7].checked == true)
+  else if (rbutns[4].checked == true)
+  {
+    ScrName = ScrBits + " /ini:Scripts\\PlasoX.acq" ;
+  }
+  else if (rbutns[5].checked == true)
   {
     ScrName = ScrBits + " /ini:Build.acq" ;
   }
@@ -406,7 +406,7 @@ function EditList()
 <table align="center" border="0" cellpadding="0" cellspacing="0" width="1000">
 <tr valign="top">
   <td align="right" colspan="2">
-    <span class="head">AChoirX GUI 0.75</span> &nbsp; &nbsp;
+    <span class="head">AChoirX GUI 0.80</span> &nbsp; &nbsp;
     <br>
   </td>
 </tr>
