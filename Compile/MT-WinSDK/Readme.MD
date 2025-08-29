@@ -1,4 +1,4 @@
-\# Manifest Tool (mt.exe)
+# Manifest Tool (mt.exe)
 
 
 
