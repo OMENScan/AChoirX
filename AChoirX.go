@@ -240,6 +240,8 @@
 //                     is designed to allow AChCleanr to run after AChoirX exits.
 //                     - Add &MyE - For This Programs Executable name
 //
+// AChoirX v10.01.60 - Release 1.60 - Prevent Globbing errors from exiting walking directories 
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -310,7 +312,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.59"                       // AChoir Version
+var Version = "v10.01.60"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -5654,12 +5656,17 @@ func WalkCopyGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) err
     //* Walk the filepath looking for DIRECTORIES ONLY. Then Glob    *
     //*  them with the wilcards...  This Approximates ** Globbing    *
     //****************************************************************
-    file_stat, stat_err := os.Stat(Walkfilepath)
-
-    if stat_err != nil {
-        ConsOut = fmt.Sprintf("[!] Error Identifying File: %s\n", stat_err)
+    if Walk_err != nil {
+        ConsOut = fmt.Sprintf("[!] Copy Walking error accessing: %s -- %v\n", Walkfilepath, Walk_err)
         ConsLogSys(ConsOut, 1, 1)
-        return stat_err
+        return nil // DO NOT stop walking
+    }
+
+    file_stat, stat_err := os.Stat(Walkfilepath)
+    if stat_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Identifying Copy File: %s\n", stat_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return nil  // Do Not Stop Walking
     }
 
     if file_stat.IsDir() {
@@ -5677,12 +5684,17 @@ func WalkForGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) erro
     //* Walk the filepath looking for DIRECTORIES ONLY. Then Glob    *
     //*  them with the wilcards...  This Approximates ** Globbing    *
     //****************************************************************
-    file_stat, stat_err := os.Stat(Walkfilepath)
-
-    if stat_err != nil {
-        ConsOut = fmt.Sprintf("[!] Error Identifying File: %s\n", stat_err)
+    if Walk_err != nil {
+        ConsOut = fmt.Sprintf("[!] For Walking error accessing: %s -- %v\n", Walkfilepath, Walk_err)
         ConsLogSys(ConsOut, 1, 1)
-        return stat_err
+        return nil // DO NOT stop walking
+    }
+
+    file_stat, stat_err := os.Stat(Walkfilepath)
+    if stat_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Identifying For File: %s\n", stat_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return nil // DO NOT stop walking
     }
 
     if file_stat.IsDir() {
@@ -5700,12 +5712,18 @@ func WalkDelGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) erro
     //* Walk the filepath looking for DIRECTORIES ONLY. Then Glob    *
     //*  them with the wilcards...  This Approximates ** Globbing    *
     //****************************************************************
-    file_stat, stat_err := os.Stat(Walkfilepath)
-
-    if stat_err != nil {
-        ConsOut = fmt.Sprintf("[!] Error Identifying File: %s\n", stat_err)
+    if Walk_err != nil {
+        ConsOut = fmt.Sprintf("[!] Delete Walking error accessing: %s -- %v\n", Walkfilepath, Walk_err)
         ConsLogSys(ConsOut, 1, 1)
-        return stat_err
+        return nil // DO NOT stop walking
+    }
+
+
+    file_stat, stat_err := os.Stat(Walkfilepath)
+    if stat_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Identifying Delete File: %s\n", stat_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return nil  // Do NOT stop Walking
     }
 
     if file_stat.IsDir() {
@@ -5723,12 +5741,17 @@ func WalkS3UpGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) err
     //* Walk the filepath looking for DIRECTORIES ONLY. Then Glob    *
     //*  them with the wilcards...  This Approximates ** Globbing    *
     //****************************************************************
-    file_stat, stat_err := os.Stat(Walkfilepath)
-
-    if stat_err != nil {
-        ConsOut = fmt.Sprintf("[!] Error Identifying File: %s\n", stat_err)
+    if Walk_err != nil {
+        ConsOut = fmt.Sprintf("[!] S3 Upload Walking error accessing: %s -- %v\n", Walkfilepath, Walk_err)
         ConsLogSys(ConsOut, 1, 1)
-        return stat_err
+        return nil // DO NOT stop walking
+    }
+
+    file_stat, stat_err := os.Stat(Walkfilepath)
+    if stat_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Identifying S3 Upload File: %s\n", stat_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return nil // Do NOT stop Walking
     }
 
     if file_stat.IsDir() {
@@ -5746,12 +5769,18 @@ func WalkSFUpGlob(Walkfilepath string, WalkInfo os.FileInfo, Walk_err error) err
     //* Walk the filepath looking for DIRECTORIES ONLY. Then Glob    *
     //*  them with the wilcards...  This Approximates ** Globbing    *
     //****************************************************************
-    file_stat, stat_err := os.Stat(Walkfilepath)
-
-    if stat_err != nil {
-        ConsOut = fmt.Sprintf("[!] Error Identifying File: %s\n", stat_err)
+    if Walk_err != nil {
+        ConsOut = fmt.Sprintf("[!] SFTP Upload Walking error accessing: %s -- %v\n", Walkfilepath, Walk_err)
         ConsLogSys(ConsOut, 1, 1)
-        return stat_err
+        return nil // DO NOT stop walking
+    }
+
+
+    file_stat, stat_err := os.Stat(Walkfilepath)
+    if stat_err != nil {
+        ConsOut = fmt.Sprintf("[!] Error Identifying SFTP Upload File: %s\n", stat_err)
+        ConsLogSys(ConsOut, 1, 1)
+        return nil  // Do NOT stop Walking
     }
 
     if file_stat.IsDir() {
