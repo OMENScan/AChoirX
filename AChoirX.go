@@ -242,6 +242,8 @@
 //
 // AChoirX v10.01.60 - Release 1.60 - Prevent Globbing errors from exiting walking directories 
 //
+// AChoirX v10.01.61 - Release 1.61 - Add Regex to Filter behavior (Filter=Regx)
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -1560,26 +1562,35 @@ func main() {
                                 Fltrec = strings.TrimSpace(FltScan.Text())
 
                                 if LstMe == 1 {
-                                    //****************************************************************
-                                    //* &LST Look for Match - Filtscope is Full(1) or Part(2)        *
-                                    //****************************************************************
+                                    //******************************************************************
+                                    //* &LST Look for Match - Filtscope is Full(1), Part(2) or Regx(3) *
+                                    //******************************************************************
                                     //fmt.Printf("[c] -%s-%s-\n", Lstrec, Fltrec)
+                                    // Full Match
                                     if iFiltscope == 1 {
                                         if strings.ToUpper(Lstrec) == strings.ToUpper(Fltrec) {
                                             FltRecFound = 1
                                         } 
+                                     } else if iFiltscope == 3 {
+                                        if ContainsRegex(Lstrec, Fltrec) {
+                                            FltRecFound = 1
+                                        }
                                      } else {
                                         if CaseInsensitiveContains(Lstrec, Fltrec) {
                                             FltRecFound = 1
                                         }
                                     }
                                 } else if ForMe == 1 {
-                                    //****************************************************************
-                                    //* &For Look for Match - Filtscope is Full(1) or Part(2)        *
-                                    //****************************************************************
+                                    //******************************************************************
+                                    //* &For Look for Match - Filtscope is Full(1), Part(2) or Regx(3) *
+                                    //******************************************************************
                                     //fmt.Printf("[c] -%s-%s-\n", Filrec, Fltrec)
                                     if iFiltscope == 1 {
                                         if strings.ToUpper(Filrec) == strings.ToUpper(Fltrec) {
+                                            FltRecFound = 1
+                                        }
+                                    } else if iFiltscope == 3 {
+                                        if ContainsRegex(Filrec, Fltrec) {
                                             FltRecFound = 1
                                         }
                                     } else {
@@ -3551,13 +3562,16 @@ func main() {
                     }
 
                     //*****************************************************************
-                    //* Set Filter to Full(1) or Partial(2) Matching                  *
+                    //* Set Filter to Full(1), Partial(2), or Regex(3) Matching       *
                     //*****************************************************************
                     if CaseInsensitiveContains(Inrec[11:], "Full") {
                         iFiltscope = 1
                     } else if CaseInsensitiveContains(Inrec[11:], "Part") {
                         iFiltscope = 2
+                    } else if CaseInsensitiveContains(Inrec[11:], "Regx") {
+                        iFiltscope = 3
                     }
+
 
                     //*****************************************************************
                     //* Verify that the Filter Exists, Otherwise set to NONE(0)       *
@@ -4423,6 +4437,20 @@ func varConvert(inVarRec string) {
     } else {
         o64VarRec = o32VarRec
     }
+}
+
+
+//*******************************************************************
+// ContainsRegex checks if CI_Substr matches any part of CI_String. *
+// It behaves like strings.Contains, but supports regex.            *
+//*******************************************************************
+func ContainsRegex(CI_String, CI_Substr string) bool {
+    CI_result, CI_err := regexp.Compile(CI_Substr)
+    if CI_err != nil {
+        // Invalid regex pattern
+        return false
+    }
+    return CI_result.MatchString(CI_String)
 }
 
 

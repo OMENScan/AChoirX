@@ -1,4 +1,4 @@
-AChoirX - v10.01.57 - Release 1.57
+AChoirX - v10.01.61 - Release 1.61
 
 AChoirX
 =======
@@ -185,6 +185,7 @@ SET:FILTER=<incl> <excl> <full> <part> - Set the filtering behavior
            excl = &FOR or &LST does NOT match entries in Filter File 
            full = &FOR or &LST Exact match with entries in Filter File 
            part = &FOR or &LST Partial match with entries in Filter File 
+           regx = &FOR or &LST Use Regex entries in Filter File 
 SAY:     Echo Text and Objects to the Screen and Logfile
 CON:Hide Hide The Console Screen - For quiet Acquisition
          DO NOT USE IF YOU HAVE SCREEN INPUT - For any 
@@ -703,6 +704,7 @@ following options: SET:FILTER=<incl> <excl> <full> <part>
 - excl = &FOR or &LST does NOT match entries in Filter File 
 - full = &FOR or &LST Exact match with entries in Filter File 
 - part = &FOR or &LST Partial match with entries in Filter File 
+- regx = &FOR or &LST Regex match with entries in Filter File 
 
 The NONE option removes the filter.  Warning: The FILTER IS USED FOR BOTH &LST and &FOR.  
 Set FLT:NONE when the filter is no longer needed to avoid unwanted filtering.
