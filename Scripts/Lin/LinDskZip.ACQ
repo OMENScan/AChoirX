@@ -23,7 +23,7 @@ SYS:find / -printf "%i, %d, %b, %A+ %AZ, %C+ %CZ, %T+ %TZ, %M, %u, %g, %p\n" --e
 *******************************************************
 SAY:[+] Zipping Disk Artifacts...
 ACQ:/Disk
-FOR:&Acq\**\*
+FOR:&Acq/**/*
 ZIP:&For
 SAY:[+] Deleting Local Copy...
 CLN:&Acn/Disk
