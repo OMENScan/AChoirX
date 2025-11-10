@@ -100,6 +100,7 @@ Ver:OSX
  ACQ:/Disk
  SYS:mount --exestdout=&acn/Disk/MountedDisks.dat
  SYS:df -h --exestdout=&acn/Disk/DiskUsage.dat
+ SYS:find / -type f -exec stat -f "%i, %d, %b, %Sa, %Sc, %Sm, %Mp%Lp, %Su, %Sg, %N" -t "%Y-%m-%d %H:%M:%S %z" {} + --exestdout=&Acn/Disk/AllFiles.csv
  SAY:[+] Gathering System Information...
  ACQ:/Sys
  SYS:system_profiler --exestdout=&acn/Sys/Profiler.dat
@@ -119,12 +120,12 @@ Ver:OSX
  SYS:pkgutil --pkgs --exestdout=&acn/Sys/pkgutil-pkgs.dat
  SAY:[+] Gathering Running Process List Information...
  ACQ:/Sys
- SYS:ps aux --forest --exestdout=&acn/Sys/PSList.dat
+ SYS:ps ax --forest --exestdout=&acn/Sys/PSList.dat
  SYS:ps -ef --exestdout=&acn/Sys/PS-ef.dat
  SYS:top -l 1 --exestdout=&acn/Sys/PSTop.dat
  SAY:[+] Gathering Connection Information...
  ACQ:/Sys
- SYS:netstat -anp --exestdout=&acn/Sys/Netstat-anp.dat
+ SYS:netstat -an --exestdout=&acn/Sys/Netstat-anp.dat
  SYS:netstat -rn --exestdout=&acn/Sys/Netstat-rn.dat
  SYS lsof -i -n -P --exestdout=&acn/Sys/lsofConnections.dat
  SAY:[+] Gathering IP Config Information...
@@ -159,10 +160,15 @@ Ver:OSX
  ACQ:/UserInfo
  SYS:whoami --exestdout=&acn/UserInfo/Whoami.dat
  SYS:logname --exestdout=&acn/UserInfo/Logname.dat
- SAY:[+] Gathering Current User Config Files...
- ACQ:/Home
- cpy:/users/**/.* &Acq
+ * ACQ:/Home
+ * CPY:/users/**/.* &Acq
  HSH:ACQ
+ *************************************************
+ * Filter for /Users/Documents                   *
+ *************************************************
+ OPN:%Acn/Cache/Users.flt
+ OUT:^/Users/[^/]+/Documents/.*$
+ OUT:^&Dir/&Acn.*$
  *******************************************************
  * Zip it all                                          *
  *******************************************************
@@ -172,6 +178,19 @@ Ver:OSX
  SET:ZipFileName=&Acq/&Acn.zip
  SET:ZipFileRoot=AChoirX
  ZIP:&For
+ *******************************************************
+ * Zip User Directories but filter out Documents       *
+ *******************************************************
+ SAY:[+] Gathering Current User Config Files...
+ FLT:%Acn/Cache/Users.flt
+ SET:Filter=excl, regx
+ FOR:/Users/**/* 
+ ZIP:&For
+ FLT:None
+ Set:Filter=None
+ *******************************************************
+ * Last Zip - LogFile.  Then Close                     *
+ *******************************************************
  ZIP:&Dir/Logs/&Acn.log
  SET:ZipFileName=close
  *******************************************************
@@ -184,11 +203,18 @@ Ver:OSX
  CLN:&Acn/Var
  CLN:&Acn/UserInfo
  CLN:&Acn/Home
+ CLN:&Acn/Users
+ CLN:&Acn/Launchd
  CLN:&Acn/RanProg
+ *******************************************************
+ * Final Cleanup                                       *
+ *******************************************************
  CKY:AChCleanr-AMD
-  XIT:./AChCleanr-AMD /INI:AChCleanz.ACQ /EXE:&MyE /ACN:&Acn
+  XIT:./AChCleanr-AMD /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
  END:
- JMP:AllDun
+ CKY:AChCleanr-ARM
+  XIT:./AChCleanr-ARM /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
+ END:
 END:
 LBL:Alldun
 Say:[+] Exiting Script...

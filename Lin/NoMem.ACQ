@@ -59,6 +59,7 @@ Ver:OSX
  ACQ:/Disk
  SYS:mount --exestdout=&acn/Disk/MountedDisks.dat
  SYS:df -h --exestdout=&acn/Disk/DiskUsage.dat
+ SYS:find / -type f -exec stat -f "%i, %d, %b, %Sa, %Sc, %Sm, %Mp%Lp, %Su, %Sg, %N" -t "%Y-%m-%d %H:%M:%S %z" {} + --exestdout=&Acn/Disk/AllFiles.csv
  SAY:[+] Gathering System Information...
  ACQ:/Sys
  SYS:system_profiler --exestdout=&acn/Sys/Profiler.dat
@@ -78,12 +79,12 @@ Ver:OSX
  SYS:pkgutil --pkgs --exestdout=&acn/Sys/pkgutil-pkgs.dat
  SAY:[+] Gathering Running Process List Information...
  ACQ:/Sys
- SYS:ps aux --forest --exestdout=&acn/Sys/PSList.dat
+ SYS:ps ax --exestdout=&acn/Sys/PSList.dat
  SYS:ps -ef --exestdout=&acn/Sys/PS-ef.dat
  SYS:top -l 1 --exestdout=&acn/Sys/PSTop.dat
  SAY:[+] Gathering Connection Information...
  ACQ:/Sys
- SYS:netstat -anp --exestdout=&acn/Sys/Netstat-anp.dat
+ SYS:netstat -an --exestdout=&acn/Sys/Netstat-anp.dat
  SYS:netstat -rn --exestdout=&acn/Sys/Netstat-rn.dat
  SYS lsof -i -n -P --exestdout=&acn/Sys/lsofConnections.dat
  SAY:[+] Gathering IP Config Information...
@@ -120,13 +121,31 @@ Ver:OSX
  SYS:logname --exestdout=&acn/UserInfo/Logname.dat
  SAY:[+] Gathering Current User Config Files...
  ACQ:/Home
- cpy:/users/**/.* &Acq
+ * CPY:/Users/**/.* &Acq
+ *************************************************
+ * Filter for /Users/Documents                   *
+ *************************************************
+ OPN:%Acn/Cache/Users.flt
+ OUT:^/Users/[^/]+/Documents/.*$
+ OUT:^&Dir/&Acn.*$
+ *************************************************
+ * Copy Filtered Files                           *
+ *************************************************
+ FLT:%Acn/Cache/Users.flt
+ SET:Filter=excl, regx
+ FOR:/Users/**/* 
+ CPY:&For "&Acq"
+ FLT:None
+ Set:Filter=None
  HSH:ACQ
  *******************************************************
  * Run Cleanup ONLY if AChCleanr.exe is in root dir    *
  *******************************************************
  CKY:AChCleanr-AMD
   XIT:./AChCleanr-AMD /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
+ END:
+ CKY:AChCleanr-ARM
+  XIT:./AChCleanr-ARM /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
  END:
  JMP:AllDun
 END:
