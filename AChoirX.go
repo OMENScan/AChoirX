@@ -244,6 +244,8 @@
 //
 // AChoirX v10.01.61 - Release 1.61 - Add Regex to Filter behavior (Filter=Regx)
 //
+// AChoirX v10.01.62 - Release 1.62 - Minor change in Zipping error
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -314,7 +316,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.61"                       // AChoir Version
+var Version = "v10.01.62"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -2429,7 +2431,7 @@ func main() {
                     if ZipInrec == setOutZipFName {
                         ConsOut = fmt.Sprintf("[!] Zipping a File into itself... Im sorry Dave, Im afraid I cant do that.\n")
                         ConsLogSys(ConsOut, 1, 1)
-                        break
+                        continue
                     }
 
                     //****************************************************************
