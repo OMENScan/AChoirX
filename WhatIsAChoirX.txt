@@ -1,4 +1,4 @@
-AChoirX - v10.01.61 - Release 1.61
+AChoirX - v10.01.75 - Release 1.75
 
 AChoirX
 =======
@@ -185,7 +185,6 @@ SET:FILTER=<incl> <excl> <full> <part> - Set the filtering behavior
            excl = &FOR or &LST does NOT match entries in Filter File 
            full = &FOR or &LST Exact match with entries in Filter File 
            part = &FOR or &LST Partial match with entries in Filter File 
-           regx = &FOR or &LST Use Regex entries in Filter File 
 SAY:     Echo Text and Objects to the Screen and Logfile
 CON:Hide Hide The Console Screen - For quiet Acquisition
          DO NOT USE IF YOU HAVE SCREEN INPUT - For any 
@@ -238,7 +237,7 @@ INC:<Script file> - Include another script file (INC:F:\IncludeSript.Acq)
          as though it is part of the parent script (variables, labels, etc. remain the same.
          after the included script is run, it returns to the same spot in the parent script.
 INI:Console - Switch to Interactive Console Mode
-XTR:     Extracts the embedded toolkit.
+XTR:     Extracts the embedded toolkit (either the appended one or the compiled-in one).
 CSE:SAY  Display Optional Case Information ans write it to Log
 CSE:GET  Input Optional Case Information - ONLY allowed ONCE 
           per session to avoid ambiguity.
@@ -466,7 +465,9 @@ Here are the Command Line Options:
 /INI:<File Name>  - Run the <File Name> script instead of AChoir.ACQ
         This Option WILL NOT Create a Base Acquisition Directory
         Use the ACQ: action to create the Base Acquisition Directory if you want one. 
-/XTR    Extracts the embedded toolkit.
+/PKR:<zipfile> - Create a new AChoirX executable from the running executable with the 
+        specified (zipfile) toolkit appended to the new executable.
+/XTR    Extracts the embedded toolkit (either the appended one or the compiled-in one).
 /PWD:<password> - Sets the &PWD variable
 /DEC:<FileName> - Decrypts a file and writes it to: Decrypted.Dat
 /DRV:<x:> - Set the &DRV parameter
@@ -677,9 +678,26 @@ I have come up with the following nomenclature (Note: this is a change from ACho
 
 A note about Embedded Files
 ---------------------------
-AChoirX for Windows, Linux, and OSX now have embedded zip files.  If a Toolkit is not present, 
-AChoirX will unzip these files to create a very basic Toolkit.  This allows a basic version of
-AChoirX to run with only the single AChoirX executable file.
+AChoirX for Windows, Linux, and OSX now have embedded zip files.  If a Toolkit is not present
+in the directory, AChoirX will unzip the embedded toolkit to create a very basic Toolkit.  
+This allows a basic version of AChoirX to run with only the single AChoirX executable file.
+
+Embedded zip files (toolkits) can be compiled directly into AChoirX for Windows, Mac, and Linux
+versions.  Or a Zip toolkit can be embedded into the executable using the /PKR: command. The 
+/PKR: command line option takes the specified Zip file and appends it to the running executable.
+AChoirX will now treat that appended zip file as it's toolkit. The command (Windows) is as follows:
+
+AChoirx.exe /PKR:<zipfilename>
+
+The output will be a new executable called: AChoirX_PKR.exe that will contain the appended zip file.
+
+The order of operations for AChoirX scripts is:
+- First: Look for scripts and files in the AChoirX directories
+- Next: If the scripts do not exist, extract the previously appended toolkit 
+- Last: If there is no appended toolkit, extract the default compiled-in toolkit
+
+This allows AChoirX toolkits to be extremely flexible.  This works for all versions of AChoirX 
+(Windows, Mac, and Linux)
 
 
 A note about UniCode
@@ -704,7 +722,6 @@ following options: SET:FILTER=<incl> <excl> <full> <part>
 - excl = &FOR or &LST does NOT match entries in Filter File 
 - full = &FOR or &LST Exact match with entries in Filter File 
 - part = &FOR or &LST Partial match with entries in Filter File 
-- regx = &FOR or &LST Regex match with entries in Filter File 
 
 The NONE option removes the filter.  Warning: The FILTER IS USED FOR BOTH &LST and &FOR.  
 Set FLT:NONE when the filter is no longer needed to avoid unwanted filtering.

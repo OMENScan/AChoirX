@@ -246,6 +246,14 @@
 //
 // AChoirX v10.01.62 - Release 1.62 - Minor change in Zipping error
 //
+// AChoirX v10.01.75 - Release 1.75 - Add a Packager and UnPacker to allow creating customized versions
+//                     of AChoirX by Appending a Zip File to the end of the program instead of requiring 
+//                     a recompile with an embedded zip.  The logic is:
+//                     1. First - Try local Scripts and program
+//                     2. Next - Try to unzip any packaged zip
+//                     3. Last - Unzip the embedded zip compiled into the executable
+//                     - This creates an extremely flexible way to deploy custom programs and scripts.
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -286,6 +294,7 @@ import (
     "encoding/hex"
     "encoding/base64"
     "archive/zip"
+    "bytes"
     "regexp"
     "runtime"
     "net"
@@ -316,7 +325,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.62"                       // AChoir Version
+var Version = "v10.01.75"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -730,6 +739,7 @@ func main() {
             fmt.Printf(" /CON - Run with Interactive Console Input (Same as /Ini:Console)\n")
             fmt.Printf(" /CLI:<IPAddr>:<Port> - Run as a remote client - Connecting to IP Address/Port\n")
             fmt.Printf(" /SRV:<Port> - Run Server Multi Handler on Port\n")
+            fmt.Printf(" /PKR:<ZipFileToPackage> - Package a Zip File into the AChoirX executable\n")
             fmt.Printf(" /DBG:min, std, max, debug - Set Console Message Level to 1, 2, 3, or 4\n")
 
             os.Exit(0)
@@ -881,11 +891,41 @@ func main() {
             } else {
                 fmt.Println("[!] /INI: Too Long - Greater than 254 chars")
             }
+        } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/PKR:") {
+            if len(os.Args[i]) < 254 {
+                PKR_Path := filepath.Clean(MyProg)
+                PKR_Dir := filepath.Dir(PKR_Path)
+                PKR_File := filepath.Base(PKR_Path)
+                PKR_Ext := filepath.Ext(PKR_File)
+                PKR_Fnam := strings.TrimSuffix(PKR_File, PKR_Ext)
+                PKR_Fnew := PKR_Fnam + "_PKR" + PKR_Ext
+                PKR_Pnew := filepath.Join(PKR_Dir, PKR_Fnew)
+
+                PKR_err := PackExecutable(MyProg, os.Args[i][5:], PKR_Pnew )
+                if PKR_err != nil {
+                    ConsOut = fmt.Sprintf("[!] Error Packing Zip into AChoirX: %s\n", PKR_err)
+                    ConsLogSys(ConsOut, 1, 1)
+                    cleanUp_Exit(3)
+                    os.Exit(3)
+                } else {
+                    ConsOut = fmt.Sprintf("[+] New Packed Executable Created: %s\n", PKR_Pnew)
+                    ConsLogSys(ConsOut, 1, 1)
+                    cleanUp_Exit(0)
+                    os.Exit(0)
+                }
+            } else {
+                fmt.Println("[!] /PKR: Zip File Path Too Long - Greater than 254 chars")
+            }
+
+            cleanUp_Exit(3)
+            os.Exit(3)
         } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/XTR") {
             // Force Extraction of the embedded toolkit - Be careful with this one
             ConsOut = fmt.Sprintf("[*] UnEmbedding the ToolKit (/XTR)\n")
             ConsLogSys(ConsOut, 1, 2)
-            UnEmbed(embdata)
+
+            //UnEmbed(embdata)
+            UnEmbedAny()
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/DEC:") {
             inEncFile = os.Args[i][5:]
 
@@ -1231,7 +1271,9 @@ func main() {
         if !FileExists(IniFile) && isInstalled == 0 {
             ConsOut = fmt.Sprintf("[*] Ini File Does Not Exist UnEmbedding the Default ToolKit: %s\n", IniFile)
             ConsLogSys(ConsOut, 1, 2)
-            UnEmbed(embdata)
+
+            //UnEmbed(embdata)
+            UnEmbedAny()
         }
  
         // If we Decoded a /B64: IniFile file, set it as the new INI.  This routine comes AFTER the unembed check
@@ -2204,7 +2246,9 @@ func main() {
                     // Force Extraction of the embedded toolkit - Be careful with this one
                     ConsOut = fmt.Sprintf("[*] UnEmbedding the ToolKit\n")
                     ConsLogSys(ConsOut, 1, 2)
-                    UnEmbed(embdata)
+
+                    //UnEmbed(embdata)
+                    UnEmbedAny()
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "INI:") {
                     IniFile = Inrec[4:]
 
@@ -7105,4 +7149,95 @@ func ConsLastTen() {
 
     iConLast = 0
 }
+
+
+//***************************************************************************
+// Pack(age) a Zip file by appending it to the running executable           *
+//***************************************************************************
+func PackExecutable(baseExe string, zipFile string, outputExe string) error {
+    exeBytes, err := os.ReadFile(baseExe)
+    if err != nil {
+        return err
+    }
+
+    zipBytes, err := os.ReadFile(zipFile)
+    if err != nil {
+        return err
+    }
+
+    // Magic marker required for UnEmbedAny() to locate appended ZIP
+    ZipMagic := []byte("ACHOIRX_ZIP_START")
+
+    // Append magic marker and ZIP directly to binary
+    newBinary := append(exeBytes, ZipMagic...)
+    newBinary = append(newBinary, zipBytes...)
+
+    return os.WriteFile(outputExe, newBinary, 0755)
+}
+
+
+//***************************************************************************
+// UnEmbedAppendedToMemory: Detect appended ZIP and return its bytes        *
+// for in-memory extraction (same style as embdata)                         *
+//***************************************************************************
+func UnEmbedAppendedToMemory() ([]byte, error) {
+
+    exePath, err := os.Executable()
+    if err != nil {
+        return nil, err
+    }
+
+    exePath, err = filepath.EvalSymlinks(exePath)
+    if err != nil {
+        return nil, err
+    }
+
+    data, err := os.ReadFile(exePath)
+    if err != nil {
+        return nil, err
+    }
+
+    // Magic marker used by PackExecutable()
+    ZipMagic := []byte("ACHOIRX_ZIP_START")
+
+    idx := bytes.LastIndex(data, ZipMagic)
+    if idx == -1 {
+        return nil, nil // no appended ZIP
+    }
+
+    zipBytes := data[idx+len(ZipMagic):]
+    if len(zipBytes) == 0 {
+        return nil, fmt.Errorf("Zip marker found but no zip data present")
+    }
+
+    return zipBytes, nil
+}
+
+
+//***************************************************************************
+// UnEmbedAny: First tries appended ZIP (memory), else uses embedded ZIP     *
+//***************************************************************************
+func UnEmbedAny() bool {
+
+    // Attempt to load appended pack
+    appendedBytes, err := UnEmbedAppendedToMemory()
+    if err != nil {
+        ConsOut = fmt.Sprintf("[!] Appended ZIP Error: %s\n", err)
+        ConsLogSys(ConsOut, 1, 1)
+        // fall back to UnEmbedding embdata
+    }
+
+    if appendedBytes != nil {
+        // Unzip directly from memory using existing unembed logic
+        ConsOut = "[+] Using appended ZIP package\n"
+        ConsLogSys(ConsOut, 1, 1)
+        return UnEmbed(appendedBytes)
+    }
+
+    // Fallback to built-in embedded zip
+    ConsOut = "[+] Using compiled-in embedded AChoirX ZIP package\n"
+    ConsLogSys(ConsOut, 1, 1)
+    return UnEmbed(embdata)
+}
+
 
