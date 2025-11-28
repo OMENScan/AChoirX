@@ -248,7 +248,7 @@
 //
 // AChoirX v10.01.75 - Release 1.75 - Add a Packager and UnPacker to allow creating customized versions
 //                     of AChoirX by Appending a Zip File to the end of the program instead of requiring 
-//                     a recompile with an embedded zip.  The logig is:
+//                     a recompile with an embedded zip.  The logic is:
 //                     1. First - Try local Scripts and program
 //                     2. Next - Try to unzip any packaged zip
 //                     3. Last - Unzip the embedded zip compiled into the executable
@@ -7207,7 +7207,7 @@ func UnEmbedAppendedToMemory() ([]byte, error) {
 
     zipBytes := data[idx+len(ZipMagic):]
     if len(zipBytes) == 0 {
-        return nil, fmt.Errorf("zip marker found but no zip data present")
+        return nil, fmt.Errorf("Zip marker found but no zip data present")
     }
 
     return zipBytes, nil
@@ -7235,7 +7235,7 @@ func UnEmbedAny() bool {
     }
 
     // Fallback to built-in embedded zip
-    ConsOut = "[+] Using embedded AChoirX ZIP package\n"
+    ConsOut = "[+] Using compiled-in embedded AChoirX ZIP package\n"
     ConsLogSys(ConsOut, 1, 1)
     return UnEmbed(embdata)
 }
