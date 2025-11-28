@@ -1,0 +1,781 @@
+AChoirX - v10.01.75 - Release 1.75
+
+AChoirX
+=======
+AChoirX (Achoir 10) - Is the next evolution in the ideas that originally motivated me to 
+write the original AChoir Live Response / Forensic Collection / Extraction / Parsing / Analysis
+tool. My original goals were to create a flexible scripting language for gathering Windows 
+forensic artifacts locally or remotely, in both a Live Response situation as well as a 
+more traditional mounted forensic disk image situation.
+
+AChoirX is a port of AChoir (written in C) to Go(lang).  The port to Go is for one purpose:
+To create a single unufied forensic collection and extraction tool that can be used for 
+Windows, Linux, and OSX.
+
+
+Why AChoirX:
+============
+Every Incident Responder eventually comes to the conclusion that they need to script their 
+favorite Live Acquisition utilities and commands.  For some reason (or many reasons) many 
+of those scripts are often shared only among trusted parties.
+
+I have seen these scripts written in numerous scripting languages - but oddly enough, all of 
+these scripts tend to use many of the same freely available utilities and commands - To do 
+mostly the same things.
+
+It often takes a Responder several years, along with lots of trial and error to settle on a 
+set of utilities (and options) that both work, and that provide relevant information on useful 
+forensic artifacts.
+
+And even though Responders often use the same utilities and are scripting them in largely 
+the same way, each Responder has to go through the same pain of building their own script in 
+their (not so) favorite scripting language - figuring out how to quickly and consistently 
+gather the artifacts of most value and limit the scripting footprint. 
+
+I believe that this process of re-inventing the wheel over and over again is just silly. 
+
+That's why I originally wrote AChoir.
+
+
+
+So How is AChoirX different?
+============================
+AChoirX has several goals:
+
+1. Provide a consistent, single, and unified forensic tool for all three major OSs: Windows, Linux, OSX
+2. Identify the best free single-purpose forensic utilities and script them
+3. Identify the most valuable platform specific commands and utilities and script them
+4. Make it easy to get these utilities, and automate the building of Collection/Extraction toolkits
+5. Self Document
+6. Build a Framework for Live Response collection, and mounted image processing Scripts/Toolkits
+7. Make remote acquisition as easy as local acquisition
+
+AchoirX itself is architected with two primary functional concepts:
+
+1. To download the Acquisition utilities and organize them into a Acquisition Toolkit
+2. To run those utilities and commands (Toolkit) in an organized way.
+
+
+An AChoirX script can download, and unzip these utilities in order to create a Live 
+Acquisition Toolkit.  We have provided our version of a "Build" script for Windows, but you can 
+create your own.
+
+The idea is to make it easily repeatable to download and organize these utilities. That 
+is: with just AChoirX and a builder script, anyone can build an Acquisition Scripting Toolkit.
+
+This has the additional benefit of documenting where everything came from.
+
+The second functional concept of running the Acquisition Script to gather artifacts is 
+obvious.  But what AChoirX tries to do is make that experience consistent and repeatable - 
+even across platforms.
+
+AchoirX creates unique directories for every Acquisition run, and has built in functions 
+like hashing and platform detection.  In this way we are creating both a consistent 
+framework and a scripting language that is targeted specifically at Live Acquisition (but
+can also be used on mounted images for extracting, parsing and analyzing artifacts).
+
+
+So Isn't This Just another Scripting Language?  I can do that already.
+======================================================================
+I would say, you could do everything AChoirX does with almost any scripting language - If 
+that is what you want to do.  In fact, that is how AChoirX started life.  But Achoir's goals 
+are to make Live Acquisition scripting consistent - even across platforms, and to make the 
+whole process easier for Responders.
+
+We are also very sensitive to the "Observer Effect" problem when Acquiring artifacts, and 
+AchoirX will continue to be coded in a way to minimize disturbing the artifacts.  This takes 
+some work when writing your own Live Acquisition scripting programs, using multiple languages
+across multiple platforms.
+
+
+
+OK. I'm Sold.  How does it work?
+================================
+The AchoirX scripting language has two primary concepts:
+
+1. Objects
+2. Actions
+
+
+Actions are the thing you want to do.  Objects are the thing(s) you want to do the Actions 
+against.  Actions always start in column 1, they are three letters folowed by a colon(:).
+
+  Note:As of AChoir v0.99 Actions can be indented using tabs or spaces.
+
+Objects Can go anywhere and start with an ampersand(&) followed by three letters.
+
+
+Here is a simple example:
+Dir:\Test
+Say:The Current Directory is: &Dir
+
+
+In this example, a lot of things are going on.  First the &Dir object is being set by the DIR: 
+action.  In addition, if that directory does not exist it will be created.  All directories are 
+created RELATIVE to the directory AchoirX was run from. doing this ensures consistency every 
+time AchoirX is run, and prevents one set of artifacts from stepping on another set.
+
+The next statement (SAY:) then prints the text and &Dir object to both the screen, and a unique 
+LogFile (and Syslog if it set) for each run. 
+
+
+Here is another Example:
+
+ACQ:\Reg
+CPY:"C:\Users\**\NTUSER.DAT" "&Acq"
+
+
+In this example our goal is to Copy all User NTUSER.DAT Registry files under the C:\USERS Directory
+and all subdirectories.  We want to do this using AChoir's built-in Copy Action. In the example 
+above we are using the Double-Star to tell AchoirX to search all subdirectories.  If we only wanted 
+to copy the files located under C:\Users we would use a single Star: C:\Users\*\NTUSER.DAT.  This is a new feature 
+with AChoirX and allows more control of whether a single directory will be searched (*) or all 
+subdirectories will be searched (**).
+
+First we set the Acquisition Sub-Directory (ACQ:) object (&Acq) to "\Reg"  This is a path directly 
+under the unique generated Acquisition Directory.
+
+Next, the CPY: action copies any/all NTUSER.DAT files found in any subdirectory under C:\Users 
+(Note: wildcards are also valid) into the &Acq directory.
+
+
+
+Actions:
+========
+AChoirX uses most of the original Actions that AChoir uses.  However, some Actions have been 
+removed and some have been added.  Here is the current list of all the AChoirX Actions and Objects:
+
+SET:SFTPServ=<SFTPServer> SFTP Server To Upload Artifact
+SET:S3Region=<AWS Region> The region that the AWS S3 Bucket is in
+SET:S3Bucket=<AWS Bucket> The AWS Bucket Name
+SET:S3AWSId=<AWS ID> The AWS ID
+SET:S3AWSKey=<AWS Key> The AWS Secret Key
+SET:SyslogT=<UDP | TCP> Sets the Syslog Protocol Type.
+SET:SyslogL=<syslogging Level> Sets the Syslog Level.
+                Options are: none, min, max
+                The default is NONE (No Syslogging)
+SET:SyslogP=<syslog Server Port> Sets the Syslog Server Port
+SET:SyslogS=<syslog Server IP> Sets the Syslog Server
+                IP Address, and sets the Syslog Level to 1
+                Syslogging will immediately begin.
+SET:CopyPath=None Set the CPY: Copy Path to None.
+                  This will ignore the paths of the source files
+                  and copy everything into the directory destination.
+SET:CopyPath=Full Set the CPY: Copy Path to Full.
+                  This will append the source file's copy path
+                  to the output directory.  This allows the examiner
+                  to quickly see exactly where the source file came from
+SET:CopyPath=Part Set the CPY: Copy Path to Partial.
+                  This will copy ONLY the path after the first wildcards.
+                  This allows the examiner to see the RELATIVE path the 
+                  the source files were found in.
+SET:ParseQuote=<Strict> or <Lazy> - Determines if the &For and &Lst parser
+                  enforces proper quote placement in CSV Files.
+                  "Strict" enforces matching Quotes. "Lazy" Allows Unmatched
+                  quotes or quotes not on CSV Delimiter boundaries. 
+SET:DELIMS=<chars> These are the delimiters that the &FOR and &LST objects 
+                   will use to Parse out &FO0-&FO9 and &LS0-&LS9
+SET:ZipFileName=<FileName> Name of the Zip File to Write To
+SET:ZipFileName=close Close the Current Zip File & assign new Zip File Name
+SET:ZipFileRoot=<ZipRoot> Name of the Zip File Root in the Zip File
+SET:CPUThrottle=<None>, <Low>, <Med,> <High> - Throttle AChoirX on CPU 
+         Utilization (None, 25%, 50%, 75%)
+SET:FILTER=<incl> <excl> <full> <part> - Set the filtering behavior
+           incl = &FOR or &LST match entries in Filter File 
+           excl = &FOR or &LST does NOT match entries in Filter File 
+           full = &FOR or &LST Exact match with entries in Filter File 
+           part = &FOR or &LST Partial match with entries in Filter File 
+SAY:     Echo Text and Objects to the Screen and Logfile
+CON:Hide Hide The Console Screen - For quiet Acquisition
+         DO NOT USE IF YOU HAVE SCREEN INPUT - For any 
+         Input be sure to Show any Hidden Screen
+CON:Show Show a Previously Hidden Console
+         Be Sure to Show any hidden screens before needed 
+         Input.
+CON:Last Show the last 10 Console Messaages.  This can be very useful
+         When using AChoirX Server mode to re-display console messages
+         that have scrolled off the screen.
+CON:MSGLevel=<min>, <std>, <max>, <debug> Set console messages level.
+         Levels break down (generally) as follows:
+          min=Just display the command, progress and critical errors
+           but no output
+          std=Display the command, progress, critical errors, 
+           and standard output
+          max=Display the command, progress, critical errors, warnings,
+           standard and extended output
+          debug=display everything, including internal debugging information 
+SLP:<Sec>  Sleep for <Sec> Seconds
+NTP:<FQDN> Set the FQDN of the NTP Server.
+           Note: This WILL NOT do an NTP request.  It ONLY 
+            sets the FQDN of the NTP Server to use.
+ADM:Check Check if AChoirX is running as an Administrator,
+           and warn if it is not
+ADM:Force  Check if AChoirX is running as an Administrator,
+           and EXIT OUT if it is not
+INP:     Input from console. (INP:<Display This Text>)
+         Display text and get input into variable &Inp 
+         IMPORTANT NOTE: Longer input is TRUNCATED to 250 chars
+EQU:<string1> <string2> - Is <string1> equal to <string2>
+               if True run the statements until an END:
+               Note: Use "" to use strings with spaces in them
+NEQ:<string1> <string2> - Is <string1> NOT Equal to <string2>
+               if True run the statements until an END:
+               Note: Use "" to use strings with spaces in them
+N>>:<Number1> <Number2> - Is <Number1> Greater Than <Number2>
+               if True run the statements until an END:
+               Note: THIS MUST BE A NUMBER
+N<<:<Number1> <Number2> - Is <Number1> Less Than <Number2>
+               if True run the statements until an END:
+               Note: THIS MUST BE A NUMBER
+N==:<Number1> <Number2> - Is <Number1> Equal to <Number2>
+               if True run the statements until an END:
+               Note: THIS MUST BE A NUMBER
+INI:<Script File> - SWITCH to another Script File (INI:F:\NewScript.Acq)
+         Note: This WILL NOT RETURN to the calling script.
+INC:<Script file> - Include another script file (INC:F:\IncludeSript.Acq)
+         Note: This script will be included in the parent script, and functions
+         as though it is part of the parent script (variables, labels, etc. remain the same.
+         after the included script is run, it returns to the same spot in the parent script.
+INI:Console - Switch to Interactive Console Mode
+XTR:     Extracts the embedded toolkit (either the appended one or the compiled-in one).
+CSE:SAY  Display Optional Case Information ans write it to Log
+CSE:GET  Input Optional Case Information - ONLY allowed ONCE 
+          per session to avoid ambiguity.
+GET:     Get a file using HTTP into &Fil 
+         Note: &Fil (FIL:) MUST BE SET TO THE FULL PATH OF 
+               THE NEW FILE!
+TCP:<Server:Port> - Checks if a TCP Server:Port is Open & Sets &RCD
+                  RCD 0: Server:Port not found, RCD 1: Server:Port Found
+                  (Can be used to check if an Upload Server is online)
+UDP:<Server:Port> - Checks if a UDP Server:Port is Open & Sets &RCD
+                  (Not Recommended - UDP is connectionless)
+ZIP:<Input File> Zip A file into the Current Zip Archive.  
+         Note: use FOR:/&FOR to Zip a set of files into a Zip Archive
+               ZIP: does not yet support WildCards.     
+UNZ:<Zip File> <Dest Dir> - Unzip a Zip File into the Destination Dir
+S3S: <ID> <Key> - Start an AWS Session using an AWS ID and Key
+S3U: <Local Fname> <Remote FName> - Uploads file(s) to an S3 Bucket
+         Wilcards are Supported.
+SFS: <UserId> <Password> - Start an SFTP Session using a UserId and Password
+SFU: <Local Fname> <Remote FName> - Uploads file(s) to an SFTP Server
+         Wilcards are Supported.
+EXE:     Run a Program and wait for completion
+EXA:     Run a Program and DON'T wait for completion
+SYS:     Execute a System Command
+         Note: A special modifier of --exestdout=<FileName> allows
+               STDOUT to be redirected to a file.
+OPN:<FileName> - Open an Output File for Appending - Only one
+                 File can be open at a time. OPN:(ing) a file
+                 will close any previous one.
+OUT:<String> - Append the string to the OPN: output file. 
+ACQ:     Tell AChoirX to create a unique Acquisition directory
+DIR:     Set the &Dir object and create the directory if needed
+FIL:     Set the &Fil object (File)
+DRV:     Set the &Drv object (Drive - ie. X:)
+VR0: - VR9:  
+         Set the &VR0 - &VR9 variables 
+CN0: - CN9: <Number to Set> or ++ or --
+         Set the &CN0 - &CN9 variables
+         Increment/Decrement with CNx:++ and CNx:-- 
+HSH:ACQ  Hash everything in the &ACQ directory and subdirectories
+HSH:Dir  Hash everything in the &DIR directory and subdirectories
+HSH:<FileName> MD5 Hash The file and store it in &HSH
+FOR:     Set the &FOR object.  This is a Looping object based on 
+         Files - For instance "FOR:C:\Users\*.DAT" will define
+         All *.DAT Files under C:\Users. In this way a single 
+         command can be run iteratively against all of these files. 
+DSK:<typ>Set the &DSK object.  This is a Looping object based on 
+         all attached/mounted disks that match the <typ>
+         <typ> can be: Fixed, Remote, Remove, CDRom, RamDisk 
+LST:<FileName>
+         Set the &LST object.  This is a Looping object based on 
+         Lines in the <FilName>. In this way a single command can
+         be run iteratively replacing the &For variable with each
+         entry in the <FileName>. 
+FLT:<filename> or NONE
+         Set the Filter File Name - This file contains text entries 
+         to FILTER both the &FOR and &LST objects.  Setting the file
+         name is not enough to filter, the SET:FILTER= options MUST
+         also be set.  The NONE option removes the filter.
+         Warning: The FILTER IS USED FOR BOTH &LST and &FOR.  Set 
+         FLT:NONE when the filter is no longer needed to avoid unwanted
+         filtering.
+REG:<RegistryKey>
+         Natively extract a Registry Key and ALL Sub-Keys under
+         it.  The Key MUST BEGIN WITH ONE OF THE FOLLOWING:
+          HKLM, HKCR, HKCU, HKUS, HKCC
+         Example:
+          REG:REG:HKLM\Software\Microsoft\Windows\CurrentVersion\Run
+         REG: Only works for Windows Collections, and is disabled
+         For Linux and OSX.
+         The REgistry Extraction Output will be written to the 
+         Current Active ACQ: directory under a file named:
+          <RegistryKey>.csv
+         The output is TAB Separated to make it more stable than CSV
+CPY:     Copy Files (CPY:<FromFile> <ToFile>) - Supports Quotes
+         Supports Wildcard. Important Note: CPY: WILL RECURSE THROuGH
+         SUBDIRECTORIES ONLY IF A WILDCARD IS USED.
+CPS:     Copy Files (CPS:<FromFile> <ToFile>) by Signature (Magic, Regex, or Hash)
+         (Loaded by the Sig: Rex: or Hst: commands)
+         Sig: Supports Wildcard. 
+         Important Note: CPY: WILL RECURSE THROUGH SUBDIRECTORIES 
+                         ONLY IF A WILDCARD IS USED.
+         Important Note: ANY match on Magic OR Regex OR Hash will 
+                         cause the Copy to happen.
+NCP:     RAW NTFS Copy Files (NCP:<FromFile> <ToFile>) - Supports Quotes
+         Supports Wildcard. Important Note: CPY: WILL RECURSE THROuGH
+         SUBDIRECTORIES ONLY IF A WILDCARD IS USED.
+         NCP: function similar to CPY but uses Raw Copy to copy locked
+         and invisible files like $MFT, and Registry Hives - Implemented
+         ONLY on Windows.
+DEL:<File To Delete> - Delete Files (Accepts WildCards)
+         Only Files in Subdirectories (Off of The AChoirX Root) can be 
+         deleted. This is to prevent accidental Deletion of files not 
+         related to the acquisition or toolkit
+CLN:<AChoirX Sub-Directory to Clean and Delete>
+         Cleans and Deletes all files and Subdirectories in the specified
+         subdirectory (Off of The AChoirX Root). Only Files/Subdirectories
+         Off of The AChoirX Root) can be deleted. This is to prevent 
+         accidental Deletion of files not related to the acquisition or toolkit
+VCK:<x:> Check if the Volume <x:> is NTFS, FAT32, CDFS, Other, None
+         (Used for conditional execution if Vol is/not NTFS)
+Sig:Clear Clears out the AChoirX Signature Table 
+Sig:<Typ=xxxx> 
+         Loads a File Signature into the Signature Table. The first 
+         variable is the File Type, the second is the Hex Signature
+         (must be in the form of XX).
+         Signature Type can be up to 10 bytes (i.e JPG, JPEG, MOV, etc)
+         Signatures can be up to 32 Chars (16 bytes)
+         There can be up to 100 Active Signatures loaded.
+         (Sig:Clear - Clears the table back to 0)
+Rex:Clear Clears out the AChoirX Regex Signature Table 
+Rex:<Regular Expression> 
+         Loads a File Content REGEX into the Regex Signature Table. 
+         (must be a valid Regular Expression).
+         There can be up to 100 Active REGEX Signatures loaded.
+         (Rex:Clear - Clears the table back to 0)
+Hst:Clear Clears out the AChoirX MD5 Hash Signature Table 
+Hst:<MD5 Hash> 
+         Loads a File Hash into the Hash Signature Table. 
+         (must be a valid MD5 Hash).
+         There can be up to 100 Active MD5 Hash Signatures loaded.
+         (Hst:Clear - Clears the table back to 0)
+CKY:     Check if a File exists. If it does, run until an "END:" 
+         action
+64B:     Check if 64 Bit AChoirX is Running - If so, run until an "END:" 
+         action
+32B:     Check if 32 Bit AChoirX is Running - If so, run until an "END:" 
+         action
+CKN:     Check if a File does not exist. If it doesn't, run until 
+         an "END:" action
+RC=:     If the Last MAP:, GET:, SYS: or EXE: command was this return code
+         run the statements until an END:
+RC!:     If the Last MAP:, GET:, SYS: or EXE: command was NOT this return code
+         run the statements until an END:
+RC>:     If the Last MAP:, GET:, SYS: or EXE: command return code was >
+         run the statements until an END:
+RC<:     If the Last MAP:, GET:, SYS: or EXE: command return code was <
+         run the statements until an END:
+VER:<verkeyword> 
+         Check the passed OS Version <verkeyword> Keyword to see if that
+          OS version is running.  If so, run the statements until END:
+          Note: This can be Partial.  For Example: Windows 10.0.18362 will 
+                get a TRUE for Ver:Win, Ver:Windows 10, Ver:Windows 10.0.183, etc...
+         Note: other valid <verkeyword> keywords are: Linux and Darwin
+END:     End Conditional Statement execution.
+END:RESET End ALL Conditional Statement execution (Resets the conditional Flag).
+LBL:<LabelName>
+         Define a Label that can be Jumped to (JMP:<LabelName>)
+JMP:<LabelName>
+         Jump to a defined Label (LBL:<LabelName>)
+BYE:     Exit AChoirX (usually used in Console Mode or Conditional section 
+USR:     Set the &USR variable
+PWD:     Set the &PWD variable - Also used by many AChoirX internal functions 
+         that require a password or secret.
+ENC:<Infile> <Outfile>
+         Encrypts an Input File with the &PWD and writes it to the Output File 
+DEC:<Infile> <Outfile>
+         Decrypts an Input File with the &PWD and writes it to the Output File 
+XIT:<Exit Command> 
+         Run Command or Program on Exit
+
+
+
+Objects:
+========
+&Usr     Set with the /USR: command line option
+&Pwd     Set with the /PWD: command line option
+&Myp     The Executing Program Full Path
+&Myh     The Executing Program Hash
+&Ver     Which OS is running
+&Prc     Which Processor Architecture is runnning
+&Dir     The Current Directory Object
+&Inp     Input from console (INP: Action) 
+&Tim     The Local Time Set on the computer - Please Note: It may not be accurate.
+&Fil     The Current File Object
+&Acq     The Current Acquisition Directory
+&Acn     The Current Acquisition Name
+&For     An array of File objects set by the FOR: action
+&FO0-&FOP  The &FOR object parsed into 25 variables using
+           the Delims (See SET:DELIMS=)
+&Lst     An array of text objects set by the LST: action
+&LS0-&LSP  The &LST object parsed into 25 variables using
+           the Delims (See SET:DELIMS=)
+&DSK     An Array of Disk objects set by the DSK: action (Windows only)
+&Num     The array number of each &For Object
+&Win     The Windows Root Directory
+&CHK     The FileName that was Checked for (non) existence by the
+         CKN: and CKY: actions
+&RCD     The Last Return Code set by a SYS: or EXE: action
+&Drv     A variable used to hold a Drive Letter (C:, D:, etc...)
+&Map     A variable used to hold the last Mapped Drive Letter (Z:, Y:, etc...)
+&FNM     Each &FOR File Name (Without Path)
+&VR0 - &VR9  Variables set by the VR0: - VR9: Actions
+&CN0 - &CN9  Counters set and incremented/decremented by the CN0: - CN9: Actions
+&CNR     AFTER using the &FOR or &LST variable the number of records counted is stored here
+&VCK     Results of last Volume Check (VCK:<x:\>
+&DSA     Disk Space Available
+&MEM     Total Memory
+&NAM     Name used for Directory Naming - Set with /NAM: Command Line Option 
+&HST     Local Host Name (set to "localhost" on error)
+&ADM     Running as Admin?  (Yes | No)
+&HSH     MD5 of the last file Hashed with HSH:
+
+${<variable>} - AChoirX can also expand the native OS Environment Variables
+
+
+Here are the Command Line Options:
+/HELP - Help
+/BLD  - Run the Build.ACQ Script (Build the AChoirX Toolkit)
+        Note: This option WILL NOT Create an Acquisition Base Directory - BE AWARE!
+/RUN  - Run the AChoir.ACQ Script to do a Live Acquisition
+        This option WILL Create a Base Acquisition Directory
+/MNU  - Run the Menu.ACQ Script (AChoirX Menu)
+        Note: This is a simple Menu Script for selecting an AChoirX script to run.
+/CON  - Run In Interactive Mode (Same as /Ini:Console)
+/CSE  - Interactive/Console Query for Case Information
+/NAM:<Name> - Set the Acquisition Directory using this Name
+/GET:<URL> Get a file using HTTP, before doing the collection.
+         Note: The FileName will be set to the URL FileName (after last "/").
+               The File will be placed in the Root Directory of AChoir
+               ANY PRIOR VERSION OF THE FILE WILL BE DELETED
+/GXR:<URL> - Gets a Zip File, Extracts it, and runs the script.  This can be 
+             used to download and run The Toolkit from a central URL
+/INI:Console - Run In Interactive Mode (Console Input)
+/INI:<File Name>  - Run the <File Name> script instead of AChoir.ACQ
+        This Option WILL NOT Create a Base Acquisition Directory
+        Use the ACQ: action to create the Base Acquisition Directory if you want one. 
+/PKR:<zipfile> - Create a new AChoirX executable from the running executable with the 
+        specified (zipfile) toolkit appended to the new executable.
+/XTR    Extracts the embedded toolkit (either the appended one or the compiled-in one).
+/PWD:<password> - Sets the &PWD variable
+/DEC:<FileName> - Decrypts a file and writes it to: Decrypted.Dat
+/DRV:<x:> - Set the &DRV parameter
+        This option is designed to allow you to build dead-box scripts,
+        and specify a drive variable (the drive letter that has been mounted).
+/VR0: - /VR9:  
+      Set the &VR0 - &VR9 variables from the command line.  These can be used 
+      to pass variables to the AChoirX Scripts.
+/DBG:<min>, <std>, <max>, <debug> - Set inital Console Output Message Level
+/B64:<Base64SEncodedIniFileOfAChoirCommands> - Allows a Base64 Encoded string 
+     to create an Ini File - work like the PowerShell -enc Parameter 
+     Note: By Default the embeded toolkit will be unzipped.  If you do not want this
+           specify the decoded ini file name (/INI:AChoirB64.ACQ) and AChoirX will
+           not unembed the default tool kit - This is by design.
+/CLI:<IP Address>:<Port> - This option tells AChoirX to run as a TCP Client by 
+     connecting to the AChoirx Server.  This allows Remote control of the Client
+     by the AChoirX Multi-Handler Server.  Any Number of Clients can connect to 
+     The ChoirX Multi-Handler Server
+/SRV:<IP Address>:<Port> - This option tells AChoirX to run as a TCP Server by 
+     listening on the IP Address and Port Specified. This is a Multi-Handler
+     server allowing multiple AChoirX Client connections. 
+
+
+A note about AChoirX Client/Server Modes (Beta 0.01)
+(/CLI: and /SRV:)
+------------------------------------------------------------------------
+AChoirX can be started as a TCP Client or Server.  This is done by the 
+/CLI: or /SRV: command line parameters.  As a Client AChoirX is run as 
+a remote shell, accepting commands from the server.  As a Server AChoirX
+funtions as a Multi-Handler allowing control of several Clients.
+
+IMPORTANT NOTE: Authentication and communication REQUIRES a shared
+password.  This is done by specifying the password for both the Client
+and Server at startup, For Example:
+
+Client - /PWD:Pa$$word /CLI:192.168.1.101:5555
+Server - /PWD:Pa$$word /SRV:0.0.0.0:5555
+
+Note: It is important that the /PWD: option is specified FIRST, otherwise the
+DEFAULT password (none) will be used.
+
+All communications betweem the Client and Server are encrypted using this 
+shared password, so without it on both Client and Server, AChoirX will not be 
+able to communicate, and will fail.
+
+The AChoirX Server Mode has only a few specific commands:
+SESS:List - List the connected Client Sessions
+SESS:n - Set the current Session to n
+SESS:None - Set the current Session to NONE
+KILL: - Shut Down the Multi Handler
+
+You can also issue ANY AChoirX command to the Remote Session.  This functions
+like the Local Console mode across TCP - however you will not see the output of
+each command - Only the standard AChoirX console messages will be seen.
+
+To force the remote Session to end, use the standard AChoirX BYE: command.
+
+NOTE: If The AChoirX Client looses connection with the AChoirX server, it
+will retry 10 times at 60 second interals.  If no Re-connection can be 
+established it will exit out.  This means that when you shut down the AChoirX
+server, all remote sessions will terminate in 10 Minutes.
+
+NOTE: This functionality is in Beta, so please provide feedback so I can improve
+this new capability.
+
+NOTE: Since AChoirX is Cross-Platform (Windows, Linux, OSX), both the Client and
+Server modes will work on all three platforms.
+
+
+A note about Conditonal Logic 
+(CKY:, 64B:, 32B:, CKN:, RC=:, RC!:, RC>:, RC<:, END:, LBL:, JMP:, VER:)
+------------------------------------------------------------------------
+Conditional Logic doesn't make much sense in Interactive Mode (/CON), but you may want to know 
+these various conditions.  AChoirX is coded to give the results of these comparisons in 
+Interactive Mode, and to take Conditional Action in regular Scripted Mode.  In Interactive Mode
+AChoirX WILL NOT take conditional action.
+
+
+A note about Syslogging
+-----------------------
+By default Syslogging is turned OFF - This is in keeping with my desire to keep the AChoirX
+footprint minimal, and have as little impact on the target machine as possible.  In some cases
+however, the need run and track AChoirX across many machines overides the above.
+
+To turn Syslogging on, simply set the Syslog Server IP (SET:SyslogS=nnn.nnn.nnn.nnn). AChoirX 
+is currently written to have three logging levels (none, min, max). The Syslog Protocol Type 
+can also be set (UDP or TCP).
+
+
+A note about Case Information (/CSE, CSE:GET, CSE:SAY)
+------------------------------------------------------
+To avoid any accidental confusion about Case information (that may jeopardize non-repudiation),
+I have coded AChoirX to disallow changing Case information after it has been displayed. Some may
+find this draconian, but it is important to avoid ambiguity when doing forensic analysis, so 
+I have chosen to disallow changing Case information even if the default settings are displayed.
+
+Also Note: Case Information is entirely optional - You can use AChoirX without entering any 
+           Case Information, and this is the default (so AChoirX can run fully unattended)
+
+
+A note about EXE: EXA:
+----------------------
+Under normal circumstances I recommend using EXE: to execute programs, it is much easier to 
+control the script when things are run sequentially, but in cases where there may be several 
+machines running AChoir, or Execution Time is limited or important, one may want to run 
+several programs Concurrently or in the Background.  The primary problem with this method 
+is that one cannot know when these Asynchoronously run programs will complete. 
+
+Use EXA: judiciously, bearing in mind that NOT ONLY will they complete at different times, 
+but the AChoirX Script ITSELF will continue to run as these programs also run in parrallel.  
+In fact, AChoirX could even complete and exit while these programs are still executing.  
+This can have major implications for your AChoirX scripts. 
+
+
+A note about System32 File ReDirection:
+---------------------------------------
+When Non-Native programs (for instance 32 bit programs on 64 Bit Windows) are run, the 
+Operating System will redirect files located in the %SystemRoot%\System32 directory to 
+a different directory.  This directory can be different based on circumstances, but its
+alias is always %SystemRoot%\Sysnative.  I am slowly building this into all the parts 
+of AChoirX.  This can be seen in the CPY: Copy function and the FOR: function.
+
+AchoirX will try to detect if it is not running Native, and will adjust some of it's 
+actions based on that.  Whenever AChoirX does this, it will note it on the screen and
+in the Acquisition Log.
+
+One may wonder - why not just use whatever Windows tells us.  The answer to that is 
+simple: If we are running AChoirX on an endpoint, we may be interested in BOTH the 
+32Bit artifacts AND the 64Bit artifacts.  Since BOTH can be present, and BOTH may 
+be relevant to an investigation, AChoirX will always try to get both artifacts if 
+it can.
+
+
+A note about Encryption (/DEC:, ENC: and DEC:):
+------------------------------------------------
+As of Beta v10.00.29 - AChoirX has it's own built-in Encryption.  The Password used to
+encrypt or decrypt files is set via the /PWD: or PWD: options.
+
+Important Note: The /DEC: option the output file will always decrypt to a file called 
+                "Decrypted.Dat".  However, when using the DEC: or ENC: commands in AChoirX 
+                scripts, both the input file name and output file name can be specified.
+
+Encryption adds a powerful new set of capabilities when coupled with other AChoirX options.
+For instance, the /GET: command line option can be used with /PWD: and /DEC: to download an
+encrypted Script, and then decrypt it and run it.  This especially important if you are 
+using UserIds, Passwords, Tokens, or other Access Keys in your scripts.  This allows the 
+scripts and/or supporting files to be encrypted to help limit the risk of accidental 
+disclosure.
+
+
+A note about /GET:
+------------------
+The /GET: Option will get a file using HTTP or HTTPS.  This is a way to get a file from 
+a Web Server that will be used in the acquisition.  This can be used in a multitude of 
+ways - but the most obvious is to host an AChoirX Script on a Web Server, download it 
+and run it.  
+
+This would look like:
+AChoirX /get:http://192.168.1.1/Test1.txt /ini:Test1.txt
+
+
+A note about S3 Upload (S3S:, S3U:)
+-----------------------------------
+AChoirX supports direct upload to an S3 Bucket.  This can be extremely beneficial when 
+creating a way to collect artifacts and telemetry from remote machines, or to do a 
+large number of collections from many machines into one central place.
+
+The functions and variables for doing S3 Uploads are:
+* S3S:<local File Name> <Remote S3 Bucket File Name>
+* S3U:<AWS ID> <AWS Secret Key>
+* SET:S3Region=<AWS Region>
+* SET:S3Bucket=<AWS Bucket>
+* SET:S3AWSId=<AWS ID>
+* SET:S3AWSKey=<AWS Key>
+
+The recommended way to do S3 Uploads is to set the 4 parameters, and call the S3U: action.
+This will automatically start an AWS S3 Session and do the S3 Bucket Upload.  If for some 
+reason you want to control the creation of the AWS Session, you can start a session directly 
+using the S3S: action.  Either method works equally well.
+
+
+A note about SFTP Upload (SFS:, SFU:)
+-------------------------------------
+AChoirX supports direct upload to an SFTP Server.  This can be extremely beneficial when 
+creating a way to collect artifacts and telemetry from remote machines, or to do a 
+large number of collections from many machines into one central place.
+
+The functions and variables for doing SFTP Uploads are:
+* SET:SFTPServ=<SFTPServer>
+* SFS: <UserId> <Password>
+* SFU: <Local Fname> <Remote FName>
+
+The recommended way to do SFTP Uploads is to set the SFTPServ parameter, call the SFS:
+action, and then call the SFU: action.
+
+
+A note about Wildcards (FOR:, CPY:, S3U:, SFU:)
+-----------------------------------------------
+In order to allow both current directory searches and current+subdirectory searches
+I have come up with the following nomenclature (Note: this is a change from AChoir):
+
+* If a Star Wildcard (*) is present (for instance FOR:.\*\files.*) AChoirX will search 
+  the wildcarded directory.  Multiple subdirectories can be controlled by adding 
+  wildcards such as: .\*\*\files.*
+* If a Double Star (**) is present (for instance FOR:.\**\files.*) AChoirX will search 
+  all subdirectories regardless of depth.
+
+
+A note about Embedded Files
+---------------------------
+AChoirX for Windows, Linux, and OSX now have embedded zip files.  If a Toolkit is not present
+in the directory, AChoirX will unzip the embedded toolkit to create a very basic Toolkit.  
+This allows a basic version of AChoirX to run with only the single AChoirX executable file.
+
+Embedded zip files (toolkits) can be compiled directly into AChoirX for Windows, Mac, and Linux
+versions.  Or a Zip toolkit can be embedded into the executable using the /PKR: command. The 
+/PKR: command line option takes the specified Zip file and appends it to the running executable.
+AChoirX will now treat that appended zip file as it's toolkit. The command (Windows) is as follows:
+
+AChoirx.exe /PKR:<zipfilename>
+
+The output will be a new executable called: AChoirX_PKR.exe that will contain the appended zip file.
+
+The order of operations for AChoirX scripts is:
+- First: Look for scripts and files in the AChoirX directories
+- Next: If the scripts do not exist, extract the previously appended toolkit 
+- Last: If there is no appended toolkit, extract the default compiled-in toolkit
+
+This allows AChoirX toolkits to be extremely flexible.  This works for all versions of AChoirX 
+(Windows, Mac, and Linux)
+
+
+A note about UniCode
+--------------------
+AchoirX is written in Go and defaults to UTF-8. However, many of the utilities that 
+AChoirX uses, will write UniCode (i.e. UTF-16) text output files.  In order for AChoirX to 
+be able read and parse that output, it needs to convert any UniCode to UTF-8. To make 
+that possible, AChoirX will ignore all =x'00' in a string. AChoirX will internally convert 
+UTF-16 input to UTF-8 and write all its output as UTF-8. 
+
+
+A note about Filtering
+----------------------
+AchoirX has a "Filtering" Option.  This can be used in many cases to LIMIT the &FOR and 
+&LST entries.  There are many use cases for this type of option. To make filtering as 
+easy as possible I have made it global across BOTH &LST and &FOR objects.  To set the 
+File to be used for filtering use the FLT:<filename> or NONE command. The Filter File
+contains text entries to FILTER both the &FOR and &LST objects.  Setting the file name 
+is not enough to filter, the SET:FILTER= options MUST also be set. This includes the 
+following options: SET:FILTER=<incl> <excl> <full> <part>
+- incl = &FOR or &LST match entries in Filter File 
+- excl = &FOR or &LST does NOT match entries in Filter File 
+- full = &FOR or &LST Exact match with entries in Filter File 
+- part = &FOR or &LST Partial match with entries in Filter File 
+
+The NONE option removes the filter.  Warning: The FILTER IS USED FOR BOTH &LST and &FOR.  
+Set FLT:NONE when the filter is no longer needed to avoid unwanted filtering.
+
+
+Artifacts that AChoirX itself generates:
+----------------------------------------
+AchoirX itself will generate a few files.  These are meant to increase non-repudiation
+and make the artifacts easier to use.
+
+Embedded ToolKit Files
+-----------------------
+AChoirX for Windows, Linux, and OSX now have embedded zip files.  If a Toolkit is not present, 
+AChoirX will unzip these files to create a very basic Toolkit.  This allows a basic version of
+AChoirX to run with only the single AChoirX executable file.
+
+Logfile (ACQ-IR-<name>-<date>-<time>.txt
+----------------------------------------
+AchoirX will create a logfile for each acquisition in the /Logs directory. The log contains 
+both the actions taken by AChoirX and additional information such as the hash of each program 
+that is run.
+
+DirHash.txt
+-----------
+When requested in the AChoirX Script (HSH:DIR), AChoirX will hash all files starting at the 
+directory AChoirX is run from (AChoirX's root directory) and store the MD5 hashes in this file.
+
+ACQHash.txt
+-----------
+When requested in the AChoirX Script (HSH:ACQ), AchoirX will hash all acquired artifacts and 
+store the MD5 hashes in this file.
+
+Index.htm
+---------
+AchoirX will generate an Index.htm file for every acquisition.  This file can be opened with 
+your favorite web browser to browse and open the acquired artifacts.  This is an incredibly 
+simple but useful feature.  
+
+ForFiles
+---------
+AChoirX will create a temporary file in the Acquisition Cache Directory called "ForFiles"
+every time the FOR: Action is used.  ForFiles contains the results and is used when the 
+&FOR Looping object (variable) is used.
+
+ForDisks
+---------
+AChoirX will create a temporary file in the Acquisition Cache Directory called "ForDisks"
+every time the DSK: Action is used.  ForDisks contains the results and is used when the 
+&DSK Looping object (variable) is used. Note: This function is only relevant for Windows.
+
+
+
+Last Thoughts:
+--------------
+The AChoirX language is pretty simple.  And I will do my best to keep it that way.  To best 
+understand it, please take a look at the Build.ACQ and Achoir.ACQ scripts
+
