@@ -5,7 +5,9 @@ The goal of AChoirX is to create a simple scripting language for Targeted Collec
 
 The AChoirX installation contains a single AChoir collection script, which can run on all three primary versions of AChoirX (Windows, Linux, MacOS). This shows the power of the idea: A single consistent method to gather artifacts and telemetry from all three platforms using a single script.  AChoirX does not to abstract these artifacts - but rather collects the actual platform specific raw artifacts in a consistent manner using the same utility on all three platforms.  Please Note: While AChoirX also runs on Android - it is not yet supported in the default script.
 
-AChoir scripts can be modified in nearly endless ways to meet the collection needs of different types of investigations.  AChoirX can also run in interactive console mode, or across TCP using the built in Multi-Handler.  AChoirX also natively supports common upload methods such as SFTP or S3.  Since AChoirX runs on Windows, Linux, MacOS, and Android - All of these functions, including the multi-handler (client and server modes) and the upload methods, work regardless of platform.
+AChoir scripts can be modified in nearly endless ways to meet the collection needs of different types of investigations. AChoir scripts, external programs, and other files (toolkits) can be located on the local drive, embedded into the AChoirX executables at compile time or appended to the AChoirX executables using the /PKR: option. Giving Incident Responders multiple, flexible ways to create custom collectors.
+
+AChoirX can also run in interactive console mode, or across TCP using the built in Multi-Handler.  AChoirX also natively supports common upload methods such as SFTP or S3.  Since AChoirX runs on Windows, Linux, MacOS, and Android - All of these functions, including the multi-handler (client and server modes) and the upload methods, work regardless of platform.
 
 
 # Non-Disclaimer
