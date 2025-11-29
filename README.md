@@ -174,10 +174,10 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 
 11/30/2024 - AChoirX v10.01.59 - Release 1.59 - Change XIT: to run non-Blocked (EXA:) - This change in behavior is designed to allow AChCleanr to run after AChoirX exits. Add &MyE - For This Program's Executable name. Add experimental AChCleanr - Which dissolves most of AChoirX after it runs.  The forensic collection data will remain, but most other components will be erased.  This is to prevent a Bad Actor from using AChoirX left behind on the drive as a LOLBin.
 
-10/24/2024 - AChoirX v10.01.60 - Release 1.60 - Prevent Globbing errors from exiting walking directories 
+10/24/2025 - AChoirX v10.01.60 - Release 1.60 - Prevent Globbing errors from exiting walking directories 
 
-11/04/2024 - AChoirX v10.01.61 - Release 1.61 - Add Regex to Filter behavior (Filter=Regx)
+11/04/2025 - AChoirX v10.01.61 - Release 1.61 - Add Regex to Filter behavior (Filter=Regx)
 
-11/14/2024 - AChoirX v10.01.62 - Release 1.62 - Minor change in Zipping error
+11/14/2025 - AChoirX v10.01.62 - Release 1.62 - Minor change in Zipping error
 
 11/27/2025 - AChoirX v10.01.75 - Release 1.75 - Add a Packager and UnPacker to allow creating customized versions                      of AChoirX by Appending a Zip File to the end of the program instead of requiring a recompile with an embedded zip.  The logic is: 1. First - Try local Scripts and program, 2. Next - Try to unzip any packaged zip, 3. Last - Unzip the embedded zip compiled into the executable. This creates an extremely flexible way to deploy custom programs and scripts.
