@@ -10,7 +10,7 @@ AChoir scripts can be modified in nearly endless ways to meet the collection nee
 AChoirX can also run in interactive console mode, or across TCP using the built in Multi-Handler.  AChoirX also natively supports common upload methods such as SFTP or S3.  Since AChoirX runs on Windows, Linux, MacOS, and Android - All of these functions, including the multi-handler (client and server modes) and the upload methods, work regardless of platform.
 
 
-# Non-Disclaimer
+# Disclaimer
 This repository represents a Project and not a Product.
 
 This software is furnished "as-is". We provide no warranty whatsoever, whether express, implied, or statutory, including, but not limited to, any warranty of merchantability or fitness for a particular reason or purpose, or any warranty that the software will be error-free.
