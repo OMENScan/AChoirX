@@ -254,6 +254,8 @@
 //                     3. Last - Unzip the embedded zip compiled into the executable
 //                     - This creates an extremely flexible way to deploy custom programs and scripts.
 //
+// AChoirX v10.01.76 - Release 1.76 - Minor change - Dont copy logfile if none was opened
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -325,7 +327,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.75"                       // AChoir Version
+var Version = "v10.01.76"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -5023,13 +5025,13 @@ func cleanUp_Exit(exitRC int) {
     }
 
 
-    //****************************************************************
-    //* Make a Copy of the Logfile in the ACQ Directory              *
-    //****************************************************************
+    //***********************************************************************
+    //* If we opened a log, Make a Copy of the Logfile in the ACQ Directory *
+    //***********************************************************************
     if _, BACQDir_err := os.Stat(BACQDir); os.IsNotExist(BACQDir_err) {
         ConsOut = fmt.Sprintf("[+] Base Acquisition Directory Not Found: %s\n", BACQDir)
         ConsLogSys(ConsOut, 1, 1)
-    } else {
+    } else if iLogOpen == 1 {
         iCPS = 0; //ALWAYS Copy LogFile
 
         procf_countr++
