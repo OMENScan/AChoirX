@@ -18,7 +18,7 @@ You can install or just run AChoirX in multiple ways.  AChoirX is designed to be
 2. Run the default Windows, Linux, and MacOS AChoirX collectors as-is.  This is the fastest way to get started with AChoirX - Just download and run them.  The executables are self contained, No assembly required.
 3. Run the default AChoirX collector with the <b>/BLD</b> option to run the AChoirX builder script (<b>Build.ACQ</b>) which downloads several additional FOSS Utilities, Packages them into a (.zip) toolkit and then creates an extensive Windows collector by embedding the toolkit. This new collector (<b>AChWinAll.exe</b>) uses both native AChoirX capabilities and the additional downloaded FOSS tools to extend the collector's capabilities. You can do the same thing by using the (<b>/PKR:</b>) option of AChoirX.
 4. Create your own AChoirX (.zip) toolkit and embed it directly into AChoirX using the <b>/PKR:</b> option.  This is an easy way to create your own custom collectors.  Take a look at the <b>ToolsBuiltWithAChoirX</b> section of this repo for some ideas of the types of collectors you can create.
-5. Compile AChoirX using GO, and including the default (or your own) toolkit to create a custom collector.
+5. Compile AChoirX using GO, and including the default (or your own) toolkit to create a custom collector. AChoirX is Free and Open Source Software.
 
 Choose your own adventure!
 
