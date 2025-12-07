@@ -12,7 +12,7 @@ AChoirX can also run in interactive console mode, or across TCP using the built 
 # Installing / Running
 You can install or just run AChoirX in multiple ways.  AChoirX is designed to be flexible to accommodate multiple levels of default or custom collectors. Some of the options are:
 
-1. Download and run the <b>AChoirX-inst.exe</b> installer (<b>BE SURE TO RUN THIS AS ASMIN</b>)
+1. Download and run the <b>AChoirX-inst.exe</b> installer (<b>BE SURE TO RUN THIS AS ADMIN</b>)
    - Running the installer will load AChoirX onto your machine (basically just unzipping the AChoirX components onto your drive).  This install contains the source code, some FOSS utilities, and lots of AChoirX scripts.  You can simply use the default embedded script in the Windows, MacOS, or Linux AChoirX executables, or call any of the other embedded scripts using the <b>/INI:</b> option. The install contains ready to run Windows, Linux, and MacOS collectors.
    - The installer will then run the AChoirX builder script (<b>Build.ACQ</b>) which downloads several additional FOSS Utilities, packages them into a (.zip) toolkit and then creates an extensive Windows collector by embedding the toolkit. This new collector (<b>AChWinAll.exe</b>) uses both native AChoirX capabilities and the additional downloaded FOSS tools to extend the collector's capabilities. You can do the same thing by using the (<b>/PKR:</b>) option of AChoirX.
 2. Run the default Windows, Linux, and MacOS AChoirX collectors as-is.  This is the fastest way to get started with AChoirX - Just download and run them.  The executables are self contained, No assembly required.
