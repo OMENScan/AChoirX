@@ -1,5 +1,5 @@
 # AChoirX
- AChoirX is a port of AChoir in Go(lang) for Cross Platform forensic collection, processing, and analysis.
+AChoirX is a port of AChoir in Go(lang) for Cross Platform forensic collection, processing, and analysis.
 
 The goal of AChoirX is to create a simple scripting language for Targeted Collection (Live Response) on Windows, Linux, OSX (MacOS), and Android.  AChoirX (like AChoir) will also support scripting of extraction, parsing, and analysis of mounted forensic images.
 
@@ -9,6 +9,17 @@ AChoir scripts can be modified in nearly endless ways to meet the collection nee
 
 AChoirX can also run in interactive console mode, or across TCP using the built in Multi-Handler.  AChoirX also natively supports common upload methods such as SFTP or S3.  Since AChoirX runs on Windows, Linux, MacOS, and Android - All of these functions, including the multi-handler (client and server modes) and the upload methods, work regardless of platform.
 
+# Installing / Running
+You can install or just run AChoirX in multiple ways.  AChoirX is designed to be flexible to accommodate multiple levels of default or custom collectors.
+
+1. Downloading and running the AChoirX-inst.exe install 
+   - Running the installer will load AChoirX onto your machine.  This install contains the source code, some FOSS utilities, and lots of AChoirX scripts.  You can use the default embedded script or call any of the other embedded scripts using the <b>/INI:</b> option. The install contains ready to run Windows, Linux, and MacOS collectors.
+   - The installer will also run the AChoirX builder script (<b>Build.ACQ</b>) which downloads many additional FOSS Utilities, Packages then into a (.zip) toolkit and then creates an extensive Windows collector using both native AChoirX capabilities and additional artifact collection using the downloaded FOSS tools - this is done using the (<b>/PKR:</b>) option.  It is more extensive than the default embedded toolkit.
+2. Running the default Windows, Linux, and MacOS AChoirX collectors as-is.  This is the fastest way to get started with AChoirX - Just download it and run it.
+3. Running the default AChoirX collector with the <b>/BLD</b> option will run the AChoirX (<b>Build.ACQ</b>) builder script which downloads many additional FOSS Utilities, Packages then into a (.zip) toolkit and then creates an extensive Windows collector using both native AChoirX capabilities and additional artifact collection using the downloaded FOSS tools - this is done using the (<b>/PKR:</b>) option.  It is more extensive than the default embedded toolkit.
+4. Compiling AChoirX using GO, and including the default (or your own) toolkit to create a custom collector.
+
+Choose your own adventure!
 
 # Disclaimer
 This repository represents a Project and not a Product.
