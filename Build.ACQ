@@ -115,11 +115,18 @@ VER:Windows
  SAY:[+] Unzipping The Sleuth Kit 
  UNZ:&Dir\SleuthKit.zip &Dir
  SAY:[+] Download Complete... Now Lets Build a Windows Toolkit...
+ SET:CopyPath=None
  DIR:\
+ CPY:&Dir\Optional\AChCleanr.exe &Dir
+ CPY:&Dir\Optional\AChCleanr.ACQ &Dir
+ CPY:&Dir\Optional\AChCleanz.ACQ &Dir
  SET:ZipFileName=&Dir\AChWinAll.zip
  ZIP:&Dir\AChoir.ACQ
  ZIP:&Dir\NoMem.ACQ
  ZIP:&Dir\Build.ACQ
+ ZIP:&Dir\AChCleanr.exe
+ ZIP:&Dir\AChCleanr.ACQ
+ ZIP:&Dir\AChCleanz.ACQ
  FOR:&Dir\Scripts\**\*
  ZIP:&For
  FOR:&Dir\MEM\**\*.exe

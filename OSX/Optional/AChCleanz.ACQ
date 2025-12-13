@@ -10,6 +10,7 @@ VER:Windows
  CLN:Scripts
  CLN:MEM
  CLN:TSK
+ CLN:SYS
  CLN:Logs
  CLN:&Acn\Ranprog
  CLN:&Acn\Cache

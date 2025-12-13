@@ -11,6 +11,7 @@ VER:Windows
  CLN:Logs
  CLN:MEM
  CLN:TSK
+ CLN:SYS
  CLN:&Acn\Cache
 END:
 VER:Linux

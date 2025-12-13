@@ -256,6 +256,9 @@
 //
 // AChoirX v10.01.76 - Release 1.76 - Minor change - Dont copy logfile if none was opened
 //
+// AChoirX v10.01.77 - Release 1.77 - Do not allow multiple Toolkits to be embedded. A security feature to
+//                     help prevent abuse of AChoirX toolkit embedding.
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -327,7 +330,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.76"                       // AChoir Version
+var Version = "v10.01.77"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -895,6 +898,15 @@ func main() {
             }
         } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/PKR:") {
             if len(os.Args[i]) < 254 {
+                // See if we already Packed this executable - Don't allow multiple packed toolkits
+                pkrAppBytes, _ := UnEmbedAppendedToMemory()
+                if pkrAppBytes != nil {
+                    ConsOut = "[!] Security Violation: There is already an embedded toolkit in this executable.\n"
+                    ConsLogSys(ConsOut, 1, 1)
+                    cleanUp_Exit(3)
+                    os.Exit(3)
+                }
+
                 PKR_Path := filepath.Clean(MyProg)
                 PKR_Dir := filepath.Dir(PKR_Path)
                 PKR_File := filepath.Base(PKR_Path)
