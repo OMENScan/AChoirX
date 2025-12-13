@@ -197,3 +197,5 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 11/27/2025 - AChoirX v10.01.75 - Release 1.75 - Add a Packager and UnPacker to allow creating customized versions                      of AChoirX by Appending a Zip File to the end of the program instead of requiring a recompile with an embedded zip.  The logic is: 1. First - Try local Scripts and program, 2. Next - Try to unzip any packaged zip, 3. Last - Unzip the embedded zip compiled into the executable. This creates an extremely flexible way to deploy custom programs and scripts.
 
 12/01/2025 - AChoirX v10.01.76 - Release 1.76 - Minor Log Copy change. 
+
+12/13/2025 - AChoirX v10.01.77 - Release 1.77 - Do not allow multiple Toolkits to be embedded. A security feature to help prevent abuse of AChoirX toolkit embedding.
