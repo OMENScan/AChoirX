@@ -199,3 +199,5 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 12/01/2025 - AChoirX v10.01.76 - Release 1.76 - Minor Log Copy change. 
 
 12/13/2025 - AChoirX v10.01.77 - Release 1.77 - Do not allow multiple Toolkits to be embedded. A security feature to help prevent abuse of AChoirX toolkit embedding.
+
+12/14/2025 - AChoirX v10.01.78 - Release 1.78 - Preserve relative paths when copying/uploading files using double-globbing.
