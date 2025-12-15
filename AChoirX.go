@@ -259,6 +259,9 @@
 // AChoirX v10.01.77 - Release 1.77 - Do not allow multiple Toolkits to be embedded. A security feature to
 //                     help prevent abuse of AChoirX toolkit embedding.
 //
+// AChoirX v10.01.78 - Release 1.78 - Change behavior of Doubleglob(**) to preserve relative paths on 
+//                     Multi-Copy and Multi-upload
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -330,7 +333,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.77"                       // AChoir Version
+var Version = "v10.01.78"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -418,6 +421,7 @@ var MCprcO = "FilePath"                         // Build Output File Name from G
 var MCpRoot = "FilePath"                        // Multi-Copy Root (Before any WildCards)
 var MCpPath = "FilePath"                        // Path minus File Name
 var MCpShard = "FilePath"                       // Multi-Copy Expanded Directories Shard (Before FileName)
+var MCpDblGlobRoot = ""                         // Tracks ** root for nested calls
 var iShard = 0                                  // Shard Index Pointer
 var iAShard = 0                                 // Asterisk Shard Index Pointer
 var iQShard = 0                                 // Question Mark Shard Index Pointer
@@ -2707,10 +2711,19 @@ func main() {
                                 WalkfileWild = splitString1[iDblShard+3:]
                                 WalkfileToo = splitString2
 
+                                // SET THE DOUBLE GLOB ROOT
+                                MCpDblGlobRoot = WalkDir
+                                if MCpDblGlobRoot[len(MCpDblGlobRoot)-1] != slashDelim {
+                                    MCpDblGlobRoot += string(slashDelim)
+                                }
+
                                 BasicCopy := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
                                 CopyParser(BasicCopy, splitString2)
 
                                 filepath.Walk(WalkDir, WalkCopyGlob)
+
+                                // CLEAR THE DOUBLE GLOB ROOT AFTER WALKING
+                                MCpDblGlobRoot = ""
                             }
                         } else {
                             CopyParser(splitString1, splitString2)
@@ -3468,10 +3481,19 @@ func main() {
                             WalkDir := TempDir[:iDblShard]
                             WalkfileWild = TempDir[iDblShard+3:]
 
+                            // SET THE DOUBLE GLOB ROOT
+                            MCpDblGlobRoot = WalkDir
+                            if MCpDblGlobRoot[len(MCpDblGlobRoot)-1] != slashDelim {
+                                MCpDblGlobRoot += string(slashDelim)
+                            }
+
                             BasicFor := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
                             ForParser(BasicFor)
 
                             filepath.Walk(WalkDir, WalkForGlob)
+
+                            // CLEAR THE DOUBLE GLOB ROOT AFTER WALKING
+                            MCpDblGlobRoot = ""
                         }
                     } else {
                         ForParser(TempDir)
@@ -3495,10 +3517,19 @@ func main() {
                             WalkDir := TempDir[:iDblShard]
                             WalkfileWild = TempDir[iDblShard+3:]
 
+                            // SET THE DOUBLE GLOB ROOT
+                            MCpDblGlobRoot = WalkDir
+                            if MCpDblGlobRoot[len(MCpDblGlobRoot)-1] != slashDelim {
+                                MCpDblGlobRoot += string(slashDelim)
+                            }
+
                             BasicDel := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
                             DelParser(BasicDel)
 
                             filepath.Walk(WalkDir, WalkDelGlob)
+
+                            // CLEAR THE DOUBLE GLOB ROOT AFTER WALKING
+                            MCpDblGlobRoot = ""
                         }
                     } else {
                         DelParser(TempDir)
@@ -3910,11 +3941,19 @@ func main() {
                                     WalkfileWild = splitString1[iDblShard+3:]
                                     WalkfileToo = splitString2
 
+                                   // SET THE DOUBLE GLOB ROOT
+                                   MCpDblGlobRoot = WalkDir
+                                   if MCpDblGlobRoot[len(MCpDblGlobRoot)-1] != slashDelim {
+                                       MCpDblGlobRoot += string(slashDelim)
+                                   }
+
                                     BasicS3Up := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
                                     UpldParser(BasicS3Up, splitString2, "S3")
 
                                     filepath.Walk(WalkDir, WalkS3UpGlob)
-                                
+
+                                    // CLEAR THE DOUBLE GLOB ROOT AFTER WALKING
+                                    MCpDblGlobRoot = ""
                                 }
                             } else {
                                 UpldParser(splitString1, splitString2, "S3")
@@ -4120,11 +4159,19 @@ func main() {
                                     WalkfileWild = splitString1[iDblShard+3:]
                                     WalkfileToo = splitString2
 
+                                    // SET THE DOUBLE GLOB ROOT
+                                    MCpDblGlobRoot = WalkDir
+                                    if MCpDblGlobRoot[len(MCpDblGlobRoot)-1] != slashDelim {
+                                        MCpDblGlobRoot += string(slashDelim)
+                                    }
+
                                     BasicSFUp := fmt.Sprintf("%s%s", WalkDir, WalkfileWild)
                                     UpldParser(BasicSFUp, splitString2, "SFTP")
 
                                     filepath.Walk(WalkDir, WalkSFUpGlob)
-                                
+
+                                    // CLEAR THE DOUBLE GLOB ROOT AFTER WALKING
+                                    MCpDblGlobRoot = ""
                                 }
                             } else {
                                 UpldParser(splitString1, splitString2, "SFTP")
@@ -5504,7 +5551,16 @@ func CopyParser(splitString1 string, splitString2 string) {
                 MCpPath = file_found[:ForSlash] 
             } else {
                 MCpFName = file_found[ForSlash+1:]
-                MCpShard = file_found[iShard:len(file_found)-len(MCpFName)]
+
+                // If we're in a double-glob walk, use the original ** root position
+                if len(MCpDblGlobRoot) > 0 {
+                    // Calculate shard from the original ** position
+                    MCpShard = strings.TrimPrefix(file_found[:ForSlash+1], MCpDblGlobRoot)
+                } else {
+                    // Normal single wildcard processing
+                    MCpShard = file_found[iShard:ForSlash+1]
+                }
+
                 MCpPath = file_found[:ForSlash] 
             }
 
@@ -6340,7 +6396,16 @@ func UpldParser(splitString1 string, splitString2 string, UpType string) {
                 MCpPath = file_found[:ForSlash] 
             } else {
                 MCpFName = file_found[ForSlash+1:]
-                MCpShard = file_found[iShard:len(file_found)-len(MCpFName)]
+
+                // If we're in a double-glob walk, use the original ** root position
+                if len(MCpDblGlobRoot) > 0 {
+                    // Calculate shard from the original ** position
+                    MCpShard = strings.TrimPrefix(file_found[:ForSlash+1], MCpDblGlobRoot)
+                } else {
+                    // Normal single wildcard processing
+                    MCpShard = file_found[iShard:ForSlash+1]
+                }
+
                 MCpPath = file_found[:ForSlash] 
             }
 

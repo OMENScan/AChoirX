@@ -1,0 +1,27 @@
+**********************************************************
+** ToolKit Builder & Embedder (v0.01)                    *
+** /VR0:<Windows, Limux, MacOS)                          *
+** /VR1:<Source Directory>                               *
+** /VR2:<Name of the Collector>                          *
+**********************************************************
+SAY:[+] Welcome to AChoirX Builder version 0.01
+SAY:[+] Platform: &VR0
+SAY:[+] Source Directory: &VR1
+SAY:[+] Collector Name: &VR2
+VER:Windows
+ SET:CopyPath=None
+ SET:ZipFileName=&Dir\&VR2.zip
+ FOR:&VR1
+ ZIP:&For
+ SET:ZipFileName=close
+ EXE:&Dir\A-AChoirX.exe /PKR:&Dir\&VR2.zip
+ SYS:cmd /c rename &Dir\A-AChoirX_PKR.exe &VR2.exe
+ SAY:[+] Build Complete...
+END: 
+Ver:Linux
+ SAY:[!] No Toolkit Builder has been created for Linux...  Use the built in Toolkit... 
+END:
+Ver:OSX
+ SAY:[!] No Toolkit Builder has been created for MacOS...  Use the built in Toolkit... 
+END:
+PZZ: Press any key to continue...
