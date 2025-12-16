@@ -1,0 +1,256 @@
+<html>
+<head>
+  <title>AChoirX Builder GUI 0.01</title>
+  <HTA:APPLICATION ID="AChBuildGUI" 
+    APPLICATIONNAME="AChBuild GUI" 
+    BORDER="Yes"
+    CAPTION="Yes"
+    SHOWINTASKBAR="Yes"
+    SINGLEINSTANCE="Yes"
+    SYSMENU="Yes"
+    SCROLL="no"
+  WINDOWSTATE="normal">
+
+<script type="text/javascript">
+self.moveTo(10,10);
+self.resizeTo(1100,860);
+var panels = new Array("","panel1","panel2","panel3");
+
+function panel(tab) 
+{
+  for (i=1; i<panels.length; i++) 
+  {
+    if (i == tab)
+    {
+       document.getElementById("tab"+i).className = "tabs tabs1";
+       document.getElementById("panel"+i).style.display = "block";
+    } 
+    else
+    {
+       document.getElementById("tab"+i).className = "tabs tabs0";
+       document.getElementById("panel"+i).style.display = "none";
+    }
+  }
+}
+
+// Browse folder paths
+function BrowseForFolder(DirToBrowse) 
+{
+  var shell = new ActiveXObject("Shell.Application");
+  var folder = shell.BrowseForFolder(0, "Select a folder", 0x10);
+
+  if (folder != null) {
+    document.getElementById(DirToBrowse).value = folder.Self.Path;
+  }
+}
+
+
+// Build New AChoirX Collector for Windows
+function TkitWin(Bits)
+{
+  var ScrName = " /ini:Scripts\\TKitBuild.ACQ" ;
+  var ScrBits = "A-AChoirX.exe" ;
+  
+  if (Bits == 32) 
+  {
+    ScrBits = "A-AChoirX32.exe" ;
+  } 
+  else if (Bits == 64) 
+  {
+    ScrBits = "A-AChoirX.exe" ;
+  } 
+
+  //See if our Program is there
+  var fso = new ActiveXObject("Scripting.FileSystemObject");
+
+  if (!fso.FileExists(ScrBits))
+  {
+    alert("ERROR: Required executable not found: " + ScrBits);
+    return;
+  }
+
+  ScrName = ScrBits + ScrName + " /VR0:Windows /VR1:" + Tkit1Dir.value + " /VR2:" + Tkit1Nam.value ; 
+
+  WshShell = new ActiveXObject("WScript.Shell");
+  WshShell.Run(ScrName, 1, false);
+}
+
+
+// Exit HTA
+function ExitMe()
+{
+  self.close()
+}
+
+
+</script>
+
+<style type="text/css">
+ body,td,th { 
+  font-family:Arial;
+  padding: 5px;
+}
+.head { 
+  font-size:110%;
+  font-weight:bold;
+  color:white;
+}
+.panel {
+  background-color: white;
+  border: solid 1px black;
+  height: 700px;
+  padding: 5px;
+  position: relative;
+  width: 1000px;
+  z-index: 0;
+}
+.tabs {
+  border-collapse: collapse;
+  color: black;
+  cursor: pointer;
+  cursor: hand;
+  font-family: arial;
+  font-size: 12pt;
+  font-weight: bold;
+  margin-top: 4px;
+  padding: 2px 4px 0px 4px;
+  position: relative;
+  text-align: center;
+  text-decoration: none;
+  z-index: 1;
+}
+.tabs0 {
+  color: white;
+  background-color: gray;
+  border: solid 1px black;
+}
+.tabs1 {
+  color: black;
+  background-color: white;
+  border-color: black black white black;
+  border-style: solid solid solid solid;
+  border-width: 1px 1px 1px 1px;
+}
+</style>
+</head>
+
+
+<body bgcolor=#879dbd>
+<table align="center" border="0" cellpadding="0" cellspacing="0" width="1000">
+<tr valign="top">
+  <td align="right" colspan="2">
+    <span class="head">AChoirX Builder GUI 0.01</span> &nbsp; &nbsp;
+    <br>
+  </td>
+</tr>
+<tr valign="top">
+  <td colspan="2">
+    &nbsp; <span class="tabs tabs1" id="tab1" onclick="panel(1)">Windows</span>
+    &nbsp; <span class="tabs tabs0" id="tab2" onclick="panel(2)">Linux</span>
+    &nbsp; <span class="tabs tabs0" id="tab3" onclick="panel(3)">MacOS</span>
+
+    <div class="panel" id="panel1" style="display:block">
+      <table border="0" width="100%">
+        <tr valign="top">
+          <td>
+
+            <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
+            <p>
+            This Tab runs the Windows AChoirX toolkit builder and embedder. Enter the full path
+            of the directory containing the AChoirX Windows Tools and scripts.  The builder will
+            zip them into a toolkit, and embed the toolkit into AChoirX, creating a new collector.
+            </p>
+
+            <p> 
+            Please Note: 
+            Creating your own .zip toolkit and using AChoirX /PKR will do the same thing.  This 
+            GUI program simply makes the process easier.
+            </p>
+            </TD></TR></TABLE>
+
+            <p>
+            <TABLE Width="100%" border="1" cellspacing="20" cellpadding="10">
+
+              <TR>
+                <TD>
+                  Toolkit Files Path:
+                  <input type="text" size="30" name="Tkit1Dir" value="">&nbsp<br>
+                        <font size=-1><i>Full Path of the Toolkit Files:</i></font>
+                  <input type="button" value="Browse..." onclick="BrowseForFolder('Tkit1Dir')">
+                </TD>
+
+                <TD>
+                  New Collector Name:
+                  <input type="text" size="30" name="Tkit1Nam" value="AChNewWin">&nbsp<br>
+                        <font size=-1><i>Name of the created collector:</i></font>
+                </TD>
+              </TR>
+
+              <TR>
+                <TD ColSpan=2>
+                  <input type="button" value="AChoir-32" onclick="TkitWin(32);"/> - 
+                  <input type="button" value="AChoir-64" onclick="TkitWin(64);"/> - 
+                  <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
+                </TD>
+              </TR>
+            </TABLE>
+            </p>
+
+            <p><br>
+            <Font Size = small>
+            <b><i>Note 1: </b></i>If you're not sure if the OS is 32 or 64 Bit, run AChoirX 32 Bit<br>
+            <b><i>Note 2: </b></i>This GUI will call AChoirX as an Admin
+            </Font>
+            </p>
+
+            </TD></TR></TABLE>
+    </div>
+
+    <div class="panel" id="panel2" style="display:none">
+      <table border="0" width="100%">
+        <tr valign="top">
+          <td>
+            <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
+            <p>
+            The Linux Builder helper has not been created yet. This does not limit your
+            ability to create a custom Linux collector.  Simply create a zip file with your
+            custom Linux toolkit and use AChoirX /PKR: on Linux to build a custom Linux collector
+            </p>
+
+            <p>
+            I'll eventually create a GUI version of the custom collector build.  But for now
+            the process is command line only.
+            </p>
+
+            </TD></TR></TABLE>
+          </td></tr></table>
+    </div>
+
+
+    <div class="panel" id="panel3" style="display:none">
+      <table border="0" width="100%">
+        <tr valign="top">
+          <td>
+            <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
+            <p>
+            The MacOS Builder has not been created yet. This does not limit your
+            ability to create a custom MacOS collector.  Simply use AChoirX-AMD or
+            AChoirX-ARM /PKR: on MacOS (AMD or ARM to build a custom MacOS collector
+            </p>
+
+            <p>
+            I'll eventually create a GUI version of the custom collector build.  But for now
+            the process is command line only.
+            </p>
+
+            </TD></TR></TABLE>
+          </td></tr></table>
+    </div>
+
+  </td>
+</tr>
+</table>
+
+</body>
+
+</html>

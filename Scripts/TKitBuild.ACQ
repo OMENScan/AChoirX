@@ -9,13 +9,18 @@ SAY:[+] Platform: &VR0
 SAY:[+] Source Directory: &VR1
 SAY:[+] Collector Name: &VR2
 VER:Windows
- SET:CopyPath=None
- SET:ZipFileName=&Dir\&VR2.zip
- FOR:&VR1
+ ACQ:\&VR2
+ **********************************************************
+ ** Copy & preserve paths to a depth of 8 subdirectories  *
+ **********************************************************
+ SET:CopyPath=Part
+ CPY:"&VR1\**\*" "&ACQ"
+ SET:ZipFileName=&DIR\&ACN\&VR2.zip
+ FOR:&ACQ\**\*
  ZIP:&For
  SET:ZipFileName=close
- EXE:&Dir\A-AChoirX.exe /PKR:&Dir\&VR2.zip
- SYS:cmd /c rename &Dir\A-AChoirX_PKR.exe &VR2.exe
+ EXE:&Dir\A-AChoirX.exe /PKR:&DIR\&ACN\&VR2.zip
+ SYS:cmd /c move &Dir\A-AChoirX_PKR.exe &DIR\&ACN\&VR2.exe
  SAY:[+] Build Complete...
 END: 
 Ver:Linux
@@ -24,4 +29,4 @@ END:
 Ver:OSX
  SAY:[!] No Toolkit Builder has been created for MacOS...  Use the built in Toolkit... 
 END:
-PZZ: Press any key to continue...
+PZZ: Press any key to exit...
