@@ -1,6 +1,7 @@
 <html>
 <head>
-  <title>AChoirX Builder GUI 0.01</title>
+  <title>AChoirX Builder GUI 0.06</title>
+
   <HTA:APPLICATION ID="AChBuildGUI" 
     APPLICATIONNAME="AChBuild GUI" 
     BORDER="Yes"
@@ -9,28 +10,99 @@
     SINGLEINSTANCE="Yes"
     SYSMENU="Yes"
     SCROLL="no"
-  WINDOWSTATE="normal">
+    WINDOWSTATE="normal">
 
 <script type="text/javascript">
+// Set Window
 self.moveTo(10,10);
 self.resizeTo(1100,860);
-var panels = new Array("","panel1","panel2","panel3");
+
+// Set 4 Panels
+var panels = new Array("","panel1","panel2","panel3","panel4");
 
 function panel(tab) 
 {
-  for (i=1; i<panels.length; i++) 
+  for (var i=1; i<panels.length; i++) 
   {
     if (i == tab)
     {
-       document.getElementById("tab"+i).className = "tabs tabs1";
-       document.getElementById("panel"+i).style.display = "block";
+      document.getElementById("tab"+i).className = "tabs tabs1";
+      document.getElementById("panel"+i).style.display = "block";
     } 
     else
     {
-       document.getElementById("tab"+i).className = "tabs tabs0";
-       document.getElementById("panel"+i).style.display = "none";
+      document.getElementById("tab"+i).className = "tabs tabs0";
+      document.getElementById("panel"+i).style.display = "none";
     }
   }
+}
+
+// Setup the LoG Viewer Tab
+var logPath = ".\\Logs\\TKitBuild.log";
+var logTimer = null;
+
+// Log Viewer
+function StartLogViewer()
+{
+  // Always read the log immediately
+  ReadLogFile();
+
+  // The re-read in 2 seconds
+  if (logTimer != null) return;
+  logTimer = setTimeout(ReadLogFile, 2000);
+  panel(4);
+}
+
+// Read Log
+function ReadLogFile()
+{
+  try
+  {
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+
+    if (!fso.FileExists(logPath))
+    {
+      WriteLog("Waiting for log file:\r\n" + logPath);
+      return;
+    }
+
+    var f = fso.OpenTextFile(logPath, 1);
+    var txt = f.ReadAll();
+    f.Close();
+
+    WriteLog(txt);
+  }
+  catch (e)
+  {
+    WriteLog("Log read error:\r\n" + e.message);
+  }
+}
+
+// Display the log
+function WriteLog(text)
+{
+  var frame = document.getElementById("logFrame");
+  if (!frame) return;
+
+  var doc = frame.contentWindow.document;
+  doc.open();
+  doc.write(
+    "<html><body style='margin:0;background:black;color:#00ff00;'>" +
+    "<pre style='font-family:Consolas,monospace;font-size:14px;padding:6px;white-space:pre-wrap;'>" +
+    EscapeHtml(text) +
+    "</pre></body></html>"
+  );
+  doc.close();
+
+  frame.contentWindow.scrollTo(0, 0);
+}
+
+// Escape out HTML Metacharacters
+function EscapeHtml(s)
+{
+  return s.replace(/[&<>]/g, function(c) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c];
+  });
 }
 
 // Browse folder paths
@@ -44,23 +116,15 @@ function BrowseForFolder(DirToBrowse)
   }
 }
 
-
 // Build New AChoirX Collector for Windows
 function TkitWin(Bits)
 {
-  var ScrName = " /ini:Scripts\\TKitBuild.ACQ" ;
-  var ScrBits = "A-AChoirX.exe" ;
+  var ScrName = " /ini:Scripts\\TKitBuild.ACQ";
+  var ScrBits = "A-AChoirX.exe";
   
   if (Bits == 32) 
-  {
-    ScrBits = "A-AChoirX32.exe" ;
-  } 
-  else if (Bits == 64) 
-  {
-    ScrBits = "A-AChoirX.exe" ;
-  } 
+    ScrBits = "A-AChoirX32.exe";
 
-  //See if our Program is there
   var fso = new ActiveXObject("Scripting.FileSystemObject");
 
   if (!fso.FileExists(ScrBits))
@@ -69,26 +133,28 @@ function TkitWin(Bits)
     return;
   }
 
-  ScrName = ScrBits + ScrName + " /VR0:Windows /VR1:" + Tkit1Dir.value + " /VR2:" + Tkit1Nam.value ; 
+  ScrName = ScrBits + ScrName +
+            " /VR0:Windows" +
+            " /VR1:" + Tkit1Dir.value +
+            " /VR2:" + Tkit1Nam.value;
 
-  WshShell = new ActiveXObject("WScript.Shell");
+  var WshShell = new ActiveXObject("WScript.Shell");
   WshShell.Run(ScrName, 1, false);
-}
 
+  StartLogViewer();
+}
 
 // Exit HTA
 function ExitMe()
 {
-  self.close()
+  self.close();
 }
-
-
 </script>
 
 <style type="text/css">
  body,td,th { 
   font-family:Arial;
-  padding: 5px;
+  padding:5px;
 }
 .head { 
   font-size:110%;
@@ -96,161 +162,161 @@ function ExitMe()
   color:white;
 }
 .panel {
-  background-color: white;
-  border: solid 1px black;
-  height: 700px;
-  padding: 5px;
-  position: relative;
-  width: 1000px;
-  z-index: 0;
+  background-color:white;
+  border:solid 1px black;
+  height:700px;
+  padding:5px;
+  position:relative;
+  width:1000px;
 }
 .tabs {
-  border-collapse: collapse;
-  color: black;
-  cursor: pointer;
-  cursor: hand;
-  font-family: arial;
-  font-size: 12pt;
-  font-weight: bold;
-  margin-top: 4px;
-  padding: 2px 4px 0px 4px;
-  position: relative;
-  text-align: center;
-  text-decoration: none;
-  z-index: 1;
+  border-collapse:collapse;
+  cursor:pointer;
+  font-family:arial;
+  font-size:12pt;
+  font-weight:bold;
+  margin-top:4px;
+  padding:2px 4px 0px 4px;
 }
 .tabs0 {
-  color: white;
-  background-color: gray;
-  border: solid 1px black;
+  color:white;
+  background-color:gray;
+  border:solid 1px black;
 }
 .tabs1 {
-  color: black;
-  background-color: white;
-  border-color: black black white black;
-  border-style: solid solid solid solid;
-  border-width: 1px 1px 1px 1px;
+  color:black;
+  background-color:white;
+  border:1px solid black;
+  border-bottom:white;
 }
 </style>
 </head>
 
+<body bgcolor="#879dbd">
 
-<body bgcolor=#879dbd>
 <table align="center" border="0" cellpadding="0" cellspacing="0" width="1000">
 <tr valign="top">
   <td align="right" colspan="2">
-    <span class="head">AChoirX Builder GUI 0.01</span> &nbsp; &nbsp;
-    <br>
+    <span class="head">AChoirX Builder GUI 0.06</span><br>
   </td>
 </tr>
+
 <tr valign="top">
-  <td colspan="2">
-    &nbsp; <span class="tabs tabs1" id="tab1" onclick="panel(1)">Windows</span>
-    &nbsp; <span class="tabs tabs0" id="tab2" onclick="panel(2)">Linux</span>
-    &nbsp; <span class="tabs tabs0" id="tab3" onclick="panel(3)">MacOS</span>
+<td colspan="2">
 
-    <div class="panel" id="panel1" style="display:block">
-      <table border="0" width="100%">
-        <tr valign="top">
-          <td>
+&nbsp; <span class="tabs tabs1" id="tab1" onclick="panel(1)">Windows</span>
+&nbsp; <span class="tabs tabs0" id="tab2" onclick="panel(2)">Linux</span>
+&nbsp; <span class="tabs tabs0" id="tab3" onclick="panel(3)">MacOS</span>
+&nbsp; <span class="tabs tabs0" id="tab4" onclick="panel(4); StartLogViewer();">Log</span>
 
-            <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
-            <p>
-            This Tab runs the Windows AChoirX toolkit builder and embedder. Enter the full path
-            of the directory containing the AChoirX Windows Tools and scripts.  The builder will
-            zip them into a toolkit, and embed the toolkit into AChoirX, creating a new collector.
-            </p>
+<!-- Windows Panel -->
+<div class="panel" id="panel1" style="display:block">
+<table width="100%"><tr><td>
 
-            <p> 
-            Please Note: 
-            Creating your own .zip toolkit and using AChoirX /PKR will do the same thing.  This 
-            GUI program simply makes the process easier.
-            </p>
-            </TD></TR></TABLE>
+<TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
+<p>
+This Tab runs the Windows AChoirX toolkit builder and embedder. Enter the full path
+of the directory containing the AChoirX Windows Tools and scripts. The builder will
+zip them into a toolkit, and embed the toolkit into AChoirX, creating a new collector.
+</p>
 
-            <p>
-            <TABLE Width="100%" border="1" cellspacing="20" cellpadding="10">
+<p>
+Please Note:
+Creating your own .zip toolkit and using AChoirX /PKR will do the same thing. This
+GUI program simply makes the process easier.
+</p>
+</TD></TR></TABLE>
 
-              <TR>
-                <TD>
-                  Toolkit Files Path:
-                  <input type="text" size="30" name="Tkit1Dir" value="">&nbsp<br>
-                        <font size=-1><i>Full Path of the Toolkit Files:</i></font>
-                  <input type="button" value="Browse..." onclick="BrowseForFolder('Tkit1Dir')">
-                </TD>
+<p>
+<TABLE Width="100%" border="1" cellspacing="20" cellpadding="10">
+<TR>
+<TD>
+Toolkit Files Path:
+<input type="text" size="30" name="Tkit1Dir" value=""><br>
+<font size=-1><i>Full Path of the Toolkit Files:</i></font>
+<input type="button" value="Browse..." onclick="BrowseForFolder('Tkit1Dir')">
+</TD>
 
-                <TD>
-                  New Collector Name:
-                  <input type="text" size="30" name="Tkit1Nam" value="AChNewWin">&nbsp<br>
-                        <font size=-1><i>Name of the created collector:</i></font>
-                </TD>
-              </TR>
+<TD>
+New Collector Name:
+<input type="text" size="30" name="Tkit1Nam" value="AChNewWin"><br>
+<font size=-1><i>Name of the created collector:</i></font>
+</TD>
+</TR>
 
-              <TR>
-                <TD ColSpan=2>
-                  <input type="button" value="AChoir-32" onclick="TkitWin(32);"/> - 
-                  <input type="button" value="AChoir-64" onclick="TkitWin(64);"/> - 
-                  <input type="button" value="Exit GUI" onclick="ExitMe();"/> 
-                </TD>
-              </TR>
-            </TABLE>
-            </p>
+<TR>
+<TD ColSpan=2>
+<input type="button" value="Build" onclick="TkitWin(64);"/> -
+<input type="button" value="Exit" onclick="ExitMe();"/>
+</TD>
+</TR>
+</TABLE>
+</p>
 
-            <p><br>
-            <Font Size = small>
-            <b><i>Note 1: </b></i>If you're not sure if the OS is 32 or 64 Bit, run AChoirX 32 Bit<br>
-            <b><i>Note 2: </b></i>This GUI will call AChoirX as an Admin
-            </Font>
-            </p>
+<p>
+<font size="small">
+<b><i>Note 1:</i></b> This GUI embeds the toolkit into a 64-Bit version of A-AChoirX using the TKitBuild.ACQ script<br>
+<b><i>Note 2:</i></b> This GUI will call AChoirX as an Admin
+</font>
+</p>
 
-            </TD></TR></TABLE>
-    </div>
+</td></tr></table>
+</div>
 
-    <div class="panel" id="panel2" style="display:none">
-      <table border="0" width="100%">
-        <tr valign="top">
-          <td>
-            <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
-            <p>
-            The Linux Builder helper has not been created yet. This does not limit your
-            ability to create a custom Linux collector.  Simply create a zip file with your
-            custom Linux toolkit and use AChoirX /PKR: on Linux to build a custom Linux collector
-            </p>
+<!-- Linux Panel -->
+<div class="panel" id="panel2" style="display:none">
+<table width="100%"><tr><td>
+<TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
+<p>
+The Linux Builder helper can't be run from this .HTA file yet. This does not limit your
+ability to create a custom Linux collector. You can either create a zip file with your
+custom Linux toolkit and use AChoirX /PKR: on Linux to build a custom Linux collector, 
+or you can use the /Scripts/TKitBuild.ACQ script with the following parameters:<br><br>
 
-            <p>
-            I'll eventually create a GUI version of the custom collector build.  But for now
-            the process is command line only.
-            </p>
+<b>./AChoirX /ini:TKitBuild.ACQ /VR0:Linux /VR1:Directory_of_your_toolkit /VR2:Name_of_Build</b>
+</p>
+<p>
+I'll eventually create a GUI version of the custom Linux collector build. But for now
+the process is command line only.
+</p>
+</TD></TR></TABLE>
+</td></tr></table>
+</div>
 
-            </TD></TR></TABLE>
-          </td></tr></table>
-    </div>
+<!-- MacOS Panel -->
+<div class="panel" id="panel3" style="display:none">
+<table width="100%"><tr><td>
+<TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
+<p>
+The MacOS Builder helper can't be run from this .HTA file yet. This does not limit your
+ability to create a custom MacOS collector. You can either create a zip file with your
+custom MacOS toolkit and use AChoirX /PKR: on MacOS to build a custom Linux collector, 
+or you can use the /Scripts/TKitBuild.ACQ script with the following parameters:<br><br>
 
+<b>./AChoirX-AMD /ini:TKitBuild.ACQ /VR0:OSX /VR1:Directory_of_your_toolkit /VR2:Name_of_Build</b><br>
+<b>./AChoirX-ARM /ini:TKitBuild.ACQ /VR0:OSX /VR1:Directory_of_your_toolkit /VR2:Name_of_Build</b>
+</p>
+<p>
+I'll eventually create a GUI version of the MascOS custom collector build. But for now
+the process is command line only.
+</p>
+</TD></TR></TABLE>
+</td></tr></table>
+</div>
 
-    <div class="panel" id="panel3" style="display:none">
-      <table border="0" width="100%">
-        <tr valign="top">
-          <td>
-            <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
-            <p>
-            The MacOS Builder has not been created yet. This does not limit your
-            ability to create a custom MacOS collector.  Simply use AChoirX-AMD or
-            AChoirX-ARM /PKR: on MacOS (AMD or ARM to build a custom MacOS collector
-            </p>
+<!-- Log View Panel -->
+<div class="panel" id="panel4" style="display:none">
+<b>AChoirX Builder Log</b> &nbsp &nbsp &nbsp
+<input type="button" value="Refresh" onclick="ReadLogFile();"/>
+<br><br>
+<iframe id="logFrame"
+  style="width:100%;height:640px;border:1px solid black;overflow:auto;">
+</iframe>
+</div>
 
-            <p>
-            I'll eventually create a GUI version of the custom collector build.  But for now
-            the process is command line only.
-            </p>
-
-            </TD></TR></TABLE>
-          </td></tr></table>
-    </div>
-
-  </td>
+</td>
 </tr>
 </table>
 
 </body>
-
 </html>
