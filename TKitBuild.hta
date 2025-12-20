@@ -119,6 +119,16 @@ function BrowseForFolder(DirToBrowse)
 // Build New AChoirX Collector for Windows
 function TkitWin(Bits)
 {
+  // Validate required fields
+  if (!Tkit1Dir.value || !Tkit1Nam.value)
+  {
+    alert("ERROR: All fields must be filled in before building.\n\n" +
+          "Please specify:\n" +
+          "- Toolkit Files Path\n" +
+          "- New Collector Name");
+    return;
+  }
+
   var ScrName = " /ini:Scripts\\TKitBuild.ACQ";
   var ScrBits = "A-AChoirX.exe";
   
