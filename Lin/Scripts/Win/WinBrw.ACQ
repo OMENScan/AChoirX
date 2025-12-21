@@ -6,4 +6,81 @@ CKY:&Dir\SYS\BrowsingHistoryView.exe
  ACQ:\Brw
  EXE:\SYS\BrowsingHistoryView.exe /scomma &Acq\BrowseHist.csv
  EXE:\SYS\BrowsingHistoryView.exe /shtml &Acq\BrowseHist.htm
+ EXE:\SYS\BrowserDownloadsView.exe /scomma &Acq\BrowseDown.csv
+ EXE:\SYS\BrowserDownloadsView.exe /shtml &Acq\BrowseDown.htm
+END:
+*==============================================================*
+* Raw Comprehensive Browser and User Artifact Collection       *
+*==============================================================*
+CKN:&Dir\SYS\BrowsingHistoryView.exe
+ SAY:[+] Raw Browser Artifact Collection
+ *********************
+ * DPAPI master keys *
+ *********************
+ SAY:[+] Collecting DPAPI Master Keys
+ ACQ:\Brw\DPAPI
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Protect\**" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Protect\*\*" "&ACQ"
+ ********************
+ * IE / Legacy Edge *
+ ********************
+ SAY:[+] Collecting Multiple Browser Artifacts
+ ACQ:\Brw\IE
+ NCP:"C:\users\*\AppData\Local\Microsoft\Windows\WebCache\WebCacheV01.dat" "&ACQ"
+ *===================================================================*
+ * CHROMIUM-BASED BROWSERS (Chrome / Edge / Brave / Opera / Vivaldi) *
+ *===================================================================*
+ SAY:[+] Collecting Chromium-based browser artifacts (Chrome, Edge, Brave)
+ ACQ:\Brw\Chrome
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\Google\Chrome\User Data\*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\Google\Chrome\User Data\default\*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\Google\Chrome\User Data\*\History*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\Google\Chrome\User Data\*\*\Cookies*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\Google\Chrome\User Data\*\Login Data*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\Google\Chrome\User Data\*\Web Data*" "&ACQ"
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Local\Google\Chrome\User Data\*\Bookmarks*" "&ACQ"
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Local\Google\Chrome\User Data\*\Preferences*" "&ACQ"
+ *===================================================================*
+ * Edge (Chromium)                                                   *
+ *===================================================================*
+ ACQ:\Brw\Edge
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\Microsoft\Edge\User Data\*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\Microsoft\Edge\User Data\Default\*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\Microsoft\Edge\User Data\*\History*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\Microsoft\Edge\User Data\*\*\Cookies*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\Microsoft\Edge\User Data\*\Login Data*" "&ACQ"
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Local\Microsoft\Edge\User Data\*\Bookmarks*" "&ACQ"
+ *===================================================================*
+ * Brave                                                             *
+ *===================================================================*
+ ACQ:\Brw\Brave
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\BraveSoftware\Brave-Browser\User Data\*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\BraveSoftware\Brave-Browser\User Data\Default\*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\BraveSoftware\Brave-Browser\User Data\*\History*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\BraveSoftware\Brave-Browser\User Data\*\*\Cookies*" "&ACQ"
+ NCP:"${SYSTEMDRIVE}\Users\*\AppData\Local\BraveSoftware\Brave-Browser\User Data\*\Login Data*" "&ACQ"
+ *===================================================================*
+ * Opera                                                             *
+ *===================================================================*
+ SAY:[+] Collecting Opera browser artifacts
+ ACQ:\Brw\Opera
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Opera Software\Opera Stable\*" "&ACQ"
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Opera Software\Opera Stable\Network\*" "&ACQ"
+ *===================================================================*
+ * Vivaldi                                                           *
+ *===================================================================*
+ SAY:[+] Collecting Vivaldo browser artifacts
+ ACQ:\Brw\Vivaldi
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Local\Vivaldi\User Data\Default\*" "&ACQ"
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Local\Vivaldi\User Data\Default\Network\*" "&ACQ"
+ *===================================================================*
+ * FIREFOX                                                           *
+ *===================================================================*
+ SAY:[+] Collecting Firefox browser artifacts
+ ACQ:\Brw\Firefox
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*" "&ACQ"
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*.default-release\*" "&ACQ"
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Mozilla\Firefox\Profiles\*.default-release\sessionstore-backups\*" "&ACQ"
+ CPY:"${SYSTEMDRIVE}\Users\*\AppData\Local\Mozilla\Firefox\Profiles\*.default-release\cache2\*" "&ACQ"
+ SAY:[+] Browser artifact collection complete
 END:
