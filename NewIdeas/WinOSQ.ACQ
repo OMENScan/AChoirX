@@ -1,0 +1,45 @@
+
+osqueryi --csv --separator "," "SELECT lp.port, lp.protocol, lp.address, p.pid, p.name, p.path FROM listening_ports lp JOIN processes p ON lp.pid = p.pid ORDER BY lp.port;"
+
+
+*******************************************************
+* OSQueryi - Cross-Platform Examples                  *
+*******************************************************
+SET:CopyPath=Part
+SAY:[+] Running OSQuery SQL Commands
+ACQ:OSQuery
+Ver:Windows
+ EXE:.\SYS\osqueryi.exe --csv --separator "," "SELECT lp.port, lp.protocol, lp.address, p.pid, p.name, p.path FROM listening_ports lp JOIN processes p ON lp.pid = p.pid ORDER BY lp.port;" --exestdout=&acn\OSQuery\Network.csv
+ EXE:.\SYS\osqueryi.exe --csv --separator "," "SELECT * FROM users;" --exestdout=&acn\OSQuery\Users.csv
+ EXE:.\SYS\osqueryi.exe --csv --separator "," "SELECT * FROM logged_in_users;" --exestdout=&acn\OSQuery\LoggedIn.csv
+ EXE:.\SYS\osqueryi.exe --csv --separator "," "SELECT * FROM processes;" --exestdout=&acn\OSQuery\Process.csv
+ EXE:.\SYS\osqueryi.exe --csv --separator "," "SELECT * FROM system_info;" --exestdout=&acn\OSQuery\SysInfo.csv
+ EXE:.\SYS\osqueryi.exe --csv --separator "," "SELECT * FROM autoexec;" --exestdout=&acn\OSQuery\AutoExec.csv
+ EXE:.\SYS\osqueryi.exe --csv --separator "," "SELECT * FROM scheduled_tasks;" --exestdout=&acn\OSQuery\SchedTsk.csv
+ EXE:.\SYS\osqueryi.exe --csv --separator "," "SELECT * FROM services;" --exestdout=&acn\OSQuery\Services.csv
+ EXE:.\SYS\osqueryi.exe --csv --separator "," "SELECT * FROM shared_resources;" --exestdout=&acn\OSQuery\Shared.csv
+ EXE:.\SYS\osqueryi.exe --csv --separator "," "SELECT * FROM userassist;" --exestdout=&acn\OSQuery\UserAssist.csv
+ EXE:.\SYS\osqueryi.exe --csv --separator "," "SELECT * FROM windows_update_history;" --exestdout=&acn\OSQuery\Updates.csv
+END:
+Ver:Linux
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT lp.port, lp.protocol, lp.address, p.pid, p.name, p.path FROM listening_ports lp JOIN processes p ON lp.pid = p.pid ORDER BY lp.port;" --exestdout=&acn/OSQuery/Network.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM users;" --exestdout=&acn/OSQuery/Users.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM logged_in_users;" --exestdout=&acn/OSQuery/LoggedIn.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM processes;" --exestdout=&acn/OSQuery/Process.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM system_info;" --exestdout=&acn/OSQuery/SysInfo.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM last;" --exestdout=&acn/OSQuery/Logins.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM process_open_files;" --exestdout=&acn/OSQuery/OpenFiles.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM process_open_pipes;" --exestdout=&acn/OSQuery/OpenPipes.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM usb_devices;" --exestdout=&acn/OSQuery/USBDevices.csv
+END:
+Ver:OSX
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT lp.port, lp.protocol, lp.address, p.pid, p.name, p.path FROM listening_ports lp JOIN processes p ON lp.pid = p.pid ORDER BY lp.port;" --exestdout=&acn/OSQuery/Network.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM users;" --exestdout=&acn/OSQuery/Users.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM logged_in_users;" --exestdout=&acn/OSQuery/LoggedIn.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM processes;" --exestdout=&acn/OSQuery/Process.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM system_info;" --exestdout=&acn/OSQuery/SysInfo.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM last;" --exestdout=&acn/OSQuery/Logins.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM package_install_history;" --exestdout=&acn/OSQuery/InstallHist.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM process_open_files;" --exestdout=&acn/OSQuery/OpenFiles.csv
+ EXE:./SYS/osqueryi --csv --separator "," "SELECT * FROM usb_devices;" --exestdout=&acn/OSQuery/USBDevices.csv
+END:
