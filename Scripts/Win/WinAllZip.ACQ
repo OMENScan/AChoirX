@@ -60,3 +60,7 @@ INC:Scripts\Win\WinWMIZip.ACQ
 * PCA Files                                           *
 *******************************************************
 INC:Scripts\Win\WinPCAZip.ACQ
+*******************************************************
+* Un-Comment the OSQuery Script for OSQ Artifacts     *
+*******************************************************
+* INC:Scripts/Common/XPlatOSQZip.ACQ

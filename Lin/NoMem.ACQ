@@ -115,6 +115,10 @@ Ver:OSX
  SAY:[+] Gathering Services Information...
  ACQ:/Sys
  SYS:launchctl list --exestdout=&acn/Sys/Services.dat
+ *******************************************************
+ * Un-Comment the OSQuery Script for OSQ Artifacts     *
+ *******************************************************
+ * INC:Scripts/Common/XPlatOSQ.ACQ
  SAY:[+] Gathering User Information...
  ACQ:/UserInfo
  SYS:whoami --exestdout=&acn/UserInfo/Whoami.dat

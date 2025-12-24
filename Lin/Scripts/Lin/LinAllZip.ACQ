@@ -40,3 +40,7 @@ INC:Scripts/Lin/LinSvcZip.ACQ
 * Linux User Home Artifacts                           *
 *******************************************************
 INC:Scripts/Lin/LinHomZip.ACQ
+*******************************************************
+* Un-Comment the OSQuery Script for OSQ Artifacts     *
+*******************************************************
+* INC:Scripts/Common/XPlatOSQZip.ACQ

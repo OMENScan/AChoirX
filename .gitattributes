@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+*.exe filter=lfs diff=lfs merge=lfs -text
+Lin/SYS/osqueryi filter=lfs diff=lfs merge=lfs -text
+OSX/SYS/osqueryi filter=lfs diff=lfs merge=lfs -text
+OSX/SYS/ARM/osqueryi filter=lfs diff=lfs merge=lfs -text

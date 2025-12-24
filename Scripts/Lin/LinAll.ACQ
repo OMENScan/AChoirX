@@ -40,3 +40,7 @@ INC:Scripts/Lin/LinSvc.ACQ
 * Linux User Home Artifacts                           *
 *******************************************************
 INC:Scripts/Lin/LinHom.ACQ
+*******************************************************
+* Un-Comment the OSQuery Script for OSQ Artifacts     *
+*******************************************************
+* INC:Scripts/Common/XPlatOSQ.ACQ

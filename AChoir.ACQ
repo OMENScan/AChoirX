@@ -117,6 +117,10 @@ Ver:OSX
  ACQ:/UserInfo
  SYS:whoami --exestdout=&acn/UserInfo/Whoami.dat
  SYS:logname --exestdout=&acn/UserInfo/Logname.dat
+ *******************************************************
+ * Un-Comment the OSQuery Script for OSQ Artifacts     *
+ *******************************************************
+ * INC:Scripts/Common/XPlatOSQ.ACQ
  SAY:[+] Gathering Current User Config Files...
  ACQ:/Home
  * CPY:/Users/**/.* &Acq
