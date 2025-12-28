@@ -262,6 +262,9 @@
 // AChoirX v10.01.78 - Release 1.78 - Change behavior of Doubleglob(**) to preserve relative paths on 
 //                     Multi-Copy and Multi-upload
 //
+// AChoirX v10.01.79 - Release 1.79 - Fix unpredictable Packed/Embedded toolkit behavior - Appeared when
+//                     updating GO and libraries, and compiling an updated version of the same code.
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -333,7 +336,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.78"                       // AChoir Version
+var Version = "v10.01.79"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -7256,8 +7259,7 @@ func PackExecutable(baseExe string, zipFile string, outputExe string) error {
 
 
 //***************************************************************************
-// UnEmbedAppendedToMemory: Detect appended ZIP and return its bytes        *
-// for in-memory extraction (same style as embdata)                         *
+// UnEmbedAppendedToMemory: Detect /PKR: appended ZIP safely                *
 //***************************************************************************
 func UnEmbedAppendedToMemory() ([]byte, error) {
 
@@ -7276,20 +7278,25 @@ func UnEmbedAppendedToMemory() ([]byte, error) {
         return nil, err
     }
 
-    // Magic marker used by PackExecutable()
-    ZipMagic := []byte("ACHOIRX_ZIP_START")
-
-    idx := bytes.LastIndex(data, ZipMagic)
-    if idx == -1 {
+    // Validate that the executable ends with a real ZIP
+    zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+    if err != nil {
+        ConsOut = "[!] No Valid appended Zip File found.\n"
+        ConsLogSys(ConsOut, 1, 1)
         return nil, nil // no appended ZIP
     }
 
-    zipBytes := data[idx+len(ZipMagic):]
-    if len(zipBytes) == 0 {
-        return nil, fmt.Errorf("Zip marker found but no zip data present")
+    if len(zr.File) == 0 {
+        ConsOut = "[!] Error: Appended Zip File has 0 Bytes.\n"
+        ConsLogSys(ConsOut, 1, 1)
+        return nil, nil
     }
 
-    return zipBytes, nil
+    // At this point we KNOW a valid ZIP exists at EOF.
+    // Return the entire executable tail and let unzip logic handle it.
+    ConsOut = "[+] Appended (Packed) Zip File Found!\n"
+    ConsLogSys(ConsOut, 1, 1)
+    return data, nil
 }
 
 

@@ -25,7 +25,7 @@ VER:Windows
  * Run Cleanup ONLY if AChCleanr.exe is in root dir    *
  *******************************************************
  CKY:AChCleanr.exe
-  XIT:AChCleanr.exe /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
+  XIT:.\AChCleanr.exe /INI:AChCleanr.ACQ /EXE:&MyE /ACN:&Acn
  END:
  JMP:AllDun
 END:
@@ -117,6 +117,10 @@ Ver:OSX
  ACQ:/UserInfo
  SYS:whoami --exestdout=&acn/UserInfo/Whoami.dat
  SYS:logname --exestdout=&acn/UserInfo/Logname.dat
+ *******************************************************
+ * Un-Comment the OSQuery Script for OSQ Artifacts     *
+ *******************************************************
+ * INC:Scripts/Common/XPlatOSQ.ACQ
  SAY:[+] Gathering Current User Config Files...
  ACQ:/Home
  * CPY:/Users/**/.* &Acq

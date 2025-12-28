@@ -45,7 +45,7 @@ VER:Windows
  * Run Cleanup ONLY if AChCleanr.exe is in root dir    *
  *******************************************************
  CKY:AChCleanr.exe
-  XIT:AChCleanr.exe /INI:AChCleanz.ACQ /EXE:&MyE /ACN:&Acn
+  XIT:.\AChCleanr.exe /INI:AChCleanz.ACQ /EXE:&MyE /ACN:&Acn
  END:
  JMP:AllDun
 END:

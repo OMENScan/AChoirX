@@ -22,21 +22,23 @@ VER:Windows
  * Wrap Up                                             *
  *******************************************************
  SAY:[+] Acquisition Complete...
- SAY:[+] Now Hashing Artifacts...
- HSH:ACQ
  SAY:[+] Zipping Final Collection Files ...
  ACQ:\
  SET:ZipFileRoot=
  FOR:&Acq\Ranprog\*
  ZIP:&For
- ZIP:&Dir\Logs\&Acn.log
- ZIP:&Acq\ACQHash.txt
+ ZIP:&Dir\Logs\&Acn.Log
  SET:ZipFileName=close
+ *******************************************************
+ * Hash before upload and cleanup                      *
+ *******************************************************
+ SAY:[+] Now Hashing Artifacts...
+ HSH:ACQ
  *******************************************************
  * Run Cleanup ONLY if AChCleanr.exe is in root dir    *
  *******************************************************
  CKY:AChCleanr.exe
-  XIT:AChCleanr.exe /INI:AChCleanz.ACQ /EXE:&MyE /ACN:&Acn
+  XIT:.\AChCleanr.exe /INI:AChCleanz.ACQ /EXE:&MyE /ACN:&Acn
  END:
  JMP:AllDun
 END:
@@ -57,10 +59,6 @@ Ver:Linux
  *******************************************************
  INC:Scripts/Lin/LinAllZip.ACQ
  *******************************************************
- * Hash Everything                                     *
- *******************************************************
- HSH:ACQ
- *******************************************************
  * Wrap Up                                             *
  *******************************************************
  SAY:[+] Finalizing Zipped Evidence...
@@ -68,8 +66,13 @@ Ver:Linux
  FOR:&Acq/**/*
  SET:ZipFileRoot=AChoirX
  ZIP:&For
- ZIP:&Dir/Logs/&Acn.log
+ ZIP:&Dir/Logs/&Acn.Log
  SET:ZipFileName=close
+ *******************************************************
+ * Hash before upload and cleanup                      *
+ *******************************************************
+ SAY:[+] Now Hashing Artifacts...
+ HSH:ACQ
  *******************************************************
  * Run Cleanup ONLY if AChCleanr.exe is in root dir    *
  *******************************************************
@@ -155,7 +158,6 @@ Ver:OSX
  SYS:logname --exestdout=&acn/UserInfo/Logname.dat
  * ACQ:/Home
  * CPY:/users/**/.* &Acq
- HSH:ACQ
  *************************************************
  * Filter for /Users/Documents                   *
  *************************************************
@@ -184,8 +186,13 @@ Ver:OSX
  *******************************************************
  * Last Zip - LogFile.  Then Close                     *
  *******************************************************
- ZIP:&Dir/Logs/&Acn.log
+ ZIP:&Dir/Logs/&Acn.Log
  SET:ZipFileName=close
+ *******************************************************
+ * Hash before upload and cleanup                      *
+ *******************************************************
+ SAY:[+] Now Hashing Artifacts...
+ HSH:ACQ
  *******************************************************
  * Run Cleanup ONLY if AChCleanr.exe is in root dir    *
  *******************************************************

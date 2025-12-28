@@ -1,4 +1,4 @@
-AChoirX - v10.01.75 - Release 1.75
+AChoirX - v10.01.79 - Release 1.79
 
 AChoirX
 =======

@@ -201,3 +201,5 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 12/13/2025 - AChoirX v10.01.77 - Release 1.77 - Do not allow multiple Toolkits to be embedded. A security feature to help prevent abuse of AChoirX toolkit embedding.
 
 12/14/2025 - AChoirX v10.01.78 - Release 1.78 - Preserve relative paths when copying/uploading files using double-globbing.
+
+12/27/2025 - AChoirX v10.01.79 - Release 1.79 - Fix unpredictable Packed/Embedded toolkit behavior - Appeared when updating GO and libraries, and compiling an updated version of the same code.

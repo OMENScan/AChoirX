@@ -1,37 +1,38 @@
 @Echo off
 Echo [+] Deleteting Old Versions
-Del AChASEP.exe
-Del AChDBox.exe
-Del AChWinFull.exe
-Del AChIISLogs.exe
-Del AChWinMSF.exe
-Del AChWinVolLoki.exe
-Del AChWinYara.exe
+Del A-AChoirX_PKR.exe
+Del AChASEP\AChASEP.exe
+Del AChDBox\AChDBox.exe
+Del AChWinFull\AChWinFull.exe
+Del AChIISLogs\AChIISLogs.exe
+Del Win-MSF\AChWinMSF.exe
+Del Win-VolLoki\AChWinVolLoki.exe
+Del Win-Yara\AChWinYara.exe
 Echo.
 Echo [+] Building AChASEP Tool
-A-AChoirX.exe /PKR:AChASEP.zip
-Rename A-AChoirx_PKR.exe AChASEP.exe
+A-AChoirX.exe /PKR:AChASEP\AChASEP.zip
+Move A-AChoirx_PKR.exe AChASEP\AChASEP.exe
 Echo.
 Echo [+] Building AChDBox Tool
-A-AChoirX.exe /PKR:AChDBox.zip
-Rename A-AChoirx_PKR.exe AChDBox.exe
+A-AChoirX.exe /PKR:AChDBox\AChDBox.zip
+Move A-AChoirx_PKR.exe AChDBox\AChDBox.exe
 Echo.
 Echo [+] Building AChWinFull Tool
-A-AChoirX.exe /PKR:AChWinFull.zip
-Rename A-AChoirx_PKR.exe AChWinFull.exe
+A-AChoirX.exe /PKR:AChWinFull\AChWinFull.zip
+Move A-AChoirx_PKR.exe AChWinFull\AChWinFull.exe
 Echo.
 Echo [+] Building AChIISLogs Tool
-A-AChoirX.exe /PKR:AChIISLogs.zip
-Rename A-AChoirx_PKR.exe AChIISLogs.exe
+A-AChoirX.exe /PKR:AChIISLogs\AChIISLogs.zip
+Move A-AChoirx_PKR.exe AChIISLogs\AChIISLogs.exe
 Echo.
 Echo [+] Building AChWinMSF Tool
-A-AChoirX.exe /PKR:AChWinMSF.zip
-Rename A-AChoirx_PKR.exe AChWinMSF.exe
+A-AChoirX.exe /PKR:Win-MSF\AChWinMSF.zip
+Move A-AChoirx_PKR.exe Win-MSF\AChWinMSF.exe
 Echo.
 Echo [+] Building AChWinVolLoki Tool
-A-AChoirX.exe /PKR:AChWinVolLoki.zip
-Rename A-AChoirx_PKR.exe AChWinVolLoki.exe
+A-AChoirX.exe /PKR:Win-Voloki\AChWinVolLoki.zip
+Move A-AChoirx_PKR.exe Win-VoLoki\AChWinVolLoki.exe
 Echo.
 Echo [+] Building AChWinYara Tool
-A-AChoirX.exe /PKR:AChWinYara.zip
-Rename A-AChoirx_PKR.exe AChWinYara.exe
+A-AChoirX.exe /PKR:Win-Yara\AChWinYara.zip
+Move A-AChoirx_PKR.exe Win-Yara\AChWinYara.exe
