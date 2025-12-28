@@ -203,3 +203,5 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 12/14/2025 - AChoirX v10.01.78 - Release 1.78 - Preserve relative paths when copying/uploading files using double-globbing.
 
 12/27/2025 - AChoirX v10.01.79 - Release 1.79 - Fix unpredictable Packed/Embedded toolkit behavior - Appeared when updating GO and libraries, and compiling an updated version of the same code.
+
+12/28/2025 - AChoirX v10.01.80 - Release 1.80 - Tighten up and improve Packed/Embedded toolkit behavior.

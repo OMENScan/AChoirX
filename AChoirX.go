@@ -265,6 +265,8 @@
 // AChoirX v10.01.79 - Release 1.79 - Fix unpredictable Packed/Embedded toolkit behavior - Appeared when
 //                     updating GO and libraries, and compiling an updated version of the same code.
 //
+// AChoirX v10.01.80 - Release 1.80 - Tighten up and improve Packed/Embedded toolkit behavior.
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -306,6 +308,7 @@ import (
     "encoding/base64"
     "archive/zip"
     "bytes"
+    "encoding/binary"
     "regexp"
     "runtime"
     "net"
@@ -336,7 +339,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.79"                       // AChoir Version
+var Version = "v10.01.80"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -7259,7 +7262,7 @@ func PackExecutable(baseExe string, zipFile string, outputExe string) error {
 
 
 //***************************************************************************
-// UnEmbedAppendedToMemory: Detect /PKR: appended ZIP safely                *
+// UnEmbedAppendedToMemory: EOCD-based detection of /PKR appended ZIP       *
 //***************************************************************************
 func UnEmbedAppendedToMemory() ([]byte, error) {
 
@@ -7278,25 +7281,73 @@ func UnEmbedAppendedToMemory() ([]byte, error) {
         return nil, err
     }
 
-    // Validate that the executable ends with a real ZIP
-    zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
-    if err != nil {
-        ConsOut = "[!] No Valid appended Zip File found.\n"
-        ConsLogSys(ConsOut, 1, 1)
-        return nil, nil // no appended ZIP
+    const (
+        eocdSig        = "\x50\x4b\x05\x06" // PK\x05\x06
+        maxEOCDSearch  = 1024 * 64          // ZIP spec limit
+    )
+
+    // Limit backward search window
+    start := len(data) - maxEOCDSearch
+    if start < 0 {
+        start = 0
     }
 
-    if len(zr.File) == 0 {
-        ConsOut = "[!] Error: Appended Zip File has 0 Bytes.\n"
+    eocdOffset := -1
+    for i := len(data) - 22; i >= start; i-- {
+        if bytes.Equal(data[i:i+4], []byte(eocdSig)) {
+            eocdOffset = i
+            break
+        }
+    }
+
+    if eocdOffset == -1 {
+        ConsOut = "[*] No valid appended Zip File found.\n"
+        ConsLogSys(ConsOut, 1, 1)
+        return nil, nil // No appended ZIP
+    }
+
+    // Validate EOCD comment length
+    if eocdOffset+22 > len(data) {
+        return nil, nil
+    }
+
+    commentLen := int(binary.LittleEndian.Uint16(data[eocdOffset+20 : eocdOffset+22]))
+    if eocdOffset+22+commentLen != len(data) {
+        ConsOut = "[*] Non PKR Zip file: EOCD found - But not at EOF. Ignoring...\n"
+        ConsLogSys(ConsOut, 1, 1)
+        return nil, nil // EOCD not at EOF
+    }
+
+    // Locate magic marker
+    zipMagic := []byte("ACHOIRX_ZIP_START")
+    magicOffset := bytes.LastIndex(data[:eocdOffset], zipMagic)
+    if magicOffset == -1 {
+        ConsOut = "[!] Appended Zip Found, but it wasnt created by AChoirX PKR. Bypassing...\n"
+        ConsLogSys(ConsOut, 1, 1)
+        return nil, nil // ZIP exists but not ours
+    }
+
+    zipStart := magicOffset + len(zipMagic)
+    if zipStart >= eocdOffset {
+        ConsOut = "[*] Erroneous PKR Zip Marker found. Ignoring...\n"
         ConsLogSys(ConsOut, 1, 1)
         return nil, nil
     }
 
-    // At this point we KNOW a valid ZIP exists at EOF.
-    // Return the entire executable tail and let unzip logic handle it.
-    ConsOut = "[+] Appended (Packed) Zip File Found!\n"
+    zipBytes := data[zipStart:]
+
+    // Final validation: ZIP must be readable
+    zr, err := zip.NewReader(bytes.NewReader(zipBytes), int64(len(zipBytes)))
+    if err != nil || len(zr.File) == 0 {
+        ConsOut = "[!] Invalid Zip format encountered - I can't unzip it. Bypassing...\n"
+        ConsLogSys(ConsOut, 1, 1)
+        return nil, nil
+    }
+
+    ConsOut = "[+] Valid /PKR appended ZIP detected.\n"
     ConsLogSys(ConsOut, 1, 1)
-    return data, nil
+
+    return zipBytes, nil
 }
 
 
