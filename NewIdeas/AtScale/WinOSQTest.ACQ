@@ -61,4 +61,13 @@ EXE:.\osqueryi.exe --csv --separator "," "SELECT datetime,'AV detection event' A
 
 SAY:[+] Common File Directories
 ACQ:\OSQF
-SYS:powershell.exe -NoProfile -Command "$dirs='C:\Users','C:\ProgramData','C:\Program Files','C:\Program Files (x86)','C:\Windows\System32','C:\Windows\Temp','C:\Windows\SysWOW64','C:\Recovery','C:\$Recycle.Bin'; $dirs | ForEach-Object {Get-ChildItem $_ -Recurse -Force -ErrorAction SilentlyContinue} | Select-Object @{Name='datetime';Expression={$_.CreationTimeUtc}},@{Name='timestamp_desc';Expression={'File created'}},@{Name='full_path';Expression={$_.FullName}},@{Name='last_write_time';Expression={$_.LastWriteTimeUtc}},@{Name='last_access_time';Expression={$_.LastAccessTimeUtc}},@{Name='size';Expression={$_.Length}},@{Name='artifact';Expression={'filesystem'}},@{Name='message';Expression={'File ' + $_.FullName + ' observed, size ' + $_.Length}} | ConvertTo-Csv -NoTypeInformation" --exestdout=&ACN\OSQF\ts_file_all.csv
+* SYS:powershell.exe -NoProfile -Command "$dirs='C:\Users','C:\ProgramData','C:\Program Files','C:\Program Files (x86)','C:\Windows\System32','C:\Windows\Temp','C:\Windows\SysWOW64','C:\Recovery','C:\$Recycle.Bin'; $dirs | ForEach-Object {Get-ChildItem $_ -Recurse -Force -ErrorAction SilentlyContinue} | Select-Object @{Name='datetime';Expression={$_.CreationTimeUtc}},@{Name='timestamp_desc';Expression={'File created'}},@{Name='full_path';Expression={$_.FullName}},@{Name='last_write_time';Expression={$_.LastWriteTimeUtc}},@{Name='last_access_time';Expression={$_.LastAccessTimeUtc}},@{Name='size';Expression={$_.Length}},@{Name='artifact';Expression={'filesystem'}},@{Name='message';Expression={'File ' + $_.FullName + ' observed, size ' + $_.Length}} | ConvertTo-Csv -NoTypeInformation" --exestdout=&ACN\OSQF\ts_file_all.csv
+FLS:"C:\Users\**\*" "&ACQ\FLSOut.csv"
+FLS:"C:\ProgramData\**\*" "&ACQ\FLSOut.csv"
+FLS:"C:\Program Files\**\*" "&ACQ\FLSOut.csv"
+FLS:"C:\Program Files (x86)\**\*" "&ACQ\FLSOut.csv"
+FLS:"C:\Windows\System32\**\*" "&ACQ\FLSOut.csv"
+FLS:"C:\Windows\Temp\**\*" "&ACQ\FLSOut.csv"
+FLS:"C:\Windows\SysWOW64\**\*" "&ACQ\FLSOut.csv"
+FLS:"C:\Recovery\**\*" "&ACQ\FLSOut.csv"
+FLS:"C:\$Recycle.Bin\**\*" "&ACQ\FLSOut.csv"
