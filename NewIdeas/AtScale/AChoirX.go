@@ -3573,10 +3573,23 @@ func main() {
                                 continue
                             }
 
-
                             FLSFileSize := FLSInfo.Size()
                             FLSATime, FLSMTime, FLSCTime := FTime(Filrec)
-                            csvWr.Write([]string{Filrec, FLSATime.UTC().Format(time.RFC3339), FLSMTime.UTC().Format(time.RFC3339), FLSCTime.UTC().Format(time.RFC3339), strconv.FormatInt(FLSFileSize, 10)})
+
+                            if flsw_err := csvWr.Write([]string{
+                                Filrec, FLSATime.UTC().Format(time.RFC3339), FLSMTime.UTC().Format(time.RFC3339), 
+                                FLSCTime.UTC().Format(time.RFC3339), strconv.FormatInt(FLSFileSize, 10),
+                            }); flsw_err != nil {
+                                ConsOut = fmt.Sprintf("[!] FLS could not write output CSV: %s\n", FLSFile)
+                                ConsLogSys(ConsOut, 1, 1)
+                            }
+                        }
+
+                        // Need to Flush on Linux or risk an empty CSV - Windows seems more forgiving
+                        csvWr.Flush()
+                        if flush_err := csvWr.Error(); flush_err != nil {
+                            ConsOut = fmt.Sprintf("[!] FLS could not flush output CSV: %v\n", flush_err)
+                            ConsLogSys(ConsOut, 1, 1)
                         }
 
                         ConsOut = fmt.Sprintf("[+] FLS: processing completed: %s\n", FLSFile)
