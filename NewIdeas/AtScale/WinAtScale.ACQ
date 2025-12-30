@@ -126,28 +126,21 @@ VER:Windows
  HSH:ACQ
  SAY:[+] Zipping Final Collection Files ...
  ACQ:\
- SET:ZipFileRoot=OSQ
+ SET:ZipFileRoot=
  FOR:&Acq\OSQ\**\*
  ZIP:&For
- SET:ZipFileRoot=FLS
  FOR:&Acq\FLS\**\*
  ZIP:&For
- SET:ZipFileRoot=Disk
  FOR:&Acq\Disk\**\*
  ZIP:&For
- SET:ZipFileRoot=ASEP
  FOR:&Acq\ASEP\**\*
  ZIP:&For
- SET:ZipFileRoot=PSH
  FOR:&Acq\PSH\**\*
  ZIP:&For
- SET:ZipFileRoot=LNK
  FOR:&Acq\LNK\**\*
  ZIP:&For
- SET:ZipFileRoot=WMI
  FOR:&Acq\WMI\**\*
  ZIP:&For
- SET:ZipFileRoot=PCA
  FOR:&Acq\PCA\**\*
  ZIP:&For
  ZIP:&Dir\Logs\&Acn.log
