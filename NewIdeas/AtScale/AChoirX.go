@@ -3594,6 +3594,8 @@ func main() {
 
                         ConsOut = fmt.Sprintf("[+] FLS: processing completed: %s\n", FLSFile)
                         ConsLogSys(ConsOut, 1, 1)
+
+                        csvHndl.Close()
                     }
 
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "DEL:") {
