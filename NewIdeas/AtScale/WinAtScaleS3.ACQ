@@ -1,6 +1,10 @@
 *******************************************************
-* WinAtScale - Reference implementation - Alpha 1     *
+* WinAtScaleS3 - Reference implementation - Alpha 1   *
 *  Version 0.01 - 12/30/2025 - Windows Only           *
+* - /VR0 = S3 Bucket                                  *
+* - /VR1 = S3 Region                                  *
+* - /VR2 = S3 AWS ID                                  *
+* - /VR3 = S3 Secret Key                              *
 *******************************************************
 SET:CopyPath=Part
 SAY:[+] AChoir will pull artifacts and telemetry of forensic value for investigation.
@@ -146,6 +150,10 @@ VER:Windows
  ZIP:&Dir\Logs\&Acn.log
  ZIP:&Acq\ACQHash.txt
  SET:ZipFileName=close
+ *******************************************************
+ * Upload to S3                                        *
+ *******************************************************
+ INC:Scripts/Common/ZipS3Upl.ACQ
  *******************************************************
  * Clean Up                                            *
  *******************************************************
