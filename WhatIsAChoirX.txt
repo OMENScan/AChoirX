@@ -1,4 +1,4 @@
-AChoirX - v10.01.79 - Release 1.79
+AChoirX - v10.01.81 - Release 1.81
 
 AChoirX
 =======
@@ -150,6 +150,7 @@ SET:S3Region=<AWS Region> The region that the AWS S3 Bucket is in
 SET:S3Bucket=<AWS Bucket> The AWS Bucket Name
 SET:S3AWSId=<AWS ID> The AWS ID
 SET:S3AWSKey=<AWS Key> The AWS Secret Key
+SET:S3ENDPOINT=<Endpoint URL and Port> Used if you are emulating S3 Locally using LocalStack
 SET:SyslogT=<UDP | TCP> Sets the Syslog Protocol Type.
 SET:SyslogL=<syslogging Level> Sets the Syslog Level.
                 Options are: none, min, max
@@ -332,6 +333,12 @@ DEL:<File To Delete> - Delete Files (Accepts WildCards)
          Only Files in Subdirectories (Off of The AChoirX Root) can be 
          deleted. This is to prevent accidental Deletion of files not 
          related to the acquisition or toolkit
+FLS:<File or Directory> <Output File Name> List Files or Directory Metadata
+         Supports Wildcard. Important Note: FLS: WILL RECURSE THROUGH
+         SUBDIRECTORIES ONLY IF A WILDCARD IS USED. Used at-scale to list 
+         files & directories instead of grabbing the whole $MFT or listing
+         from the root. Using the same output file for multiple searches 
+         appends to that file.
 CLN:<AChoirX Sub-Directory to Clean and Delete>
          Cleans and Deletes all files and Subdirectories in the specified
          subdirectory (Off of The AChoirX Root). Only Files/Subdirectories
