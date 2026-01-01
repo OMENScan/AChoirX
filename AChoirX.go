@@ -267,6 +267,9 @@
 //
 // AChoirX v10.01.80 - Release 1.80 - Tighten up and improve Packed/Embedded toolkit behavior.
 //
+// AChoirX v10.01.81 - Release 1.81 - Add FLS: Function for listing file metadata (At-Scale processing)
+//                   - Add S3_ENDPOINT for Localstack S3 Testing (Blank == Real AWS)
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -339,7 +342,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.80"                       // AChoir Version
+var Version = "v10.01.81"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -451,7 +454,7 @@ var Getrec = "Get Record"                       // Used by HTTP Get: Routines
 var Filrec = "File Record"                      // File Record 
 var Fltrec = "Filter Record"                    // Filter Record 
 var Lstrec = "List Record"                      // List Record 
-var Dskrec = "Disk Record"                      // Disk Record 
+var Dskrec = "Disk Record"                      // Disk Record
 var Inprec = "Console Input"                    // Console Input Record 
 var o32VarRec = "32 bit Variables"              // 32 Bit Variable Expansion Record
 var o64VarRec = "64 bit Variables"              // 64 Bit Variable Expansion Record
@@ -477,6 +480,7 @@ var S3_REGION = "none"                          // AWS Region
 var S3_BUCKET = "none"                          // AWS Bucket
 var S3_AWSId = "none"                           // AWS ID
 var S3_AWSKey = "none"                          // AWS Secret Key
+var S3_ENDPOINT = ""                            // Change Endpoint to allow Local S3 emulation
 var S3_Session *session.Session                 // AWS Session
 var S3_AWS_SplitRC = 0                          // AWS Split Return Code
 var iS3Login = 0                                // Default is NOT logged in
@@ -551,6 +555,7 @@ var WGetFile = "C:\\AChoir\\Download.dat"       // Downloaded WGet File
 var LstFile = "C:\\AChoir\\Data.Lst"            // List of Data
 var ChkFile = "C:\\AChoir\\Data.Chk"            // Check For File Existence
 var MD5File = "C:\\AChoir\\Hash.txt"            // Saved Hashes
+var FLSFile = "C:\\AChoir\\FLSOut.csv"          // FLS File List
 var BACQDir = "C:\\AChoir"                      // Base Acquisition Directory
 var BaseDir = "C:\\AChoir"                      // Base Directory
 var CurrWorkDir = "C:\\AChoir"                  // Current Workin Directory
@@ -3452,10 +3457,30 @@ func main() {
                         ConsOut = fmt.Sprintf("[!] Bypassing Drive and Memory Routines - We are not running on Windows\n")
                         ConsLogSys(ConsOut, 1, 1)
                     }
-                } else if strings.HasPrefix(strings.ToUpper(Inrec), "FOR:") {
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "FOR:") || strings.HasPrefix(strings.ToUpper(Inrec), "FLS:") {
+                    isFLS := false
+
                     ExpandDirs(CachDir)
                     ForFile = fmt.Sprintf("%s%cForFiles", CachDir, slashDelim)
-                    TempDir = Inrec[4:]
+
+                    // If FLS: Split the Args - Otherwise just use the single arg
+                    if strings.HasPrefix(strings.ToUpper(Inrec), "FLS:") { 
+                        isFLS = true
+
+                        arg1, arg2, ts_err := twoSplit(strings.TrimSpace(Inrec[4:]))
+                        if ts_err == 1 {
+                            ConsOut = "[!] FLS requires: FLS:<path> <output.csv>\n"
+                            ConsLogSys(ConsOut, 1, 1)
+                            break
+                        }
+
+                        TempDir = arg1
+                        FLSFile  = arg2
+
+                    } else {
+                        TempDir = strings.TrimSpace(Inrec[4:])
+                    }
+
 
                     //*****************************************************************
                     //* If we are using FOR: with a ListFile (FOR:&LST), Append the   *
@@ -3506,6 +3531,74 @@ func main() {
                     }
 
                     ForHndl.Close()
+
+                    //*****************************************************************
+                    //* FLS post-processing (LST-style consumption)                   *
+                    //*****************************************************************
+                    if isFLS {
+                        ConsOut = fmt.Sprintf("[+] Processing FOR: (%s) Files to append FLS Metadata.\n", TempDir)
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        ForHndl, for_err = os.Open(ForFile)
+                        if for_err != nil {
+                            ConsOut = "[!] Could not open ForFiles for FLS processing.\n"
+                            ConsLogSys(ConsOut, 1, 1)
+                            break
+                        }
+                        defer ForHndl.Close()
+
+                        csvHndl, csv_err := os.OpenFile(FLSFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+                        if csv_err != nil {
+                            ConsOut = fmt.Sprintf("[!] FLS could not open output CSV: %s\n", FLSFile)
+                            ConsLogSys(ConsOut, 1, 1)
+                            break
+                        }
+                        defer csvHndl.Close()
+
+                        csvWr := csv.NewWriter(csvHndl)
+                        defer csvWr.Flush()
+
+                        fi, _ := csvHndl.Stat()
+                        if fi.Size() == 0 {
+                            csvWr.Write([]string{"FullPath", "ATimeUTC", "MTimeUTC", "CTimeUTC", "Size"})
+                        }
+
+                        ForScan := bufio.NewScanner(ForHndl)
+                        for ForScan.Scan() {
+                            Filrec = strings.TrimSpace(ForScan.Text())
+                            if len(Filrec) == 0 {
+                                continue
+                            }
+
+                            FLSInfo, stat_err := os.Stat(Filrec)
+                            if stat_err != nil || FLSInfo.IsDir() {
+                                continue
+                            }
+
+                            FLSFileSize := FLSInfo.Size()
+                            FLSATime, FLSMTime, FLSCTime := FTime(Filrec)
+
+                            if flsw_err := csvWr.Write([]string{
+                                Filrec, FLSATime.UTC().Format(time.RFC3339), FLSMTime.UTC().Format(time.RFC3339), 
+                                FLSCTime.UTC().Format(time.RFC3339), strconv.FormatInt(FLSFileSize, 10),
+                            }); flsw_err != nil {
+                                ConsOut = fmt.Sprintf("[!] FLS could not write output CSV: %s\n", FLSFile)
+                                ConsLogSys(ConsOut, 1, 1)
+                            }
+                        }
+
+                        // Need to Flush on Linux or risk an empty CSV - Windows seems more forgiving
+                        csvWr.Flush()
+                        if flush_err := csvWr.Error(); flush_err != nil {
+                            ConsOut = fmt.Sprintf("[!] FLS could not flush output CSV: %v\n", flush_err)
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+
+                        ConsOut = fmt.Sprintf("[+] FLS: processing completed: %s\n", FLSFile)
+                        ConsLogSys(ConsOut, 1, 1)
+
+                        csvHndl.Close()
+                    }
 
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "DEL:") {
                     TempDir = fmt.Sprintf("%s%c%s", BaseDir, slashDelim, Inrec[4:])
@@ -3701,6 +3794,12 @@ func main() {
 
                     ConsOut = fmt.Sprintf("[*] S3 AWS ID Set: %s\n", S3_AWSId)
                     ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3ENDPOINT=") {
+                    S3_ENDPOINT = Inrec[15:]
+                    iS3Login = 0  // Reset Login to force a New Session with this Key
+
+                    ConsOut = fmt.Sprintf("[*] S3 Endpoint Set: %s\n", S3_ENDPOINT)
+                    ConsLogSys(ConsOut, 1, 1)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3AWSKEY=") {
                     S3_AWSKey = Inrec[13:]
                     iS3Login = 0  // Reset Login to force a New Session with this Key
@@ -3840,11 +3939,22 @@ func main() {
                             ConsLogSys(ConsOut, 1, 1)
                             LastRC = 1
                         } else {
-                            S3_Session, upS3_err = session.NewSession(&aws.Config {
-                                Region: aws.String(S3_REGION),
-                                Credentials: credentials.NewStaticCredentials(
-                                S3_AWSId, S3_AWSKey, ""),
-                            })
+                            // Build AWS config
+                            awsConfig := &aws.Config{
+                                Region:      aws.String(S3_REGION),
+                                Credentials: credentials.NewStaticCredentials(S3_AWSId, S3_AWSKey, ""),
+                            }
+
+                            // If using a custom endpoint (LocalStack), set Endpoint and PathStyle
+                            if S3_ENDPOINT != "" {
+                                awsConfig.Endpoint = aws.String(S3_ENDPOINT)
+                                awsConfig.S3ForcePathStyle = aws.Bool(true)
+                            } else {
+                                awsConfig.S3ForcePathStyle = aws.Bool(false) // optional for real AWS
+                            }
+
+                            // Create the S3 session
+                            S3_Session, upS3_err = session.NewSession(awsConfig)
 
                             if upS3_err != nil {
                                 ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
@@ -3872,11 +3982,22 @@ func main() {
                             ConsOut = fmt.Sprintf("[+] Starting Session with AWS Key and Secret...\n")
                             ConsLogSys(ConsOut, 1, 1)
 
-                            S3_Session, upS3_err = session.NewSession(&aws.Config {
-                                Region: aws.String(S3_REGION),
-                                Credentials: credentials.NewStaticCredentials(
-                                S3_AWSId, S3_AWSKey, ""),
-                            })
+                            // Build AWS config
+                            awsConfig := &aws.Config{
+                                Region:      aws.String(S3_REGION),
+                                Credentials: credentials.NewStaticCredentials(S3_AWSId, S3_AWSKey, ""),
+                            }
+
+                            // If using a custom endpoint (LocalStack), set Endpoint and PathStyle
+                            if S3_ENDPOINT != "" {
+                                awsConfig.Endpoint = aws.String(S3_ENDPOINT)
+                                awsConfig.S3ForcePathStyle = aws.Bool(true)
+                            } else {
+                                awsConfig.S3ForcePathStyle = aws.Bool(false) // optional for real AWS
+                            }
+
+                            // Create the S3 session
+                            S3_Session, upS3_err = session.NewSession(awsConfig)
 
                             if upS3_err != nil {
                                 ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
@@ -7376,5 +7497,4 @@ func UnEmbedAny() bool {
     ConsLogSys(ConsOut, 1, 1)
     return UnEmbed(embdata)
 }
-
 
