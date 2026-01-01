@@ -268,6 +268,7 @@
 // AChoirX v10.01.80 - Release 1.80 - Tighten up and improve Packed/Embedded toolkit behavior.
 //
 // AChoirX v10.01.81 - Release 1.81 - Add FLS: Function for listing file metadata (At-Scale processing)
+//                   - Add S3_ENDPOINT for Localstack S3 Testing (Blank == Real AWS)
 //
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
@@ -479,6 +480,7 @@ var S3_REGION = "none"                          // AWS Region
 var S3_BUCKET = "none"                          // AWS Bucket
 var S3_AWSId = "none"                           // AWS ID
 var S3_AWSKey = "none"                          // AWS Secret Key
+var S3_ENDPOINT = ""                            // Change Endpoint to allow Local S3 emulation
 var S3_Session *session.Session                 // AWS Session
 var S3_AWS_SplitRC = 0                          // AWS Split Return Code
 var iS3Login = 0                                // Default is NOT logged in
@@ -3792,6 +3794,12 @@ func main() {
 
                     ConsOut = fmt.Sprintf("[*] S3 AWS ID Set: %s\n", S3_AWSId)
                     ConsLogSys(ConsOut, 1, 1)
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3ENDPOINT=") {
+                    S3_ENDPOINT = Inrec[15:]
+                    iS3Login = 0  // Reset Login to force a New Session with this Key
+
+                    ConsOut = fmt.Sprintf("[*] S3 Endpoint Set: %s\n", S3_ENDPOINT)
+                    ConsLogSys(ConsOut, 1, 1)
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "SET:S3AWSKEY=") {
                     S3_AWSKey = Inrec[13:]
                     iS3Login = 0  // Reset Login to force a New Session with this Key
@@ -3931,11 +3939,22 @@ func main() {
                             ConsLogSys(ConsOut, 1, 1)
                             LastRC = 1
                         } else {
-                            S3_Session, upS3_err = session.NewSession(&aws.Config {
-                                Region: aws.String(S3_REGION),
-                                Credentials: credentials.NewStaticCredentials(
-                                S3_AWSId, S3_AWSKey, ""),
-                            })
+                            // Build AWS config
+                            awsConfig := &aws.Config{
+                                Region:      aws.String(S3_REGION),
+                                Credentials: credentials.NewStaticCredentials(S3_AWSId, S3_AWSKey, ""),
+                            }
+
+                            // If using a custom endpoint (LocalStack), set Endpoint and PathStyle
+                            if S3_ENDPOINT != "" {
+                                awsConfig.Endpoint = aws.String(S3_ENDPOINT)
+                                awsConfig.S3ForcePathStyle = aws.Bool(true)
+                            } else {
+                                awsConfig.S3ForcePathStyle = aws.Bool(false) // optional for real AWS
+                            }
+
+                            // Create the S3 session
+                            S3_Session, upS3_err = session.NewSession(awsConfig)
 
                             if upS3_err != nil {
                                 ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
@@ -3963,11 +3982,22 @@ func main() {
                             ConsOut = fmt.Sprintf("[+] Starting Session with AWS Key and Secret...\n")
                             ConsLogSys(ConsOut, 1, 1)
 
-                            S3_Session, upS3_err = session.NewSession(&aws.Config {
-                                Region: aws.String(S3_REGION),
-                                Credentials: credentials.NewStaticCredentials(
-                                S3_AWSId, S3_AWSKey, ""),
-                            })
+                            // Build AWS config
+                            awsConfig := &aws.Config{
+                                Region:      aws.String(S3_REGION),
+                                Credentials: credentials.NewStaticCredentials(S3_AWSId, S3_AWSKey, ""),
+                            }
+
+                            // If using a custom endpoint (LocalStack), set Endpoint and PathStyle
+                            if S3_ENDPOINT != "" {
+                                awsConfig.Endpoint = aws.String(S3_ENDPOINT)
+                                awsConfig.S3ForcePathStyle = aws.Bool(true)
+                            } else {
+                                awsConfig.S3ForcePathStyle = aws.Bool(false) // optional for real AWS
+                            }
+
+                            // Create the S3 session
+                            S3_Session, upS3_err = session.NewSession(awsConfig)
 
                             if upS3_err != nil {
                                 ConsOut = fmt.Sprintf("[!] Error Starting AWS Session for S3: %s\n", upS3_err)
