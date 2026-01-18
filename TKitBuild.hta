@@ -1,6 +1,6 @@
 <html>
 <head>
-  <title>AChoirX Builder GUI 0.06</title>
+  <title>AChoirX Builder GUI 0.07</title>
 
   <HTA:APPLICATION ID="AChBuildGUI" 
     APPLICATIONNAME="AChBuild GUI" 
@@ -15,7 +15,7 @@
 <script type="text/javascript">
 // Set Window
 self.moveTo(10,10);
-self.resizeTo(1100,860);
+self.resizeTo(1100,875);
 
 // Set 4 Panels
 var panels = new Array("","panel1","panel2","panel3","panel4");
@@ -207,7 +207,7 @@ function ExitMe()
 <table align="center" border="0" cellpadding="0" cellspacing="0" width="1000">
 <tr valign="top">
   <td align="right" colspan="2">
-    <span class="head">AChoirX Builder GUI 0.06</span><br>
+    <span class="head">AChoirX Builder GUI 0.07</span><br>
   </td>
 </tr>
 
@@ -225,15 +225,14 @@ function ExitMe()
 
 <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
 <p>
-This Tab runs the Windows AChoirX toolkit builder and embedder. Enter the full path
-of the directory containing the AChoirX Windows Tools and scripts. The builder will
-zip them into a toolkit, and embed the toolkit into AChoirX, creating a new collector.
+This Tab runs the Windows AChoirX toolkit builder and embedder. Enter the full path<br>
+of the directory containing the AChoirX Windows Tools and scripts. The builder will<br>
+zip them into a toolkit, and embed the toolkit into AChoirX, creating a new collector.<br>
 </p>
 
 <p>
-Please Note:
-Creating your own .zip toolkit and using AChoirX /PKR will do the same thing. This
-GUI program simply makes the process easier.
+Please Note: Creating your own .zip toolkit and using AChoirX /PKR will do the same<br>
+thing. This GUI program simply makes the process easier.<br>
 </p>
 </TD></TR></TABLE>
 
@@ -262,8 +261,7 @@ GUI program simply makes the process easier.
 </TABLE>
 </p>
 
-<p>
-<font size="small">
+<p style="font-size: 20px;">
 <b><i>Note 1:</i></b> This GUI embeds the toolkit into a 64-Bit version of A-AChoirX using the TKitBuild.ACQ script<br>
 <b><i>Note 2:</i></b> This GUI will call AChoirX as an Admin
 </font>
@@ -277,17 +275,21 @@ GUI program simply makes the process easier.
 <table width="100%"><tr><td>
 <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
 <p>
-The Linux Builder helper can't be run from this .HTA file yet. This does not limit your
-ability to create a custom Linux collector. You can either create a zip file with your
-custom Linux toolkit and use AChoirX /PKR: on Linux to build a custom Linux collector, 
+The Linux Builder helper can't be run from this .HTA file yet. This does not limit your<br>
+ability to create a custom Linux collector. You can either create a zip file with your<br>
+custom Linux toolkit and use AChoirX /PKR: on Linux to build a custom Linux collector, <br>
 or you can use the /Scripts/TKitBuild.ACQ script with the following parameters:<br><br>
+</p>
 
+<p style="font-size: 20px;">
 <b>./AChoirX /ini:TKitBuild.ACQ /VR0:Linux /VR1:Directory_of_your_toolkit /VR2:Name_of_Build</b>
 </p>
+
 <p>
-I'll eventually create a GUI version of the custom Linux collector build. But for now
+I'll eventually create a GUI version of the custom Linux collector build. But for now<br>
 the process is command line only.
 </p>
+
 </TD></TR></TABLE>
 </td></tr></table>
 </div>
@@ -296,17 +298,21 @@ the process is command line only.
 <div class="panel" id="panel3" style="display:none">
 <table width="100%"><tr><td>
 <TABLE Width="100%" border="1" bgcolor="#FFFFEF"><TR><TD>
-<p>
-The MacOS Builder helper can't be run from this .HTA file yet. This does not limit your
-ability to create a custom MacOS collector. You can either create a zip file with your
-custom MacOS toolkit and use AChoirX /PKR: on MacOS to build a custom Linux collector, 
-or you can use the /Scripts/TKitBuild.ACQ script with the following parameters:<br><br>
 
-<b>./AChoirX-AMD /ini:TKitBuild.ACQ /VR0:OSX /VR1:Directory_of_your_toolkit /VR2:Name_of_Build</b><br>
-<b>./AChoirX-ARM /ini:TKitBuild.ACQ /VR0:OSX /VR1:Directory_of_your_toolkit /VR2:Name_of_Build</b>
-</p>
 <p>
-I'll eventually create a GUI version of the MascOS custom collector build. But for now
+The MacOS Builder helper can't be run from this .HTA file yet. This does not limit your<br>
+ability to create a custom MacOS collector. You can either create a zip file with your<br>
+custom MacOS toolkit and use AChoirX /PKR: on MacOS to build a custom Linux <br>
+collector, or you can use the /Scripts/TKitBuild.ACQ script with the following parameters:<br><br>
+</p>
+
+<p style="font-size: 20px;">
+ <b>./AChoirX-AMD /ini:TKitBuild.ACQ /VR0:OSX /VR1:Directory_of_your_toolkit /VR2:Name_of_Build</b><br>
+ <b>./AChoirX-ARM /ini:TKitBuild.ACQ /VR0:OSX /VR1:Directory_of_your_toolkit /VR2:Name_of_Build</b>
+</p>
+
+<p>
+I'll eventually create a GUI version of the MascOS custom collector build. But for now<br>
 the process is command line only.
 </p>
 </TD></TR></TABLE>
