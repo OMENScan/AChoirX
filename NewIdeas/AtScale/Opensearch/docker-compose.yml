@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  opensearch-dfir:
+    image: opensearchproject/opensearch:2.11.1
+    container_name: opensearch-dfir
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_JAVA_OPTS=-Xms4g -Xmx4g
+      - DISABLE_SECURITY_PLUGIN=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - opensearch-dfir-data:/usr/share/opensearch/data
+    ports:
+      - "9201:9200"
+
+  dashboards-dfir:
+    image: opensearchproject/opensearch-dashboards:2.11.1
+    container_name: opensearch-dashboards-dfir
+    environment:
+      - OPENSEARCH_HOSTS=http://opensearch-dfir:9200
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    ports:
+      - "5602:5601"
+    depends_on:
+      - opensearch-dfir
+
+  logstash-dfir:
+    image: opensearchproject/logstash-oss-with-opensearch-output-plugin:8.9.0
+    container_name: logstash-dfir
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+      - ./data:/data
+    depends_on:
+      - opensearch-dfir
+
+volumes:
+  opensearch-dfir-data:
