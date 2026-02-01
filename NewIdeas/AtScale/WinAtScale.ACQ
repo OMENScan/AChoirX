@@ -1,6 +1,6 @@
 *******************************************************
-* WinAtScale - Reference implementation - Alpha 1     *
-*  Version 0.01 - 12/30/2025 - Windows Only           *
+* WinAtScale - Reference implementation - Alpha 2     *
+*  Version 0.20 - 02/01/2026 - Windows Only           *
 *******************************************************
 SET:CopyPath=Part
 SAY:[+] AChoir will pull artifacts and telemetry of forensic value for investigation.
@@ -14,7 +14,7 @@ VER:Windows
  END:
  SET:ZipFileName=&Acq\&Acn.zip
  *******************************************************
- * OSQuery Commands                                    *
+ * OSQuery Commands (v2)                               *
  *******************************************************
  ACQ:\OSQ
  SAY:[+] Collecting System & Identity Information
@@ -28,8 +28,10 @@ VER:Windows
  EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT start_time AS datetime,'Process start time' AS timestamp_desc,pid,parent AS ppid,name AS process_name,path AS process_path,cmdline,'processes' AS artifact,'Process execution' AS message FROM processes;" --exestdout=&ACN\OSQ\ts_processes.csv
  EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT start_time AS datetime,'Suspicious command line' AS timestamp_desc,pid,parent AS ppid,name AS process_name,path,cmdline,'suspicious_cmdline' AS artifact,'Encoded or LOLBin execution' AS message FROM processes WHERE cmdline LIKE '%-enc%' OR cmdline LIKE '%Invoke-%' OR cmdline LIKE '%DownloadString%' OR name IN ('powershell.exe','pwsh.exe','cmd.exe','wscript.exe','cscript.exe','mshta.exe','rundll32.exe');" --exestdout=&ACN\OSQ\ts_suspicious_cmdlines.csv
  SAY:[+] Collecting Persistence Artifacts
- EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT key AS registry_key,name AS value_name,data AS value_data,'registry_run_keys' AS artifact,'Autorun registry entry' AS message FROM registry WHERE key LIKE 'HKEY_LOCAL_MACHINE\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run%' OR key LIKE 'HKEY_USERS\\\\%\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Run%';" --exestdout=&ACN\OSQ\ts_registry_run_keys.csv
- EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT name AS task_name,path AS task_path,action,enabled,'scheduled_tasks' AS artifact,'Scheduled task configuration' AS message FROM scheduled_tasks;" --exestdout=&ACN\OSQ\ts_scheduled_tasks.csv
+ * v0.02 - Fixed but still incomplete - use AChoirX Full ASEP Collector - REQUIRES osquery.conf to work 
+ EXE:\SYS\osqueryi.exe --config_path=&Dir\sys\osquery.conf --csv --separator "," "SELECT key AS registry_key,name AS value_name,data AS value_data,'registry_run_keys' AS artifact,'Autorun registry entry' AS message FROM registry WHERE key = 'HKEY_LOCAL_MACHINE\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' OR key = 'HKEY_LOCAL_MACHINE\\Software\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Run' OR key LIKE 'HKEY_USERS\\%\\Software\\Microsoft\\Windows\\CurrentVersion\\Run';"  --exestdout=&ACN\OSQ\ts_registry_run_keys.csv
+ * v0.02 - Fixed Query
+ EXE:\SYS\osqueryi.exe --enable_tables=scheduled_tasks --csv --separator "," "SELECT name AS task_name,path AS task_path,action,enabled,'scheduled_tasks' AS artifact,'Scheduled task configuration' AS message FROM scheduled_tasks;" --exestdout=&ACN\OSQ\ts_scheduled_tasks.csv
  EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT mtime AS datetime,'Startup file modified' AS timestamp_desc,path,size,'startup_persistence' AS artifact,'Startup folder persistence' AS message FROM file WHERE path LIKE 'C:\\\\Users\\\\%\\\\AppData\\\\Roaming\\\\Microsoft\\\\Windows\\\\Start Menu\\\\Programs\\\\Startup\\\\%';" --exestdout=&ACN\OSQ\ts_startup_folder.csv
  EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT datetime('now') AS datetime,'WMI event filter observed' AS timestamp_desc,name,query,'wmi_event_subscription' AS artifact,printf('WMI event filter %s with query %s observed',name,query) AS message FROM wmi_event_filters;" --exestdout=&ACN\OSQ\ts_wmi_event_filters.csv
  SAY:[+] Collecting Services
@@ -42,7 +44,8 @@ VER:Windows
  EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT datetime('now') AS datetime,'ARP cache entry observed' AS timestamp_desc,mac AS src_mac,interface,'arp_cache' AS artifact,printf('ARP entry observed for MAC %s on interface %s',mac,interface) AS message FROM arp_cache;" --exestdout=&ACN\OSQ\ts_arp_cache.csv
  EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT datetime('now') AS datetime,'Named pipe observed' AS timestamp_desc,name AS pipe_name,pid AS owning_pid,'pipes' AS artifact,printf('Named pipe %s owned by PID %d was observed',name,pid) AS message FROM pipes;" --exestdout=&ACN\OSQ\ts_pipes.csv
  SAY:[+] Collecting File System Artifacts
- EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT mtime AS datetime,'File modification time' AS timestamp_desc,path,size,'downloaded_executable' AS artifact,'Executable found in Downloads directory' AS message FROM file WHERE path LIKE 'C:\\\\Users\\\\%\\\\Downloads\\\\%.exe';" --exestdout=&ACN\OSQ\ts_downloaded_executables.csv
+ * v0.02 - Note OSQueryi does not appear support file Globbing - This should be gathered by FLS:
+ * v0.02 - EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT mtime AS datetime,'File modification time' AS timestamp_desc,path,size,'downloaded_executable' AS artifact,'Executable found in Downloads directory' AS message FROM file WHERE path LIKE 'C:\\\\Users\\\\%\\\\Downloads\\\\%.exe';" --exestdout=&ACN\OSQ\ts_downloaded_executables.csv
  SAY:[+] Collecting Evidence of Access
  EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT mtime AS datetime,'Recent file accessed' AS timestamp_desc,path AS file_path,filename AS file_name,'recent_files' AS artifact,printf('File %s at %s was accessed recently',filename,path) AS message FROM recent_files;" --exestdout=&ACN\OSQ\ts_recent_files.csv
  EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT datetime('now') AS datetime,'ShellBag folder observed' AS timestamp_desc,path AS folder_path,'shellbags' AS artifact,printf('ShellBag folder observed: %s',path) AS message FROM shellbags;" --exestdout=&ACN\OSQ\ts_shellbags.csv
@@ -64,7 +67,16 @@ VER:Windows
  EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT datetime,'Event log cleared' AS timestamp_desc,computer_name AS host,eventid,data,'log_clearing' AS artifact,'Windows event log cleared' AS message FROM windows_eventlog WHERE eventid IN (104,1102) AND channel='Security';" --exestdout=&ACN\OSQ\ts_Events_LogClearing.csv
  EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT datetime,'Audit policy changed' AS timestamp_desc,computer_name AS host,eventid,data,'audit_policy_change' AS artifact,'System audit policy modified (4719)' AS message FROM windows_eventlog WHERE eventid=4719 AND channel='Security';" --exestdout=&ACN\OSQ\ts_Events_AuditPolicyChanged.csv
  EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT datetime,'PowerShell script block' AS timestamp_desc,computer_name AS host,eventid,data,'powershell_scriptblock' AS artifact,'PowerShell Script Block Logging (4104)' AS message FROM windows_eventlog WHERE eventid=4104 AND channel='Microsoft-Windows-PowerShell/Operational';" --exestdout=&ACN\OSQ\ts_Events_PowerShell_4104.csv
- EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT datetime,'AV detection event' AS timestamp_desc,computer_name AS host,eventid,data,'antivirus_event' AS artifact,'Windows Defender / AV alert' AS message FROM windows_eventlog WHERE eventid IN (1005,1006,1009,1015) AND channel='Microsoft-Windows-Windows Defender/Operational';" --exestdout=&ACN\OSQ\ts_Events_AV_Detections.csv
+ * v0.02 - Updated Query
+ EXE:\SYS\osqueryi.exe --csv --separator "," "SELECT datetime,'AV detection event' AS timestamp_desc,computer_name AS host,eventid,data,'antivirus_event' AS artifact,'Windows Defender / AV alert' AS message FROM windows_eventlog WHERE eventid IN (1005,1006,1007,1009,1010,1015,1116,1117) AND channel='Microsoft-Windows-Windows Defender/Operational';" --exestdout=&ACN\OSQ\ts_Events_AV_Detections.csv
+ *******************************************************
+ * .LNK Files - New Functionality (v0.02)              *
+ *******************************************************
+ SAY:[+] Finding and Parsin All User Recent LNK files...
+ FOR:${SYSTEMDRIVE}\Users\*\Desktop\*.lnk
+ EXE:\SYS\osqueryi.exe --header=false --csv --separator "," "SELECT 'LNK File' AS timestamp_desc,filename,path,strftime('%Y-%m-%dT%H:%M:%SZ',btime,'unixepoch') AS btime,strftime('%Y-%m-%dT%H:%M:%SZ',mtime,'unixepoch') AS 'datetime',strftime('%Y-%m-%dT%H:%M:%SZ',ctime,'unixepoch') AS ctime,strftime('%Y-%m-%dT%H:%M:%SZ',atime,'unixepoch') AS atime,shortcut_target_path AS message,shortcut_target_type,shortcut_start_in,shortcut_comment FROM file WHERE path = '&for';" --exestdout=&ACN\OSQ\ts_LNKFiles.csv
+ FOR:${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk
+ EXE:\SYS\osqueryi.exe --header=false --csv --separator "," "SELECT 'LNK File' AS timestamp_desc,filename,path,strftime('%Y-%m-%dT%H:%M:%SZ',btime,'unixepoch') AS btime,strftime('%Y-%m-%dT%H:%M:%SZ',mtime,'unixepoch') AS 'datetime',strftime('%Y-%m-%dT%H:%M:%SZ',ctime,'unixepoch') AS ctime,strftime('%Y-%m-%dT%H:%M:%SZ',atime,'unixepoch') AS atime,shortcut_target_path AS message,shortcut_target_type,shortcut_start_in,shortcut_comment FROM file WHERE path = '&for';" --exestdout=&ACN\OSQ\ts_LNKFiles.csv
  *******************************************************
  * List common places where we find Evil               *
  *******************************************************
@@ -100,12 +112,12 @@ VER:Windows
  ACQ:\PSH
  CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\PowerShell\PSReadLine\*" "&Acq"
  *******************************************************
- * .LNK Files                                          *
+ * .LNK Files - Replaced in v0.02 with OSQuery         *
  *******************************************************
- SAY:[+] Copying All User Recent LNK files...
- ACQ:\LNK
- CPY:"${SYSTEMDRIVE}\Users\*\Desktop\*.lnk" "&Acq"
- CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk" "&Acq"
+ * SAY:[+] Copying All User Recent LNK files...
+ * ACQ:\LNK
+ * CPY:"${SYSTEMDRIVE}\Users\*\Desktop\*.lnk" "&Acq"
+ * CPY:"${SYSTEMDRIVE}\Users\*\AppData\Roaming\Microsoft\Windows\Recent\*.lnk" "&Acq"
  *******************************************************
  * WMI CIM Files                                       *
  *******************************************************
