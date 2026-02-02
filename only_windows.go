@@ -1,6 +1,6 @@
 // ****************************************************************
 // * Only Include this file for windows version                   *
-// * - Uses the Embed Directive - Requires GoLang 1.16            *
+// * - Uses the Embed Directive - Requires GoLang 1.16 or better  *
 // ****************************************************************
 
 package main
@@ -296,6 +296,12 @@ func makeKey(khive string) {
 //****************************************************************
 func walkKey(k registry.Key, kname string) {
 
+    // Get Key Last Write Time
+    keyWriteTime, lwt_err := getKeyLastWriteTime(k)
+    if lwt_err != nil {
+        keyWriteTime = ""
+    }
+
     names, err := k.ReadValueNames(-1)
     if err != nil {
         ConsOut = fmt.Sprintf("[!] Reading Value Names of %s Failed: %v\n", kname, err)
@@ -322,7 +328,7 @@ func walkKey(k registry.Key, kname string) {
                 //ConsOut = fmt.Sprintf("REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
                 //ConsLogSys(ConsOut, 1, 1)
                 //fmt.Fprintf(RegHndl, "REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
-                fmt.Fprintf(RegHndl, "REG_SZ\t%s\\%s\t%s\n", kname, name, strVal)
+                fmt.Fprintf(RegHndl, "REG_SZ\t%s\\%s\t%s\t%s\n", kname, name, strVal, keyWriteTime)
             }
         case registry.EXPAND_SZ:
             strVal, _, err := k.GetStringValue(name)
@@ -333,7 +339,7 @@ func walkKey(k registry.Key, kname string) {
                 //ConsOut = fmt.Sprintf("REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
                 //ConsLogSys(ConsOut, 1, 1)
                 //fmt.Fprintf(RegHndl, "REG_SZ, %s\\%s, `%s`\n", kname, name, strVal)
-                fmt.Fprintf(RegHndl, "REG_SZ\t%s\\%s\t%s\n", kname, name, strVal)
+                fmt.Fprintf(RegHndl, "REG_SZ\t%s\\%s\t%s\t%s\n", kname, name, strVal, keyWriteTime)
                 expVal, err := registry.ExpandString(strVal)
                 if err != nil {
                     ConsOut = fmt.Sprintf("[!] Registry Error: %s\n", err)
@@ -342,7 +348,7 @@ func walkKey(k registry.Key, kname string) {
                     //ConsOut = fmt.Sprintf("REG_EXPAND_SZ, %s\\%s, `%s`\n", kname, name, expVal)
                     //ConsLogSys(ConsOut, 1, 1)
                     //fmt.Fprintf(RegHndl, "REG_EXPAND_SZ, %s\\%s, `%s`\n", kname, name, expVal)
-                    fmt.Fprintf(RegHndl, "REG_EXPAND_SZ\t%s\\%s\t%s\n", kname, name, expVal)
+                    fmt.Fprintf(RegHndl, "REG_EXPAND_SZ\t%s\\%s\t%s\t%s\n", kname, name, expVal, keyWriteTime)
                 }
             }
         case registry.DWORD:
@@ -354,7 +360,7 @@ func walkKey(k registry.Key, kname string) {
                 //ConsOut = fmt.Sprintf("REG_DWORD, %s\\%s, %d\n", kname, name, val64)
                 //ConsLogSys(ConsOut, 1, 1)
                 //fmt.Fprintf(RegHndl, "REG_DWORD, %s\\%s, %d\n", kname, name, val64)
-                fmt.Fprintf(RegHndl, "REG_DWORD\t%s\\%s\t%d\n", kname, name, val64)
+                fmt.Fprintf(RegHndl, "REG_DWORD\t%s\\%s\t%d\t%s\n", kname, name, val64, keyWriteTime)
             }
         case registry.QWORD:
             val64, _, err := k.GetIntegerValue(name)
@@ -365,7 +371,7 @@ func walkKey(k registry.Key, kname string) {
                 //ConsOut = fmt.Sprintf("REG_QWORD, %s\\%s, %d\n", kname, name, val64)
                 //ConsLogSys(ConsOut, 1, 1)
                 //fmt.Fprintf(RegHndl, "REG_QWORD, %s\\%s, %d\n", kname, name, val64)
-                fmt.Fprintf(RegHndl, "REG_QWORD\t%s\\%s\t%d\n", kname, name, val64)
+                fmt.Fprintf(RegHndl, "REG_QWORD\t%s\\%s\t%d\t%s\n", kname, name, val64, keyWriteTime)
             }
         case registry.BINARY:
             binVal, _, err := k.GetBinaryValue(name)
@@ -376,7 +382,7 @@ func walkKey(k registry.Key, kname string) {
                 //ConsOut = fmt.Sprintf("REG_BINARY, %s\\%s, %v\n", kname, name, binVal)
                 //ConsLogSys(ConsOut, 1, 1)
                 //fmt.Fprintf(RegHndl, "REG_BINARY, %s\\%s, %v\n", kname, name, binVal)
-                fmt.Fprintf(RegHndl, "REG_BINARY\t%s\\%s\t%v\n", kname, name, binVal)
+                fmt.Fprintf(RegHndl, "REG_BINARY\t%s\\%s\t%v\t%s\n", kname, name, binVal, keyWriteTime)
             }
         case registry.MULTI_SZ:
             strVal, _, err := k.GetStringsValue(name)
@@ -387,7 +393,7 @@ func walkKey(k registry.Key, kname string) {
                 //ConsOut = fmt.Sprintf("REG_MULTI_SZ, %s\\%s, `%s`\n", kname, name, strVal)
                 //ConsLogSys(ConsOut, 1, 1)
                 //fmt.Fprintf(RegHndl, "REG_MULTI_SZ, %s\\%s, `%s`\n", kname, name, strVal)
-                fmt.Fprintf(RegHndl, "REG_MULTI_SZ\t%s\\%s\t%s\n", kname, name, strVal)
+                fmt.Fprintf(RegHndl, "REG_MULTI_SZ\t%s\\%s\t%s\t%s\n", kname, name, strVal, keyWriteTime)
             }
         case registry.FULL_RESOURCE_DESCRIPTOR, registry.RESOURCE_LIST, registry.RESOURCE_REQUIREMENTS_LIST:
             // TODO: not implemented
@@ -423,6 +429,36 @@ func walkKey(k registry.Key, kname string) {
             walkKey(subk, kname+`\`+name)
         }()
     }
+}
+
+
+//****************************************************************
+// Get Registry Key LastWriteTime                                *
+//****************************************************************
+func getKeyLastWriteTime(k registry.Key) (string, error) {
+    var ft windows.Filetime
+
+    regt_err := windows.RegQueryInfoKey(
+        windows.Handle(k),
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        nil,
+        &ft,
+    )
+    if regt_err != nil {
+        return "", regt_err
+    }
+
+    // Convert FILETIME → UTC ISO8601
+    t := time.Unix(0, ft.Nanoseconds()).UTC()
+    return t.Format(time.RFC3339), nil
 }
 
 

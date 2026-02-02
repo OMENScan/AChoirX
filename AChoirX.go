@@ -270,6 +270,8 @@
 // AChoirX v10.01.81 - Release 1.81 - Add FLS: Function for listing file metadata (At-Scale processing)
 //                   - Add S3_ENDPOINT for Localstack S3 Testing (Blank == Real AWS)
 //
+// AChoirX v10.01.82 - Release 1.82 - Add Last Write Time to Reistry Keys - For ingest SIEM analysis in context
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -342,7 +344,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.81"                       // AChoir Version
+var Version = "v10.01.82"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
