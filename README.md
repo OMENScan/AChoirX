@@ -207,3 +207,5 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 12/28/2025 - AChoirX v10.01.80 - Release 1.80 - Tighten up and improve Packed/Embedded toolkit behavior.
 
 12/31/2025 - AChoirX v10.01.81 - Release 1.81 - Add FLS: Function for listing file metadata (At-Scale processing) - Add S3_ENDPOINT for Localstack S3 Testing (Blank == Real AWS)
+
+02/01/2026 - AChoirX v10.01.82 - Release 1.82 - Add Last Write Time to Registry Keys - For ingest SIEM analysis in context / At Scale
