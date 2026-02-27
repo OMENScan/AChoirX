@@ -1,0 +1,20 @@
+{
+  "go.lintOnSave": "off",
+  "go.buildOnSave": "off",
+  "go.vetOnSave": "off",
+  "go.lintTool": "none",
+  "go.lintFlags": ["--disable=all"],
+  "go.useLanguageServer": false,
+  "gopls": {
+    "staticcheck": false,
+    "gofumpt": false,
+    "usePlaceholders": false
+  },
+  "[go]": {
+    "editor.defaultFormatter": "golang.go",
+    "editor.formatOnSave": false,
+    "editor.codeActionsOnSave": {
+      "source.fixAll": "never"
+    }
+  }
+}
