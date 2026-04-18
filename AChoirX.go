@@ -272,6 +272,8 @@
 //
 // AChoirX v10.01.82 - Release 1.82 - Add Last Write Time to Reistry Keys - For ingest SIEM analysis in context
 //
+// AChoirX v10.01.83 - Release 1.83 - Fix Poor SFTP Performance 
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -344,7 +346,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.82"                       // AChoir Version
+var Version = "v10.01.83"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -6961,11 +6963,12 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
 
 
     //***************************************************************************
-    // SFTP Using 4K Blocks - This is the best way I have found to prevent      *
-    //  RACE Conditions in the SFTP Library                                     *
+    // SFTP Using 32K Blocks - Standard SFTP Packet size                        *
     //***************************************************************************
     scopy_bytes = 0
-    SF_buffr := make([]byte, 4096)
+    var scopy_lastlog = 0
+
+    SF_buffr := make([]byte, 32768)
     for {
         SF_ReadByteCount, scopy_err = srcFile.Read(SF_buffr)
         if scopy_err != nil && scopy_err != io.EOF {
@@ -6985,7 +6988,10 @@ func uploadFileToSF(sftp_client sftp.Client, localFile, remoteFile string) (err 
             return
         } else {
             scopy_bytes += SF_ReadByteCount
-            fmt.Printf("[*] Uploading Bytes: %d\r", scopy_bytes)
+            if scopy_bytes - scopy_lastlog >= 1048576 {
+                fmt.Printf("[*] Uploading Bytes: %d\r", scopy_bytes)
+                scopy_lastlog = scopy_bytes
+            }
         }
     }
 
