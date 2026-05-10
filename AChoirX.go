@@ -274,6 +274,15 @@
 //
 // AChoirX v10.01.83 - Release 1.83 - Fix Poor SFTP Performance 
 //
+// AChoirX v10.01.84 - Release 1.84 - Four new functions added:
+//                     ECS: (encrypt + b64 a string)
+//                     DCS: (b64 decode + decrypt a string)
+//                     B64: (Base 64 encode string)
+//                     D64: (Base 64 decode a string)
+//                   - These are designed to allow encrypted parameters to be passed to avoid any sensitive
+//                     (i.e. keys) data to be logged or saved in the collected telemetry. But they can be used
+//                     for anything you like ;)
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -414,6 +423,10 @@ var XitCmd = "Exit"                             // Exit Command (AChoirX Post Pr
 var iOPNisOpen = 0                              // Is the User Defined File Open?
 var setCDepth = 10                              // Set Copy Depth
 var LastHash = "none"                           // Last Single File Hash
+var LastECS = "none"                            // Last Single encrypted string
+var LastDCS = "none"                            // Last Single decrypted string
+var LastB64 = "none"                            // Last Single Base64 encoded string
+var LastD64 = "none"                            // Last Single Base64 decoded string
 var NotFound = 0                                // Flag for ensuring that only one Found Rec Increments RunMe
 var YesFound = 0                                // Flag for ensuring that only one Found Rec Increments RunMe
 var isInstalled = 0                             // AChoirX Install Has Not been Run Yet (0)
@@ -450,6 +463,7 @@ var Conrec = "Console Record"                   // Console Output Record
 var Tmprec = "Formatted Console Record"         // Console Formatting Record
 var Cpyrec = "Copy Record"                      // Used by Copy Routine
 var Encrec = "Encrypt Record"                   // Used by Encrypt Routine
+var B64rec = "B64 en/decode Record"             // Used by Base64 Routine
 var S3Urec = "Copy Record"                      // Used by S3 Upload Routine
 var SFUrec = "Copy Record"                      // Used by SFTP Upload Routine
 var Cmprec = "Compare Record"                   // Used by Compare Routines
@@ -1737,6 +1751,30 @@ func main() {
 
                     repl_Hsh := NewCaseInsensitiveReplacer("&Hsh", LastHash)
                     o32VarRec = repl_Hsh.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Ecs") {
+
+                    repl_Ecs := NewCaseInsensitiveReplacer("&Ecs", LastECS)
+                    o32VarRec = repl_Ecs.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&Dcs") {
+
+                    repl_Dcs := NewCaseInsensitiveReplacer("&Dcs", LastDCS)
+                    o32VarRec = repl_Dcs.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&B64") {
+
+                    repl_B64 := NewCaseInsensitiveReplacer("&B64", LastB64)
+                    o32VarRec = repl_B64.Replace(o32VarRec)
+                }
+
+                if CaseInsensitiveContains(o32VarRec, "&D64") {
+
+                    repl_D64 := NewCaseInsensitiveReplacer("&D64", LastD64)
+                    o32VarRec = repl_D64.Replace(o32VarRec)
                 }
 
                 if CaseInsensitiveContains(o32VarRec, "&Tim") {
@@ -3415,6 +3453,69 @@ func main() {
                     filepath.Walk(TempDir, MD5FileOut)
 
                     MD5Hndl.Close()
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "ECS:") {
+                    if len(Inrec) > 4 {
+                        Encrec = Inrec[4:]
+                        splitString1, splitString2, SplitRC := twoSplit(Encrec)
+
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] Encryption REQUIRES both a String and a Key\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            encryptedBytes := encrypt([]byte(splitString1), splitString2)
+                            LastECS = base64.StdEncoding.EncodeToString(encryptedBytes)
+                        }
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] No Encryption Parameters Specified.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        break
+                    }
+
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "DCS:") {
+                    if len(Inrec) > 4 {
+                        Encrec = Inrec[4:]
+                        splitString1, splitString2, SplitRC := twoSplit(Encrec)
+
+                        if SplitRC == 1 {
+                            ConsOut = fmt.Sprintf("[!] Decryption REQUIRES both an Base64+Encrypted String and a Decryption Key\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                        } else {
+                            cipherBytes, err := base64.StdEncoding.DecodeString(splitString1)
+                            if err != nil {
+                                ConsOut = fmt.Sprintf("[!] Error Base64 Decoding Encryption String.\n")
+                                ConsLogSys(ConsOut, 1, 1)
+                            } else {
+                                LastDCS = string(decrypt(cipherBytes, splitString2))
+                            }
+                        }
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] No Decryption Parameters Specified.\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                        break
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "B64:") {
+                    if len(Inrec) > 4 {
+                        B64rec = Inrec[4:]
+                        LastB64 = fmt.Sprintf("%s\n", base64.StdEncoding.EncodeToString([]byte(B64rec)))
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] B64 Encoding REQUIRES a String to encode\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
+                } else if strings.HasPrefix(strings.ToUpper(Inrec), "D64:") {
+                    if len(Inrec) > 4 {
+                        B64rec = Inrec[4:]
+                        D64_decoded, d64_err := base64.StdEncoding.DecodeString(B64rec)
+
+                        if d64_err == nil {
+                            LastD64 = fmt.Sprintf("%s\n", string(D64_decoded))
+                        } else {
+                            ConsOut = fmt.Sprintf("[!] B64 Decoding error - Probably not a valid B64 String\n")
+                            ConsLogSys(ConsOut, 1, 1)
+                        }
+                    } else {
+                        ConsOut = fmt.Sprintf("[!] B64 Decoding REQUIRES a properly formatted Base 64 String\n")
+                        ConsLogSys(ConsOut, 1, 1)
+                    }
                 } else if strings.HasPrefix(strings.ToUpper(Inrec), "DSK:") {
                     // Checking Drive Types for Windows only
                     // DRIVE_CDROM = 5, DRIVE_FIXED = 3, DRIVE_RAMDISK = 6, DRIVE_REMOTE = 4, DRIVE_REMOVABLE = 2

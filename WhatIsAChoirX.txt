@@ -281,6 +281,16 @@ CN0: - CN9: <Number to Set> or ++ or --
 HSH:ACQ  Hash everything in the &ACQ directory and subdirectories
 HSH:Dir  Hash everything in the &DIR directory and subdirectories
 HSH:<FileName> MD5 Hash The file and store it in &HSH
+ECS:<String> <Key> - Encrypt & B64 encode a string with a Key
+    - Results go into &ECS
+    - Note: Forcing the encrypted string to be B64 encoded stabilizes it
+DCS:<EncryptedString> <Key> - Decode (b64) and Decrypt a string with a Key
+    - Results go into &DCS
+    - Note: Forcing the encrypted string to be B64 encoded stabilizes it
+B64:<String> - Base64 Encode a string
+    - Results go into &B64
+D64:<String> - Base64 Dencode a B64 string
+    - Results go into &D64
 FOR:     Set the &FOR object.  This is a Looping object based on 
          Files - For instance "FOR:C:\Users\*.DAT" will define
          All *.DAT Files under C:\Users. In this way a single 
@@ -451,6 +461,10 @@ Objects:
 &HST     Local Host Name (set to "localhost" on error)
 &ADM     Running as Admin?  (Yes | No)
 &HSH     MD5 of the last file Hashed with HSH:
+&ECS     Encrypted + B64 Encoded String with ECS:
+&DCS     Decrypted B64+Encrypted String with DCS:
+&B64     Base 64 Encoded String with B64:
+&D64     Base 64 Decoded String with D64:
 
 ${<variable>} - AChoirX can also expand the native OS Environment Variables
 

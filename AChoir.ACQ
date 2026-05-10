@@ -58,14 +58,34 @@ Ver:OSX
  SYS:mount --exestdout=&acn/Disk/MountedDisks.dat
  SYS:df -h --exestdout=&acn/Disk/DiskUsage.dat
  SYS:find / -type f -exec stat -f "%i, %d, %b, %Sa, %Sc, %Sm, %Mp%Lp, %Su, %Sg, %N" -t "%Y-%m-%d %H:%M:%S %z" {} + --exestdout=&Acn/Disk/AllFiles.csv
+ SAY:[+] Gathering FS Events Data...
+ ACQ:/Disk/FSEvents
+ CPY:/System/Volumes/Data/.fseventsd/**/* &Acq
  SAY:[+] Gathering System Information...
  ACQ:/Sys
  SYS:system_profiler --exestdout=&acn/Sys/Profiler.dat
  SAY:[+] Copying var/log Directory...
- ACQ:/Var/Log
- CPY:/var/log/**/* &Acq
+ *ACQ:/Var/Log
+ *CPY:/var/log/**/* &Acq
  ACQ:/Var/Log/Private
  CPY:/private/var/log/**/* &Acq
+ SAY:[+] Copying Unified Logs (tracev3)...
+ ACQ:/Var/UnifiedLogs
+ EXE:/usr/bin/log show --style syslog --last 90d --exestdout=&acn/Var/UnifiedLogs/log_last90d.txt
+ ACQ:/Var/UnifiedLogs/diagnostics
+ CPY:/private/var/db/diagnostics/**/* &Acq
+ ACQ:/Var/UnifiedLogs/uuidtext
+ CPY:/private/var/db/uuidtext/**/* &Acq
+ SAY:[+] Gathering XProtect and Diagnostics...
+ ACQ:/Var/XProtect
+ CPY:/var/db/xprotect/**/* &Acq
+ ACQ:/Var/XProtect/Bundle
+ CPY:/Library/Apple/System/Library/CoreServices/XProtect.bundle/**/* &Acq
+ ACQ:/Var/XProtect/Diagnostics
+ CPY:/Library/Logs/DianosticReports/**/* &Acq
+ SAY:[+] Gathering Local User Plists...
+ ACQ:/UserInfo
+ CPY:/var/db/dslocal/nodes/Default/users/* &Acq
  SAY:[+] Copying Etc Directory...
  ACQ:/Sys/Etc
  CPY:/etc/* &acq
@@ -92,11 +112,17 @@ Ver:OSX
  SAY:[+] Gathering Open Files/Process Information...
  ACQ:/Sys
  SYS:lsof --exestdout=&acn/Sys/OpenFiles.dat
+ SAY:[+] Gathering System TCC Database...
+ ACQ:/Sys/TCC
+ CPY:"/Library/Application Support/com.apple.TCC/TCC.db" &Acq
+ SAY:[+] Gathering System Extentions...
+ ACQ:/Sys/SystemExtensions
+ CPY:/Library/SystemExtensions/**/* &Acq
  SAY:[+] Gathering Scheduled Task (cron) Information...
  ACQ:/Cron
  cpy:/etc/crontab &Acq
  ACQ:/Cron/Usr
- cpy:/usr/lib/cron/tabs/**/* &Acq
+ CPY:/usr/lib/cron/tabs/**/* &Acq
  SAY:[+] Gathering Scheduled Task (launchd) Information...
  ACQ:/Launchd/Library/LaunchDaemons
  CPY:/Library/LaunchDaemons/**/* &Acq
@@ -113,14 +139,14 @@ Ver:OSX
  SAY:[+] Gathering Services Information...
  ACQ:/Sys
  SYS:launchctl list --exestdout=&acn/Sys/Services.dat
- SAY:[+] Gathering User Information...
- ACQ:/UserInfo
- SYS:whoami --exestdout=&acn/UserInfo/Whoami.dat
- SYS:logname --exestdout=&acn/UserInfo/Logname.dat
  *******************************************************
  * Un-Comment the OSQuery Script for OSQ Artifacts     *
  *******************************************************
  * INC:Scripts/Common/XPlatOSQ.ACQ
+ SAY:[+] Gathering User Information...
+ ACQ:/UserInfo
+ SYS:whoami --exestdout=&acn/UserInfo/Whoami.dat
+ SYS:logname --exestdout=&acn/UserInfo/Logname.dat
  SAY:[+] Gathering Current User Config Files...
  ACQ:/Home
  * CPY:/Users/**/.* &Acq
@@ -139,6 +165,60 @@ Ver:OSX
  CPY:&For "&Acq"
  FLT:None
  Set:Filter=None
+ SAY:[+] Gathering User Config Files...
+ CPY:/Users/*/Documents/*.sh &ACQ
+ CPY:/Users/*/Documents/*.PY &ACQ
+ CPY:/Users/*/Documents/*.pl &ACQ
+ CPY:/Users/*/Documents/*.rb &ACQ
+ CPY:/Users/*/Documents/*.scpt &ACQ
+ CPY:/Users/*/Documents/*.applescript &ACQ
+ CPY:/Users/*/Documents/*.command &ACQ
+ CPY:/Users/*/Documents/*.terminal &ACQ
+ CPY:/Users/*/Documents/*.plist &ACQ
+ CPY:/Users/*/Documents/*.app/**/* &ACQ
+ CPY:/Users/*/Documents/*.dmg &ACQ
+ CPY:/Users/*/Documents/*.pkg &ACQ
+ CPY:/Users/*/Documents/*.dylib &ACQ
+ CPY:/Users/*/Documents/*.so &ACQ
+ CPY:/Users/*/Documents/*.jar &ACQ
+ CPY:/Users/*/Documents/*.exe &ACQ
+ CPY:/Users/*/Documents/*.msi &ACQ
+ CPY:/Users/*/Documents/.* &ACQ
+ CPY:/Users/*/Documents/.*/**/* &ACQ
+ SAY:[+] Gathering Current Root Config Files...
+ ACQ:/Home/Root
+ CPY:/var/root/.bash_history &ACQ
+ CPY:/var/root/.zsh_history &ACQ
+ ACQ:/Home/Root/SSH
+ CPY:/var/root/.ssh/* &ACQ
+ ACQ:/Home/Root/LaunchAgents
+ CPY:/var/root/Library/LaunchAgents/* &ACQ
+ SAY:[+] Gathering Browser History...
+ ACQ:/Brw
+ CPY:"/Users/*/Library/Safari/History.db &Acq
+ CPY:"/Users/*/Library/Safari/Downloads.plist" &Acq
+ CPY:"/Users/*/Library/Preferences/com.apple.Safari.plist" &Acq
+ CPY:"/Users/*/Library/Application Support/Google/Chrome/*/History" &Acq
+ CPY:"/Users/*/Library/Application Support/Google/Chrome Beta/*/History" &Acq
+ CPY:"/Users/*/Library/Application Support/Google/Chrome Canary/*/History" &Acq
+ CPY:"/Users/*/Library/Application Support/Google/Chromium/*/History" &Acq
+ CPY:"/Users/*/Library/Application Support/Microsoft Edge/*/History" &Acq
+ CPY:"/Users/*/Library/Application Support/Microsoft Edge Beta/*/History" &Acq
+ CPY:"/Users/*/Library/Application Support/Microsoft Edge Dev/*/History" &Acq
+ CPY:"/Users/*/Library/Application Support/Microsoft Edge Canary/*/History" &Acq
+ CPY:"/Users/*/Library/Application Support/Microsoft Edge/*/History-wal" &Acq
+ CPY:"/Users/*/Library/Application Support/Microsoft Edge/*/History-shm" &Acq
+ CPY:"/Users/*/Library/Application Support/Brave Software/*/History-shm" &Acq
+ CPY:"/Users/*/Library/Application Support/Vivaldi/*/History-shm" &Acq
+ CPY:"/Users/*/Library/Application Support/com.operasoftware.Opera*/*/History-shm" &Acq
+ CPY:"/Users/*/Library/Application Support/Arc/*/History-shm" &Acq
+ CPY:"/Users/*/Library/Application Support/Yandex/*/History-shm" &Acq
+ CPY:"/Users/*/Library/Application Support/Firefox/Profiles/*/places.sqlite" &Acq
+ CPY:"/Users/*/Library/Application Support/Firefox/Profiles/*/downloads.json" &Acq
+ CPY:"/Users/*/Library/Application Support/TorBrowser-Data/*/places.sqlite" &Acq
+ CPY:"/Users/*/Downloads/**/*" &Acq
+ CPY:"/Users/*/Library/Preferences/com.apple.LaunchServices.QuarantineEventsV2" &Acq
+ ACQ:/
  HSH:ACQ
  *******************************************************
  * Run Cleanup ONLY if AChCleanr.exe is in root dir    *

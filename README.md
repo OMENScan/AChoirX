@@ -210,5 +210,7 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 
 02/01/2026 - AChoirX v10.01.82 - Release 1.82 - Add Last Write Time to Registry Keys - For ingest SIEM analysis in context / At Scale
 
-04/18/2026 - AChoirX v10.01.83 - Release 1.83 - Improvements in SFTP performance
+04/18/2026 - AChoirX v10.01.83 - Release 1.83 - Fix Poor SFTP Performance 
+
+05/09/2026 - AChoirX v10.01.84 - Release 1.84 - Four new functions added: ECS: (encrypt + b64 a string), DCS: (b64 decode + decrypt a string), B64: (Base 64 encode string), D64: (Base 64 decode a string). These are designed to allow encrypted parameters to be passed to avoid any sensitive - (i.e. keys) data to be logged or saved in the collected telemetry. But they can be used for anything you like ;)
 
