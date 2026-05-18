@@ -284,6 +284,7 @@
 //                     for anything you like ;)
 //
 // AChoirX v10.01.85 - Add /INP and /INP:<Message> Command line function to receive data using stdin
+//                   - The new feature exposed an stdin and CONSOLE conflict which was fixed 
 //
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
@@ -1445,6 +1446,16 @@ func main() {
 
                     HndlArry[iIniCount].Close()
                     //fmt.Printf(">>>")
+                    // Windows, Mac, or Linux TTY?
+                    if opSystem == "windows" {
+                        if restoreTTY, restoreErr := os.Open("CONIN$"); restoreErr == nil {
+                            os.Stdin = restoreTTY
+                        }
+                    } else {
+                        if restoreTTY, restoreErr := os.Open("/dev/tty"); restoreErr == nil {
+                            os.Stdin = restoreTTY
+                        }
+                    }
                     ScanArry[iIniCount] = bufio.NewScanner(os.Stdin)
                 } else {
                     // End of INI, Exit Out
@@ -2412,6 +2423,16 @@ func main() {
 
                             HndlArry[iIniCount].Close()
                             //fmt.Printf(">>>")
+                            // Windows, Mac, or Linux TTY?
+                            if opSystem == "windows" {
+                                if restoreTTY, restoreErr := os.Open("CONIN$"); restoreErr == nil {
+                                    os.Stdin = restoreTTY
+                                }
+                            } else {
+                                if restoreTTY, restoreErr := os.Open("/dev/tty"); restoreErr == nil {
+                                    os.Stdin = restoreTTY
+                                }
+                            }
                             ScanArry[iIniCount] = bufio.NewScanner(os.Stdin)
                         }
                     } else {
