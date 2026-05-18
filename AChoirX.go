@@ -283,6 +283,8 @@
 //                     (i.e. keys) data to be logged or saved in the collected telemetry. But they can be used
 //                     for anything you like ;)
 //
+// AChoirX v10.01.85 - Add /INP and /INP:<Message> Command line function to receive data using stdin
+//
 // Other Libraries and code I use:
 //  Syslog:   go get github.com/NextronSystems/simplesyslog
 //  Sys:      go get golang.org/x/sys
@@ -355,7 +357,7 @@ import (
 
 
 // Global Variable Settings
-var Version = "v10.01.83"                       // AChoir Version
+var Version = "v10.01.85"                       // AChoir Version
 var RunMode = "Run"                             // Character Runmode Flag (Build, Run, Menu)
 var ConsOut = "[+] Console Output"              // Console, Log, Syslog strings
 var MyProg = "none"                             // My Program Name and Path (os.Args[0])
@@ -755,9 +757,82 @@ func main() {
     evidNumbr = "001"
     caseExmnr = "Unknown"
 
-    // Start by Parsing any Command Line Parameters
+
+    // Pre-Flight Parser - Read stdin before any other processing - Timeout after 60 seconds
+    var inpUsed bool
     for i := 1; i < len(os.Args); i++ {
-        if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/HELP") {
+        if strings.ToUpper(os.Args[i]) == "/INP" {
+            fi, statErr := os.Stdin.Stat()
+            if statErr == nil && (fi.Mode()&os.ModeCharDevice) == 0 {
+                // stdin is a pipe
+                ch := make(chan string, 1)
+                go func() {   
+                    pipeReadr := bufio.NewReader(os.Stdin)
+                    pipeLine, _ := pipeReadr.ReadString('\n')
+                    ch <- pipeLine
+                }()
+
+                select {
+                case resultLine := <-ch:
+                    Inprec = strings.TrimSpace(resultLine)
+                case <-time.After(60 * time.Second):
+                    fmt.Println("[!] /INP: Timeout - No input received. Continuing without input...")
+                    os.Stdin.Close()
+                }
+            } else {
+                fmt.Println("[!] /INP: No input received. Continuing without input...")
+            }
+            inpUsed = true
+            break
+        } else if len(os.Args[i]) > 5 && strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INP:") {
+            var promptTTY *os.File
+            var promptErr error
+
+            // Windows, Mac, or Linux TTY?
+            if opSystem == "windows" {
+                promptTTY, promptErr = os.Open("CONIN$")
+            } else {
+                promptTTY, promptErr = os.Open("/dev/tty")
+            }
+
+            if promptErr == nil {
+                fmt.Printf("[?] %s > ", os.Args[i][5:])
+                promptReadr := bufio.NewReader(promptTTY)
+                promptLine, _ := promptReadr.ReadString('\n')
+                Inprec = strings.TrimSpace(promptLine)
+                promptTTY.Close()
+            } else {
+                fmt.Println("[!] /INP: Cannot open terminal for interactive input")
+                break
+            }
+            inpUsed = true
+            break
+        }    
+    }
+
+    // Be sure to reset back to OS defaults - to avoid strange behavior
+    if inpUsed {
+        var restoreTTY *os.File
+        var restoreErr error
+
+        // Windows, Mac, or Linux TTY?
+        if opSystem == "windows" {
+            if restoreTTY, restoreErr = os.Open("CONIN$"); restoreErr == nil {
+                os.Stdin = restoreTTY
+            }
+        } else {
+            if restoreTTY, restoreErr = os.Open("/dev/tty"); restoreErr == nil {
+                os.Stdin = restoreTTY
+            }
+        }
+    }
+
+    // Pre-Flight passed - Start by Parsing any Command Line Parameters
+    for i := 1; i < len(os.Args); i++ {
+        if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/INP") {
+            // Pre-flight Handles this
+
+        } else if strings.HasPrefix(strings.ToUpper(os.Args[i]), "/HELP") {
             fmt.Printf("\nAChoirX ver: %s, Argument/Options:\n", Version)
 
             fmt.Printf(" /Help - This Description\n")
@@ -765,6 +840,7 @@ func main() {
             fmt.Printf(" /MNU - Run the Menu.ACQ Script (A Simple AChoirX Menu)\n")
             fmt.Printf(" /RUN - Run the AChoir.ACQ Script to do a Live Acquisition\n")
             fmt.Printf(" /DRV:<x:> - Set the &DRV parameter\n")
+            fmt.Printf(" /INP<:prompt> - /INP reads stdin into &INP - add :<prompt> to add an interractive prompt\n")
             fmt.Printf(" /USR:<UserID> - User to Map to Remote Server\n")
             fmt.Printf(" /PWD:<Password> - Password to Map to Remote Server\n")
             fmt.Printf(" /MAP:<Server\\Share> - Map to a Remote Server\n")

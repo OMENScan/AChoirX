@@ -1,4 +1,4 @@
-AChoirX - v10.01.84 - Release 1.84
+AChoirX - v10.01.85 - Release 1.85
 
 AChoirX
 =======
@@ -477,6 +477,8 @@ Here are the Command Line Options:
         This option WILL Create a Base Acquisition Directory
 /MNU  - Run the Menu.ACQ Script (AChoirX Menu)
         Note: This is a simple Menu Script for selecting an AChoirX script to run.
+/INP  - Read stdin into &INP variable
+/INP:<Message> - Print message to console and get data input into &INP
 /CON  - Run In Interactive Mode (Same as /Ini:Console)
 /CSE  - Interactive/Console Query for Case Information
 /NAM:<Name> - Set the Acquisition Directory using this Name

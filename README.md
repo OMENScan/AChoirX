@@ -214,3 +214,4 @@ AChoirX v10.01.00 - Release 1.0, Add /Nam: to Specify Directory Name
 
 05/09/2026 - AChoirX v10.01.84 - Release 1.84 - Four new functions added: ECS: (encrypt + b64 a string), DCS: (b64 decode + decrypt a string), B64: (Base 64 encode string), D64: (Base 64 decode a string). These are designed to allow encrypted parameters to be passed to avoid any sensitive - (i.e. keys) data to be logged or saved in the collected telemetry. But they can be used for anything you like ;)
 
+05/17/2026 - AChoirX v10.01.85 - Add /INP and /INP:<Message> Command line function to receive data using stdin
